@@ -211,7 +211,7 @@ export const handleRevenueSegmentation: RequestHandler = async (req, res) => {
  * Yahoo-driven fallback for the Index financial-metrics grid when FMP is
  * rate-limited (HTTP 429 from `/stable/`). Mirrors the parity handler
  * `handleStockYahooFallbackFinancials` in `api/_router.js` so the local
- * dev server + Vercel / Netlify both return the same response shape.
+ * dev server and Vercel both return the same response shape.
  * Always returns a `YahooFallbackFinancials` (never throws): missing
  * upstream values normalise to `null` so the client renders em-dashes
  * instead of misleading zeros.

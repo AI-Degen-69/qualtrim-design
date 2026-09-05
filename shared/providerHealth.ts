@@ -7,7 +7,7 @@ import type { ProviderHealthEntry, ProviderStatus } from "./api";
  * `stockService` so the classification rules are unit-testable without
  * network, cache, or Yahoo instances.
  *
- * NOTE: the Netlify/Vercel router (`api/_router.js`) intentionally does
+ * NOTE: the Vercel router (`api/_router.js`) intentionally does
  * NOT consume this module — it is plain JS and its bundler rejects TS
  * imports from `api/*.ts`, so it duplicates the classification inline.
  * Keep that copy in sync if the rules here change.

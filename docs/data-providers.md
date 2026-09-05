@@ -222,12 +222,12 @@ through many tickers rapidly is the only way to exhaust it.
 
 **Deployment entries:**
 
-- `netlify/functions/api.ts` → `createServer()` (the full Express app).
 - `api/[[...slug]].ts` → `api/_router.js` (Vercel). **This is a separate,
-  Yahoo-only router** with stubs: `earnings-calendar` returns `[]`,
-  `sector-heatmap` returns empty rows, financials use Yahoo
-  `fundamentalsTimeSeries` instead of FMP. Keep both routers in sync when
-  changing endpoints.
+  plain-JS router** that serves the same endpoints with different provider
+  preferences: financials use Yahoo `fundamentalsTimeSeries` instead of FMP,
+  and `earnings-calendar` calls FMP only when `FMP_KEY` is set, returning `[]`
+  otherwise. `sector-heatmap` runs the same validation and aggregation as the
+  Express twin. Keep both routers in sync when changing endpoints.
 
 **Dead / unwired modules (not referenced by any live route):**
 

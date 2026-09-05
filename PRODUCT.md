@@ -28,7 +28,7 @@ A neighboring quote-tracker site could not truthfully copy this without also sol
 ## Operating Context
 
 - Multi-provider data layer with an explicit fallback chain per data point (Yahoo primary for quotes/charts/news/FX, FMP for fundamentals/DCF/earnings-calendar, AlphaVantage as last-resort quote fallback); see `docs/data-providers.md`.
-- Two parallel server entrypoints must stay in sync: `server/index.ts` (full Express app, used by `pnpm dev` and Netlify) and `api/_router.js` (a separate Yahoo-only router for Vercel deploys with stubbed-out fundamentals/earnings-calendar/sector-heatmap).
+- Two parallel server entrypoints must stay in sync: `server/index.ts` (full Express app, used by `pnpm dev`) and `api/_router.js` (a separate plain-JS router for Vercel deploys). The Vercel router serves the same endpoints, but leans on Yahoo where the Express app prefers FMP: `handleStockFinancials` falls back to Yahoo `fundamentalsTimeSeries`, and `handleEarningsCalendar` uses FMP only when `FMP_KEY` is set, returning `[]` otherwise.
 - Provider-health probing and `[MOCK]` badging surface data staleness/outages directly in the UI rather than hiding them.
 - Bilingual runtime: `client/locales/en` and `client/locales/he`, with RTL layout support for Hebrew.
 

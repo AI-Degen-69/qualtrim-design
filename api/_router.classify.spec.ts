@@ -7,7 +7,7 @@ import { classify } from "./_router";
  * refuses to link against TS imports, so it carries its own copy of the
  * provider-status classifier (`classify`) instead of importing
  * `classifyProviderResult` from `shared/providerHealth.ts`. If the two ever
- * disagree, the Netlify/Vercel deployment would label provider health
+ * disagree, the Vercel deployment would label provider health
  * differently from the Express server. This spec fails CI on any drift;
  * when the classification rules change, update BOTH copies (and the matrix
  * below) together.

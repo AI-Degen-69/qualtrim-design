@@ -1,6 +1,6 @@
 # Vantage
 
-Stock research and valuation app. Vite + React 18 SPA on the client, Express 5 on the server, deployed to Vercel (primary) and Netlify functions.
+Stock research and valuation app. Vite + React 18 SPA on the client, Express 5 on the server, deployed to Vercel.
 
 ## Commands
 
@@ -25,7 +25,6 @@ There is no lint script; prettier + `tsc` are the only static gates.
 - `client/` — React SPA (`App.tsx`, `pages/`, `components/`, `hooks/`, `lib/`, `locales/`). Aliased as `@/*`.
 - `server/` — Express app (`index.ts`, `routes/`, `services/`, `helpers/`), built to `dist/server/node-build.mjs`.
 - `api/` — Vercel serverless entry (`[[...slug]].ts` → `_router.js`) with colocated `*.spec.ts` route tests.
-- `netlify/functions/` — Netlify serverless wrapper (`serverless-http` over the same Express app).
 - `shared/` — code used by both client and server (`api.ts`, sector/provider helpers). Aliased as `@shared/*`.
 - `scripts/` — one-off data and audit scripts run via `tsx`.
 - `data/`, `public/`, `docs/` — static data, static assets, project docs.
@@ -41,7 +40,6 @@ There is no lint script; prettier + `tsc` are the only static gates.
 ## Deploy
 
 - **Vercel**: `vercel.json` builds with `vite build`, serves `dist/spa`, rewrites all non-`/api/` paths to `index.html`.
-- **Netlify**: `netlify.toml` builds with `npm run build:client` (locally equivalent to `pnpm build:client`), publishes `dist/spa`, redirects `/api/*` to `/.netlify/functions/api/:splat`.
 
 ## Agent config
 
