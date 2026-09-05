@@ -1933,8 +1933,8 @@ export const stockService = {
    *   in-flight registry so concurrent calls during a Yahoo outage
    *   don't replicate the upstream call.
    * - Mirrors the parity handler `handleStockYahooFallbackFinancials`
-   *   in `api/_router.js` so Vercel / Netlify (which uses the plain-JS
-   *   router) gets the same response shape and coalescing semantics.
+   *   in `api/_router.js` so Vercel (which uses the plain-JS router)
+   *   gets the same response shape and coalescing semantics.
    *
    * The provider-health probe + the index metrics grid decide WHEN this
    * is invoked; this method only decides WHAT to return when it is.

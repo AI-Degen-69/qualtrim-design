@@ -503,8 +503,8 @@ function scheduleFlush(provider: TrackedProvider): void {
  * same process can't lose history by virtue of the wall clock drifting.
  *
  * Cross-process data is merged best-effort via a fire-and-forget lazy
- * hydrate so we still pick up timestamps from peer instances (Vercel
- * KV / Netlify Blobs) without blocking the synchronous push path.
+ * hydrate so we still pick up timestamps from peer instances (Vercel KV)
+ * without blocking the synchronous push path.
  */
 function updateMirror(provider: TrackedProvider, now: number): Mirror {
   const today = todayISO(now);

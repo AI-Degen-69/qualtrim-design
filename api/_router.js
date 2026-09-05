@@ -1021,7 +1021,7 @@ export async function handleStockAnalyst(req, res) {
  * so the caller decides on `—` instead of receiving a phantom 0.
  *
  * Mirrors `toNumberLoose` in `server/services/stockService.ts` \u2014 keep in
- * lockstep so the Vercel/Netlify router and the local-server router return
+ * lockstep so the Vercel router and the local-server router return
  * the same shape for the same upstream record.
  */
 function toNumberLoose(value) {
@@ -1793,7 +1793,7 @@ export async function handleProviderHealth(req, res) {
  * Yahoo-driven fallback for the Index financial-metrics grid when FMP is
  * rate-limited (HTTP 429 from `/stable/`). Mirrors the parity method
  * `getYahooFallbackFinancials` in server/services/stockService.ts so the
- * Vercel / Netlify deployment (which uses this plain-JS router) returns
+ * Vercel deployment (which uses this plain-JS router) returns
  * the same response shape as the local TypeScript path. Always returns a
  * strict-shape object (never throws): missing upstream values normalise
  * to `null` so the client renders em-dashes instead of a misleading
