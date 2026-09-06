@@ -1,5 +1,11 @@
-<!-- /autoplan restore point: /c/Users/Tiger/.gstack/projects/AI-Degen-69-vantage/improve-loop-iter-1-format-large-number-autoplan-restore-20260903-184338.md -->
+<!-- /autoplan restore point: ~/.gstack/projects/AI-Degen-69-vantage/improve-loop-iter-1-format-large-number-autoplan-restore-20260903-184338.md -->
 # Shared Task Notes
+
+> **Append-only historical log.** Each iteration's cards, phase records, and
+> recommendations are a snapshot of what was known when they were written.
+> Later entries supersede earlier ones — a Phase 1 record is not updated when a
+> candidate it discusses is completed further down. Read the newest entry for a
+> candidate's current state.
 
 Cross-agent improvement backlog. Highest-priority unaddressed candidate feeds the
 next loop iteration. New candidates are appended at the bottom.
@@ -147,6 +153,7 @@ Delta after this plan: maintainability debt on the two hottest files roughly hal
 | Effort | S per iteration | S-M | L (human ~1 wk / CC ~2 hr) |
 | Risk | Low — proven cadence | Low-Med — API semantics change | Med-High — big-bang refactor |
 | Completeness | 7/10 | 9/10 | 10/10 |
+
 RECOMMENDATION (P1+P6): A, with C6's DECISION surfaced at the gate — keep shipping, and decide now the one thing only the user can decide.
 
 ### Step 0D — SELECTIVE EXPANSION analysis
@@ -186,7 +193,7 @@ WARNING (pre-existing, mitigated): any behavior change in `shared/` or `stockSer
 
 **S3 Security & Threat Model** — All planned changes are display transformations of already-fetched numeric/string data rendered through React text nodes: no new endpoints, params, file paths, secrets, or dependencies; no PII classification change; no injection surface (formatters emit `-$4.80M`-style literals; i18n values are static strings already audited by the 120-file key audit). C6 changes which pre-existing number renders — not what an attacker controls. No issues found.
 
-**S4 Data Flow & Interaction Edge Cases** — Formatter shadow paths all pinned by `shared/format.spec.ts`: nil ("—"), empty-string→null-coalesced ("—"), NaN/±Infinity ("—"), 0 ("$0"), negatives ("-$4.80M"), 999,999 boundary ("$1000.00K", no promotion). Data flow:
+**S4 Data Flow & Interaction Edge Cases** — Formatter shadow paths all pinned by `shared/format.spec.ts`: nil ("—"), empty-string rejected by `hasValue` via `Number.isFinite` ("—"), NaN/±Infinity ("—"), 0 ("$0"), negatives ("-$4.80M"), 999,999 boundary ("$1000.00K", no promotion). Data flow:
 ```
 PROVIDER VALUE ──▶ truthy guard ──▶ formatLargeNumber ──▶ quickStats[] ──▶ client render
      │                  │                  │
