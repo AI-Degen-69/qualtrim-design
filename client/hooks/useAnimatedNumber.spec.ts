@@ -1,7 +1,11 @@
 // @vitest-environment node
 
 import { describe, expect, it } from "vitest";
-import { animatedValue, easeOutCubic, shouldAnimate } from "./useAnimatedNumber";
+import {
+  animatedValue,
+  easeOutCubic,
+  shouldAnimate,
+} from "./useAnimatedNumber";
 
 describe("easeOutCubic", () => {
   it("maps 0 → 0 and 1 → 1", () => {

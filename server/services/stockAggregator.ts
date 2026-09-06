@@ -29,7 +29,7 @@ function mapChartData(
   incList: any[],
   balList: any[],
   cfList: any[],
-  isAnnual: boolean
+  isAnnual: boolean,
 ) {
   const maxLen = Math.max(incList.length, balList.length, cfList.length);
   const data: any[] = [];
@@ -112,15 +112,21 @@ export async function aggregateStockData(ticker: string) {
   const symbol = ticker.toUpperCase();
 
   // Phase 1: Yahoo Finance (free, unlimited) + Finnhub news — fetch in parallel
-  const [yahooQuote, yahooProfile, yahooFinancial, yahooPriceHistory, yahooEstimates, finnhubNews] =
-    await Promise.all([
-      fetchYahooQuote(symbol),
-      fetchYahooProfile(symbol),
-      fetchYahooFinancialData(symbol),
-      fetchYahooPriceHistory(symbol, 1),
-      fetchYahooAnalystEstimates(symbol),
-      fetchCompanyNews(symbol).catch(() => [] as NewsItem[]),
-    ]);
+  const [
+    yahooQuote,
+    yahooProfile,
+    yahooFinancial,
+    yahooPriceHistory,
+    yahooEstimates,
+    finnhubNews,
+  ] = await Promise.all([
+    fetchYahooQuote(symbol),
+    fetchYahooProfile(symbol),
+    fetchYahooFinancialData(symbol),
+    fetchYahooPriceHistory(symbol, 1),
+    fetchYahooAnalystEstimates(symbol),
+    fetchCompanyNews(symbol).catch(() => [] as NewsItem[]),
+  ]);
 
   // Phase 2: FMP (rate-limited, 250/day) — fetch in parallel
   // Use try/catch per call so a failure doesn't kill everything
@@ -153,7 +159,12 @@ export async function aggregateStockData(ticker: string) {
   ]);
 
   // Build chart data from FMP statements
-  const chartDataAnnual = mapChartData(fmpIncome, fmpBalance, fmpCashFlow, true);
+  const chartDataAnnual = mapChartData(
+    fmpIncome,
+    fmpBalance,
+    fmpCashFlow,
+    true,
+  );
 
   // Also fetch quarterly for finer chart data
   let chartDataQuarterly: any[] = [];
@@ -177,8 +188,11 @@ export async function aggregateStockData(ticker: string) {
   const peNtm = yahooQuote?.forwardPE ?? null;
   const priceToSales = fmpRatiosTTM?.priceToSalesRatioTTM ?? null;
   const evToEbitda =
-    yahooQuote?.enterpriseToEbitda ?? fmpMetrics[0]?.enterpriseValueMultiple ?? null;
-  const priceToBook = yahooQuote?.priceToBook ?? fmpRatiosTTM?.priceToBookRatioTTM ?? null;
+    yahooQuote?.enterpriseToEbitda ??
+    fmpMetrics[0]?.enterpriseValueMultiple ??
+    null;
+  const priceToBook =
+    yahooQuote?.priceToBook ?? fmpRatiosTTM?.priceToBookRatioTTM ?? null;
 
   const fcf = yahooFinancial?.freeCashFlow ?? null;
   const fcfYield =
@@ -186,17 +200,23 @@ export async function aggregateStockData(ticker: string) {
       ? (fcf / marketCap) * 100
       : null;
   const operatingCashFlow = yahooFinancial?.operatingCashFlow ?? null;
-  const payoutRatio = yahooQuote?.payoutRatio ?? fmpRatiosTTM?.dividendPayoutRatioTTM ?? null;
+  const payoutRatio =
+    yahooQuote?.payoutRatio ?? fmpRatiosTTM?.dividendPayoutRatioTTM ?? null;
 
   const grossMargin = yahooFinancial?.grossMargin ?? null;
   const operatingMargin = yahooFinancial?.operatingMargin ?? null;
   const netMargin = yahooFinancial?.profitMargin ?? null;
-  const qEarningsYoY = yahooFinancial?.earningsGrowth ?? computeYoY(effectiveQuarterly, "netIncome");
-  const qRevenueYoY = yahooFinancial?.revenueGrowth ?? computeYoY(effectiveQuarterly, "revenue");
+  const qEarningsYoY =
+    yahooFinancial?.earningsGrowth ??
+    computeYoY(effectiveQuarterly, "netIncome");
+  const qRevenueYoY =
+    yahooFinancial?.revenueGrowth ?? computeYoY(effectiveQuarterly, "revenue");
 
   const totalAssets = fmpBalance[0]?.totalAssets ?? null;
-  const totalDebt = yahooFinancial?.totalDebt ?? fmpBalance[0]?.totalDebt ?? null;
-  const totalCash = yahooFinancial?.totalCash ?? fmpBalance[0]?.cashAndCashEquivalents ?? null;
+  const totalDebt =
+    yahooFinancial?.totalDebt ?? fmpBalance[0]?.totalDebt ?? null;
+  const totalCash =
+    yahooFinancial?.totalCash ?? fmpBalance[0]?.cashAndCashEquivalents ?? null;
   const debtToEquity =
     hasValue(fmpBalance[0]?.totalDebt) &&
     hasValue(fmpBalance[0]?.totalStockholdersEquity) &&
@@ -209,10 +229,16 @@ export async function aggregateStockData(ticker: string) {
   const divYield = yahooQuote?.dividendYield ?? null;
   const exDivDate = yahooQuote?.exDividendDate ?? null;
   const pegRatio = yahooQuote?.pegRatio ?? fmpRatios[0]?.pegRatio ?? null;
-  const roe = yahooFinancial?.returnOnEquity ??
-    (fmpRatios[0]?.returnOnEquity != null ? fmpRatios[0].returnOnEquity * 100 : null);
-  const roa = yahooFinancial?.returnOnAssets ??
-    (fmpRatios[0]?.returnOnAssets != null ? fmpRatios[0].returnOnAssets * 100 : null);
+  const roe =
+    yahooFinancial?.returnOnEquity ??
+    (fmpRatios[0]?.returnOnEquity != null
+      ? fmpRatios[0].returnOnEquity * 100
+      : null);
+  const roa =
+    yahooFinancial?.returnOnAssets ??
+    (fmpRatios[0]?.returnOnAssets != null
+      ? fmpRatios[0].returnOnAssets * 100
+      : null);
   const piotroskiScore = fmpScores?.piotroskiScore ?? null;
 
   const fiftyTwoWeekHigh = yahooQuote?.fiftyTwoWeekHigh ?? null;
@@ -225,65 +251,149 @@ export async function aggregateStockData(ticker: string) {
       label: "Valuation",
       value: hasValue(marketCap) ? formatLargeNumber(marketCap) : "—",
       details: [
-        { label: "Market Cap", value: hasValue(marketCap) ? formatLargeNumber(marketCap) : "—" },
+        {
+          label: "Market Cap",
+          value: hasValue(marketCap) ? formatLargeNumber(marketCap) : "—",
+        },
         {
           label: "P/E (TTM / NTM)",
           value: `${hasValue(peTtm) ? peTtm.toFixed(2) : "—"} | ${hasValue(peNtm) ? peNtm.toFixed(2) : "—"}`,
         },
-        { label: "Price to Sales", value: hasValue(priceToSales) ? priceToSales.toFixed(2) : "—" },
-        { label: "EV to EBITDA", value: hasValue(evToEbitda) ? evToEbitda.toFixed(2) : "—" },
-        { label: "Price to Book", value: hasValue(priceToBook) ? priceToBook.toFixed(2) : "—" },
+        {
+          label: "Price to Sales",
+          value: hasValue(priceToSales) ? priceToSales.toFixed(2) : "—",
+        },
+        {
+          label: "EV to EBITDA",
+          value: hasValue(evToEbitda) ? evToEbitda.toFixed(2) : "—",
+        },
+        {
+          label: "Price to Book",
+          value: hasValue(priceToBook) ? priceToBook.toFixed(2) : "—",
+        },
       ],
     },
     {
       label: "Cash Flow",
       value: hasValue(fcf) ? formatLargeNumber(fcf) : "—",
       details: [
-        { label: "Operating Cash Flow (TTM)", value: hasValue(operatingCashFlow) ? formatLargeNumber(operatingCashFlow) : "—" },
-        { label: "FCF (Free Cash Flow TTM)", value: hasValue(fcf) ? formatLargeNumber(fcf) : "—" },
-        { label: "FCF Yield", value: hasValue(fcfYield) ? `${fcfYield.toFixed(2)}%` : "—" },
-        { label: "Dividend/Price", value: hasValue(divYield) ? `${divYield.toFixed(2)}%` : "—" },
-        { label: "Cash Amount", value: hasValue(totalCash) ? formatLargeNumber(totalCash) : "—" },
+        {
+          label: "Operating Cash Flow (TTM)",
+          value: hasValue(operatingCashFlow)
+            ? formatLargeNumber(operatingCashFlow)
+            : "—",
+        },
+        {
+          label: "FCF (Free Cash Flow TTM)",
+          value: hasValue(fcf) ? formatLargeNumber(fcf) : "—",
+        },
+        {
+          label: "FCF Yield",
+          value: hasValue(fcfYield) ? `${fcfYield.toFixed(2)}%` : "—",
+        },
+        {
+          label: "Dividend/Price",
+          value: hasValue(divYield) ? `${divYield.toFixed(2)}%` : "—",
+        },
+        {
+          label: "Cash Amount",
+          value: hasValue(totalCash) ? formatLargeNumber(totalCash) : "—",
+        },
       ],
     },
     {
       label: "Margins & Growth",
       value: hasValue(grossMargin) ? `${grossMargin.toFixed(1)}%` : "—",
       details: [
-        { label: "Gross Margin (TTM)", value: hasValue(grossMargin) ? `${grossMargin.toFixed(2)}%` : "—" },
-        { label: "Operating Margin", value: hasValue(operatingMargin) ? `${operatingMargin.toFixed(2)}%` : "—" },
-        { label: "Net Margin", value: hasValue(netMargin) ? `${netMargin.toFixed(2)}%` : "—" },
-        { label: "Quarterly Earnings (YoY)", value: hasValue(qEarningsYoY) ? `${qEarningsYoY.toFixed(2)}%` : "—" },
-        { label: "Quarterly Revenue (YoY)", value: hasValue(qRevenueYoY) ? `${qRevenueYoY.toFixed(2)}%` : "—" },
+        {
+          label: "Gross Margin (TTM)",
+          value: hasValue(grossMargin) ? `${grossMargin.toFixed(2)}%` : "—",
+        },
+        {
+          label: "Operating Margin",
+          value: hasValue(operatingMargin)
+            ? `${operatingMargin.toFixed(2)}%`
+            : "—",
+        },
+        {
+          label: "Net Margin",
+          value: hasValue(netMargin) ? `${netMargin.toFixed(2)}%` : "—",
+        },
+        {
+          label: "Quarterly Earnings (YoY)",
+          value: hasValue(qEarningsYoY) ? `${qEarningsYoY.toFixed(2)}%` : "—",
+        },
+        {
+          label: "Quarterly Revenue (YoY)",
+          value: hasValue(qRevenueYoY) ? `${qRevenueYoY.toFixed(2)}%` : "—",
+        },
       ],
     },
     {
       label: "Balance",
       value: hasValue(totalAssets) ? formatLargeNumber(totalAssets) : "—",
       details: [
-        { label: "Total Assets", value: hasValue(totalAssets) ? formatLargeNumber(totalAssets) : "—" },
-        { label: "Total Debt", value: hasValue(totalDebt) ? formatLargeNumber(totalDebt) : "—" },
-        { label: "Debt to Equity", value: hasValue(debtToEquity) ? `${debtToEquity.toFixed(2)}x` : "—" },
-        { label: "Current Ratio", value: hasValue(currentRatio) ? `${currentRatio.toFixed(2)}x` : "—" },
-        { label: "Quick Ratio", value: hasValue(quickRatio) ? `${quickRatio.toFixed(2)}x` : "—" },
+        {
+          label: "Total Assets",
+          value: hasValue(totalAssets) ? formatLargeNumber(totalAssets) : "—",
+        },
+        {
+          label: "Total Debt",
+          value: hasValue(totalDebt) ? formatLargeNumber(totalDebt) : "—",
+        },
+        {
+          label: "Debt to Equity",
+          value: hasValue(debtToEquity) ? `${debtToEquity.toFixed(2)}x` : "—",
+        },
+        {
+          label: "Current Ratio",
+          value: hasValue(currentRatio) ? `${currentRatio.toFixed(2)}x` : "—",
+        },
+        {
+          label: "Quick Ratio",
+          value: hasValue(quickRatio) ? `${quickRatio.toFixed(2)}x` : "—",
+        },
       ],
     },
     {
       label: "Dividend",
       value: hasValue(divYield) ? `${divYield.toFixed(2)}%` : "—",
       details: [
-        { label: "Dividend Yield", value: hasValue(divYield) ? `${divYield.toFixed(2)}%` : "—" },
-        { label: "Payout Ratio", value: hasValue(payoutRatio) ? `${payoutRatio.toFixed(2)}%` : "—" },
+        {
+          label: "Dividend Yield",
+          value: hasValue(divYield) ? `${divYield.toFixed(2)}%` : "—",
+        },
+        {
+          label: "Payout Ratio",
+          value: hasValue(payoutRatio) ? `${payoutRatio.toFixed(2)}%` : "—",
+        },
         { label: "Next Ex-Date", value: exDivDate || "—" },
       ],
     },
     {
       label: "Trading",
-      value: hasValue(fiftyTwoWeekHigh) ? `$${fiftyTwoWeekHigh.toFixed(2)}` : "—",
+      value: hasValue(fiftyTwoWeekHigh)
+        ? `$${fiftyTwoWeekHigh.toFixed(2)}`
+        : "—",
       details: [
-        { label: "52-Week High", value: hasValue(fiftyTwoWeekHigh) ? `$${fiftyTwoWeekHigh.toFixed(2)}` : "—" },
-        { label: "52-Week Low", value: hasValue(fiftyTwoWeekLow) ? `$${fiftyTwoWeekLow.toFixed(2)}` : "—" },
-        { label: "Average Volume", value: hasValue(avgVolume) ? formatLargeNumber(avgVolume, { omit$: true }) : "—" },
+        {
+          label: "52-Week High",
+          value: hasValue(fiftyTwoWeekHigh)
+            ? `$${fiftyTwoWeekHigh.toFixed(2)}`
+            : "—",
+        },
+        {
+          label: "52-Week Low",
+          value: hasValue(fiftyTwoWeekLow)
+            ? `$${fiftyTwoWeekLow.toFixed(2)}`
+            : "—",
+        },
+        {
+          label: "Average Volume",
+          value: hasValue(avgVolume)
+            ? formatLargeNumber(avgVolume, { omit$: true })
+            : "—",
+        },
         { label: "Beta", value: hasValue(beta) ? beta.toFixed(2) : "—" },
       ],
     },
@@ -298,7 +408,7 @@ export async function aggregateStockData(ticker: string) {
     unit: string,
     dataKey: string,
     sourceData: any[],
-    divisor: number = 1
+    divisor: number = 1,
   ) => {
     const data = sourceData.map((d) => ({
       date: d.period || d.date,
@@ -317,15 +427,87 @@ export async function aggregateStockData(ticker: string) {
   };
 
   const financialMetrics = [
-    buildMetric("Revenue", "bar", "chart-green", "B", "revenue", chartDataAnnual, 1e9),
-    buildMetric("EBITDA", "bar", "chart-orange", "B", "ebitda", chartDataAnnual, 1e9),
-    buildMetric("Gross Profit", "line", "chart-blue", "B", "grossProfit", chartDataAnnual, 1e9),
-    buildMetric("Operating Income", "bar", "chart-orange", "B", "operatingIncome", chartDataAnnual, 1e9),
-    buildMetric("Net Income", "bar", "chart-orange", "B", "netIncome", chartDataAnnual, 1e9),
-    buildMetric("Cash & Equivalents", "bar", "chart-orange", "B", "cash", chartDataAnnual, 1e9),
-    buildMetric("Free Cash Flow", "line", "chart-cyan", "B", "fcf", chartDataAnnual, 1e9),
-    buildMetric("Shareholders Equity", "line", "chart-purple", "B", "stockholdersEquity", chartDataAnnual, 1e9),
-    buildMetric("Total Assets", "line", "chart-blue", "B", "totalAssets", chartDataAnnual, 1e9),
+    buildMetric(
+      "Revenue",
+      "bar",
+      "chart-green",
+      "B",
+      "revenue",
+      chartDataAnnual,
+      1e9,
+    ),
+    buildMetric(
+      "EBITDA",
+      "bar",
+      "chart-orange",
+      "B",
+      "ebitda",
+      chartDataAnnual,
+      1e9,
+    ),
+    buildMetric(
+      "Gross Profit",
+      "line",
+      "chart-blue",
+      "B",
+      "grossProfit",
+      chartDataAnnual,
+      1e9,
+    ),
+    buildMetric(
+      "Operating Income",
+      "bar",
+      "chart-orange",
+      "B",
+      "operatingIncome",
+      chartDataAnnual,
+      1e9,
+    ),
+    buildMetric(
+      "Net Income",
+      "bar",
+      "chart-orange",
+      "B",
+      "netIncome",
+      chartDataAnnual,
+      1e9,
+    ),
+    buildMetric(
+      "Cash & Equivalents",
+      "bar",
+      "chart-orange",
+      "B",
+      "cash",
+      chartDataAnnual,
+      1e9,
+    ),
+    buildMetric(
+      "Free Cash Flow",
+      "line",
+      "chart-cyan",
+      "B",
+      "fcf",
+      chartDataAnnual,
+      1e9,
+    ),
+    buildMetric(
+      "Shareholders Equity",
+      "line",
+      "chart-purple",
+      "B",
+      "stockholdersEquity",
+      chartDataAnnual,
+      1e9,
+    ),
+    buildMetric(
+      "Total Assets",
+      "line",
+      "chart-blue",
+      "B",
+      "totalAssets",
+      chartDataAnnual,
+      1e9,
+    ),
     buildMetric("EPS", "line", "chart-pink", "$", "eps", chartDataAnnual, 1),
   ].filter((m) => m.data.some((d) => d.value !== 0));
 
@@ -347,7 +529,8 @@ export async function aggregateStockData(ticker: string) {
       sector: yahooProfile?.sector || fmpProfile?.sector || null,
       industry: yahooProfile?.industry || fmpProfile?.industry || null,
       website: yahooProfile?.website || null,
-      employees: yahooProfile?.employees || fmpProfile?.fullTimeEmployees || null,
+      employees:
+        yahooProfile?.employees || fmpProfile?.fullTimeEmployees || null,
       description: yahooProfile?.description || fmpProfile?.description || null,
       ceo: yahooProfile?.ceo || fmpProfile?.ceo || null,
       country: yahooProfile?.country || null,

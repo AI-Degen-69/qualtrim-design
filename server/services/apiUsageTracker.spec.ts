@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { apiUsageTracker, __test__, getProviderUsage, type TrackedProvider } from "./apiUsageTracker";
+import {
+  apiUsageTracker,
+  __test__,
+  getProviderUsage,
+  type TrackedProvider,
+} from "./apiUsageTracker";
 import { __test__ as usageStoreTest, LocalMemoryStore } from "./usageStore";
 
 /**
@@ -51,8 +56,12 @@ describe("apiUsageTracker (LocalMemoryStore default)", () => {
     apiUsageTracker.recordCall("fmp", NOW - 100);
     apiUsageTracker.recordRateLimit("fmp", NOW - 100);
     const usage = await getProviderUsage(NOW);
-    expect(usage.entries.find((e) => e.provider === "fmp")!.isRateLimited).toBe(true);
-    expect(usage.entries.find((e) => e.provider === "alphavantage")!.isRateLimited).toBe(false);
+    expect(usage.entries.find((e) => e.provider === "fmp")!.isRateLimited).toBe(
+      true,
+    );
+    expect(
+      usage.entries.find((e) => e.provider === "alphavantage")!.isRateLimited,
+    ).toBe(false);
   });
 
   it("flips isRateLimited false once the window elapses past the 429", async () => {
@@ -60,7 +69,9 @@ describe("apiUsageTracker (LocalMemoryStore default)", () => {
     apiUsageTracker.recordCall("fmp", NOW - 100);
     apiUsageTracker.recordRateLimit("fmp", NOW - 25 * 86_400_000);
     const usage = await getProviderUsage(NOW);
-    expect(usage.entries.find((e) => e.provider === "fmp")!.isRateLimited).toBe(false);
+    expect(usage.entries.find((e) => e.provider === "fmp")!.isRateLimited).toBe(
+      false,
+    );
   });
 
   it("uses a 1h rolling window for Yahoo (heuristic limit)", async () => {
@@ -208,7 +219,7 @@ describe("apiUsageTracker (KV retention / prune sweep)", () => {
     // `if (now - lastPruneAttemptAt < 6h) return;` is what we're proving.
     await __test__.pruneForTests(FIXED_NOW + 1_000);
     const second = __test__.pruneStats()!;
-    expect(second.ranAt).toBe(first.ranAt);  // unchanged — guard absorbed
+    expect(second.ranAt).toBe(first.ranAt); // unchanged — guard absorbed
   });
 
   it("frequency guard re-allows a sweep after the 6h window has elapsed", async () => {
@@ -221,13 +232,15 @@ describe("apiUsageTracker (KV retention / prune sweep)", () => {
     expect(first.ranAt).toBe(FIXED_NOW);
 
     // Hand-roll clock: pretend the previous attempt was 6h59m ago.
-    __test__.setLastPruneAttemptAt(FIXED_NOW - 6 * 60 * 60 * 1000 - 59 * 60_000);
+    __test__.setLastPruneAttemptAt(
+      FIXED_NOW - 6 * 60 * 60 * 1000 - 59 * 60_000,
+    );
 
     // Call prune honoring the guard with a timestamp beyond the 6h cooldown.
     // The guard re-allows because the elapsed window exceeds the 6h
     // cooldown; the prune runs and updates `lastPruneStats.ranAt` to the
     // new timestamp.
-    const SECOND_NOW = FIXED_NOW + 7 * 60 * 60 * 1000;  // 7 hours later
+    const SECOND_NOW = FIXED_NOW + 7 * 60 * 60 * 1000; // 7 hours later
     await __test__.pruneForTests(SECOND_NOW);
     const second = __test__.pruneStats()!;
     expect(second.ranAt).toBe(SECOND_NOW);
@@ -235,9 +248,18 @@ describe("apiUsageTracker (KV retention / prune sweep)", () => {
 
   it("actually deletes stale buckets from LocalMemoryStore", async () => {
     const localStore = new LocalMemoryStore();
-    await localStore.save("fmp", "2026-06-15", { timestamps: [1], lastRateLimitAt: null });
-    await localStore.save("fmp", "2026-07-15", { timestamps: [2], lastRateLimitAt: null });
-    await localStore.save("alphavantage", "2026-07-20", { timestamps: [3], lastRateLimitAt: 5 });
+    await localStore.save("fmp", "2026-06-15", {
+      timestamps: [1],
+      lastRateLimitAt: null,
+    });
+    await localStore.save("fmp", "2026-07-15", {
+      timestamps: [2],
+      lastRateLimitAt: null,
+    });
+    await localStore.save("alphavantage", "2026-07-20", {
+      timestamps: [3],
+      lastRateLimitAt: 5,
+    });
     usageStoreTest.setStoreForTests(localStore);
     await __test__.reset();
     await __test__.resetPruneStats();
@@ -249,16 +271,31 @@ describe("apiUsageTracker (KV retention / prune sweep)", () => {
     expect(stats.scannedCount).toBe(3);
     // Cutoff 2026-08-02 → all three pre-cut buckets were removed.
     expect(stats.prunedCount).toBe(3);
-    expect(await localStore.load("fmp", "2026-06-15")).toEqual({ timestamps: [], lastRateLimitAt: null });
-    expect(await localStore.load("fmp", "2026-07-15")).toEqual({ timestamps: [], lastRateLimitAt: null });
-    expect(await localStore.load("alphavantage", "2026-07-20")).toEqual({ timestamps: [], lastRateLimitAt: null });
+    expect(await localStore.load("fmp", "2026-06-15")).toEqual({
+      timestamps: [],
+      lastRateLimitAt: null,
+    });
+    expect(await localStore.load("fmp", "2026-07-15")).toEqual({
+      timestamps: [],
+      lastRateLimitAt: null,
+    });
+    expect(await localStore.load("alphavantage", "2026-07-20")).toEqual({
+      timestamps: [],
+      lastRateLimitAt: null,
+    });
   });
 
   it("captures the error message when the underlying store's prune throws", async () => {
     const throwingStore = {
-      async load() { return { timestamps: [], lastRateLimitAt: null }; },
-      async save() { /* noop */ },
-      async pruneOlderThan() { throw new Error("KV out of memory"); },
+      async load() {
+        return { timestamps: [], lastRateLimitAt: null };
+      },
+      async save() {
+        /* noop */
+      },
+      async pruneOlderThan() {
+        throw new Error("KV out of memory");
+      },
     };
     usageStoreTest.setStoreForTests(throwingStore as never);
     await __test__.reset();
@@ -303,14 +340,29 @@ describe("apiUsageTracker (KV store integration)", () => {
     // "process A writes, process B reads from KV". Each store instance
     // is a simplified VercelKvStore-shaped object; both consult the
     // same `shared` Map so process B sees process A's writes.
-    const shared = new Map<string, { timestamps: number[]; lastRateLimitAt: number | null }>();
+    const shared = new Map<
+      string,
+      { timestamps: number[]; lastRateLimitAt: number | null }
+    >();
     const makeStore = () => ({
       async load(p: TrackedProvider, day: string) {
         const v = shared.get(`${p}:${day}`);
-        return v ? { timestamps: v.timestamps.slice(), lastRateLimitAt: v.lastRateLimitAt } : { timestamps: [], lastRateLimitAt: null };
+        return v
+          ? {
+              timestamps: v.timestamps.slice(),
+              lastRateLimitAt: v.lastRateLimitAt,
+            }
+          : { timestamps: [], lastRateLimitAt: null };
       },
-      async save(p: TrackedProvider, day: string, snap: { timestamps: number[]; lastRateLimitAt: number | null }) {
-        shared.set(`${p}:${day}`, { timestamps: snap.timestamps.slice(), lastRateLimitAt: snap.lastRateLimitAt });
+      async save(
+        p: TrackedProvider,
+        day: string,
+        snap: { timestamps: number[]; lastRateLimitAt: number | null },
+      ) {
+        shared.set(`${p}:${day}`, {
+          timestamps: snap.timestamps.slice(),
+          lastRateLimitAt: snap.lastRateLimitAt,
+        });
       },
       async pruneOlderThan(cutoffDayISO: string) {
         let scannedCount = 0;
@@ -372,7 +424,10 @@ describe("apiUsageTracker (KV store integration)", () => {
     );
 
     const { VercelKvStore } = await import("./usageStore");
-    const store = new VercelKvStore({ url: "https://kv.example", token: "test-token" });
+    const store = new VercelKvStore({
+      url: "https://kv.example",
+      token: "test-token",
+    });
     await store.save("fmp", "2026-08-04", {
       timestamps: [1, 2, 3],
       lastRateLimitAt: 9,

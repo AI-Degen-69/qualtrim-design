@@ -35,8 +35,14 @@ export function deriveSpotlightMetrics(params: {
   quarterlyFinancials?: FinancialStatements | null;
   fallback?: YahooFallbackFinancials | null;
 }): SpotlightMetricsResult {
-  const { quote, profile, metrics, annualFinancials, quarterlyFinancials, fallback } =
-    params;
+  const {
+    quote,
+    profile,
+    metrics,
+    annualFinancials,
+    quarterlyFinancials,
+    fallback,
+  } = params;
 
   // 1. Market Cap
   const mktCapVal = finite(quote?.marketCap) ?? finite(profile?.marketCap);
@@ -55,11 +61,13 @@ export function deriveSpotlightMetrics(params: {
   const inc =
     annualFinancials?.income && annualFinancials.income.length > 0
       ? annualFinancials.income
-      : quarterlyFinancials?.income ?? [];
+      : (quarterlyFinancials?.income ?? []);
   const incAsc = [...inc].sort((a, b) => (a.date < b.date ? -1 : 1));
   const granularity = detectPeriodGranularity(incAsc);
   const cagrVal =
-    incAsc.length > 0 ? cagrAtYearsBack(incAsc, "revenue", 3, granularity) : null;
+    incAsc.length > 0
+      ? cagrAtYearsBack(incAsc, "revenue", 3, granularity)
+      : null;
   const cagr3Y =
     cagrVal !== null ? `${cagrVal >= 0 ? "+" : ""}${cagrVal.toFixed(1)}%` : "—";
 
@@ -72,7 +80,7 @@ export function deriveSpotlightMetrics(params: {
   const cash =
     annualFinancials?.cash && annualFinancials.cash.length > 0
       ? annualFinancials.cash
-      : quarterlyFinancials?.cash ?? [];
+      : (quarterlyFinancials?.cash ?? []);
   const cashAsc = [...cash].sort((a, b) => (a.date < b.date ? -1 : 1));
   const latestCash = cashAsc.length > 0 ? cashAsc[cashAsc.length - 1] : null;
   const fcfVal =
@@ -91,7 +99,8 @@ export function deriveSpotlightMetrics(params: {
     latestInc?.revenue && latestInc?.grossProfit
       ? (latestInc.grossProfit / latestInc.revenue) * 100
       : null;
-  const gmVal = finite(gmRatio) ?? finite(gmCalc) ?? finite(fallback?.grossMargin);
+  const gmVal =
+    finite(gmRatio) ?? finite(gmCalc) ?? finite(fallback?.grossMargin);
   const grossMargin =
     gmVal !== null && Number.isFinite(gmVal) ? `${gmVal.toFixed(1)}%` : "—";
 

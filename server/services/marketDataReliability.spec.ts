@@ -23,31 +23,38 @@ describe("marketDataReliability", () => {
   });
 
   it("builds the stable and legacy FMP batch shapes", () => {
-    const stable = new URL(buildFmpBatchUrl(
-      "https://financialmodelingprep.com/stable",
-      "secret",
-      ["MSFT", "AAPL"],
-      true,
-    ));
+    const stable = new URL(
+      buildFmpBatchUrl(
+        "https://financialmodelingprep.com/stable",
+        "secret",
+        ["MSFT", "AAPL"],
+        true,
+      ),
+    );
     expect(stable.pathname).toBe("/stable/batch-quote");
     expect(stable.searchParams.get("symbols")).toBe("AAPL,MSFT");
     expect(stable.searchParams.get("apikey")).toBe("secret");
 
-    const legacy = new URL(buildFmpBatchUrl(
-      "https://financialmodelingprep.com/api/v3",
-      "secret",
-      ["MSFT", "AAPL"],
-      false,
-    ));
+    const legacy = new URL(
+      buildFmpBatchUrl(
+        "https://financialmodelingprep.com/api/v3",
+        "secret",
+        ["MSFT", "AAPL"],
+        false,
+      ),
+    );
     expect(legacy.pathname).toBe("/api/v3/quote/AAPL,MSFT");
     expect(legacy.searchParams.get("apikey")).toBe("secret");
   });
 
   it("remaps provider records into the caller's order and preserves nulls", () => {
-    const rows = orderByRequestedSymbols<TestQuote>(["MSFT", "AAPL", "NVDA"], [
-      { symbol: "AAPL", price: 100 },
-      { symbol: "MSFT", price: 200 },
-    ]);
+    const rows = orderByRequestedSymbols<TestQuote>(
+      ["MSFT", "AAPL", "NVDA"],
+      [
+        { symbol: "AAPL", price: 100 },
+        { symbol: "MSFT", price: 200 },
+      ],
+    );
     expect(rows).toEqual([
       { symbol: "MSFT", price: 200 },
       { symbol: "AAPL", price: 100 },
@@ -56,10 +63,12 @@ describe("marketDataReliability", () => {
   });
 
   it("falls back only for missing records and keeps requested order", async () => {
-    const fetchSingle = vi.fn(async (symbol: string): Promise<TestQuote | null> => ({
-      symbol,
-      price: symbol === "NVDA" ? 300 : 0,
-    }));
+    const fetchSingle = vi.fn(
+      async (symbol: string): Promise<TestQuote | null> => ({
+        symbol,
+        price: symbol === "NVDA" ? 300 : 0,
+      }),
+    );
     const result = await resolveOrderedBatch<TestQuote>({
       symbols: ["MSFT", "AAPL", "NVDA"],
       fetchBatch: async () => [
@@ -83,7 +92,8 @@ describe("marketDataReliability", () => {
     const result = await resolveOrderedBatch<TestQuote>({
       symbols: ["AAPL", "MSFT"],
       fetchBatch: async () => null,
-      fetchSingle: async (symbol) => (symbol === "AAPL" ? { symbol, price: 100 } : null),
+      fetchSingle: async (symbol) =>
+        symbol === "AAPL" ? { symbol, price: 100 } : null,
     });
     expect(result).toEqual([{ symbol: "AAPL", price: 100 }, null]);
   });
@@ -130,7 +140,12 @@ describe("marketDataReliability", () => {
   });
 
   describe("buildSectorHeatmapCacheKey", () => {
-    const base = { days: 5, allowKey: "*", meta: {} as Record<string, string>, symbols: ["AAPL", "MSFT"] };
+    const base = {
+      days: 5,
+      allowKey: "*",
+      meta: {} as Record<string, string>,
+      symbols: ["AAPL", "MSFT"],
+    };
 
     it("separates cache keys for different sector mappings", () => {
       const curated = buildSectorHeatmapCacheKey({
@@ -147,8 +162,14 @@ describe("marketDataReliability", () => {
     });
 
     it("is invariant to symbol order and metadata map insertion order", () => {
-      const a = buildSectorHeatmapCacheKey({ ...base, symbols: ["AAPL", "MSFT"] });
-      const b = buildSectorHeatmapCacheKey({ ...base, symbols: ["MSFT", "AAPL"] });
+      const a = buildSectorHeatmapCacheKey({
+        ...base,
+        symbols: ["AAPL", "MSFT"],
+      });
+      const b = buildSectorHeatmapCacheKey({
+        ...base,
+        symbols: ["MSFT", "AAPL"],
+      });
       expect(a).toBe(b);
       // The raw map is canonicalized internally (sorted SYM:SECTOR pairs),
       // so insertion order never changes the key.
@@ -165,7 +186,10 @@ describe("marketDataReliability", () => {
 
     it("treats absent metadata distinctly from present metadata", () => {
       const noMeta = buildSectorHeatmapCacheKey(base);
-      const withMeta = buildSectorHeatmapCacheKey({ ...base, meta: { AAPL: "Technology" } });
+      const withMeta = buildSectorHeatmapCacheKey({
+        ...base,
+        meta: { AAPL: "Technology" },
+      });
       expect(noMeta).not.toBe(withMeta);
     });
   });
@@ -186,7 +210,9 @@ describe("marketDataReliability", () => {
     });
 
     it("calls getProfile only for symbols missing a curated tag", async () => {
-      const getProfile = vi.fn(async (symbol: string) => ({ sector: "Energy" }));
+      const getProfile = vi.fn(async (symbol: string) => ({
+        sector: "Energy",
+      }));
       const rows = await buildHeatmapRows({
         symbols: ["AAPL", "MSFT", "XOM"],
         curated: { AAPL: "Technology" },
@@ -236,12 +262,17 @@ describe("marketDataReliability", () => {
 
   it("clears rejected work so a later retry is not poisoned", async () => {
     const registry = createInFlightRegistry();
-    const operation = vi.fn()
+    const operation = vi
+      .fn()
       .mockRejectedValueOnce(new Error("provider down"))
       .mockResolvedValueOnce("recovered");
 
-    await expect(registry.getOrCreate("retry", operation)).rejects.toThrow("provider down");
-    await expect(registry.getOrCreate("retry", operation)).resolves.toBe("recovered");
+    await expect(registry.getOrCreate("retry", operation)).rejects.toThrow(
+      "provider down",
+    );
+    await expect(registry.getOrCreate("retry", operation)).resolves.toBe(
+      "recovered",
+    );
     expect(operation).toHaveBeenCalledTimes(2);
   });
 });

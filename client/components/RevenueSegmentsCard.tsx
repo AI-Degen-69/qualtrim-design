@@ -121,7 +121,10 @@ export default function RevenueSegmentsCard({
       : yoyFromSeries(activeMetric.data);
 
   const locked =
-    !isLoading && segmentation != null && (rateLimited || unavailable) && segments.length === 0;
+    !isLoading &&
+    segmentation != null &&
+    (rateLimited || unavailable) &&
+    segments.length === 0;
   const hasSegments = !locked && segments.length > 0;
 
   const lockedTooltip = rateLimited
@@ -129,7 +132,10 @@ export default function RevenueSegmentsCard({
     : t("revenueSegments.unavailableTooltip");
 
   const filterBar = (hasSegments || locked) && (
-    <div className="flex flex-wrap items-center gap-1.5 mt-2.5" aria-label={t("metrics.revenueBySegment")}>
+    <div
+      className="flex flex-wrap items-center gap-1.5 mt-2.5"
+      aria-label={t("metrics.revenueBySegment")}
+    >
       <button
         type="button"
         onClick={(e) => {
@@ -224,11 +230,7 @@ export default function RevenueSegmentsCard({
           : `${yoyChange >= 0 ? "+" : ""}${yoyChange.toFixed(2)}%`
       }
       badgeType={
-        yoyChange == null
-          ? "neutral"
-          : yoyChange >= 0
-            ? "positive"
-            : "negative"
+        yoyChange == null ? "neutral" : yoyChange >= 0 ? "positive" : "negative"
       }
       metricId={metric.name}
       metricData={activeMetric}

@@ -12,13 +12,13 @@ and free-tier availability for **FMP**, **Yahoo Finance**, **Finnhub**, and
 
 ## 1. Provider overview
 
-| Provider | Env key | Free tier | Notes |
-|---|---|---|---|
-| **Yahoo Finance** (`yahoo-finance2`) | none required | Unlimited, no key | Unofficial API (scrapes Yahoo). Free and the default workhorse. Rate-limited only by politeness — heavy fan-out risks 429s. |
-| **FMP** (Financial Modeling Prep) | `FMP_KEY` | 250 req/day, 500 MB/30 days, **US tickers only**, 5y history | Uses `/stable/` endpoints by default. Legacy `/api/v3/` is **403-dead** for current keys (pre-Aug-2025 subscribers only). |
-| **Finnhub** | `FINNHUB_KEY` | 60 req/min | **Configured but currently dead code** — only imported by the unwired `stockAggregator.ts` and an unregistered route (see §5). |
-| **AlphaVantage** | `AV_KEY` | 25 req/day | Last-resort single-quote fallback only. |
-| **Logo.dev** | `VITE_LOGO_DEV_KEY` (build-time) | Free tier | Client-side logo CDN (`client/lib/logoDev.ts`); ops-rotatable via Vercel env, with a literal `pk_` fallback in code if the env is unset. |
+| Provider                             | Env key                          | Free tier                                                    | Notes                                                                                                                                    |
+| ------------------------------------ | -------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| **Yahoo Finance** (`yahoo-finance2`) | none required                    | Unlimited, no key                                            | Unofficial API (scrapes Yahoo). Free and the default workhorse. Rate-limited only by politeness — heavy fan-out risks 429s.              |
+| **FMP** (Financial Modeling Prep)    | `FMP_KEY`                        | 250 req/day, 500 MB/30 days, **US tickers only**, 5y history | Uses `/stable/` endpoints by default. Legacy `/api/v3/` is **403-dead** for current keys (pre-Aug-2025 subscribers only).                |
+| **Finnhub**                          | `FINNHUB_KEY`                    | 60 req/min                                                   | **Configured but currently dead code** — only imported by the unwired `stockAggregator.ts` and an unregistered route (see §5).           |
+| **AlphaVantage**                     | `AV_KEY`                         | 25 req/day                                                   | Last-resort single-quote fallback only.                                                                                                  |
+| **Logo.dev**                         | `VITE_LOGO_DEV_KEY` (build-time) | Free tier                                                    | Client-side logo CDN (`client/lib/logoDev.ts`); ops-rotatable via Vercel env, with a literal `pk_` fallback in code if the env is unset. |
 
 **Architecture rule of thumb:** Yahoo is the always-on base layer; FMP
 augments with fundamentals; AlphaVantage is the emergency brake; Finnhub is
@@ -40,10 +40,10 @@ let Vercel auto-inject `KV_REST_API_URL` + `KV_REST_API_TOKEN` env vars:
    closest region. Vercel connects to your project and writes the env vars
    automatically.
 2. **CLI (in an interactive terminal):** `vercel integration add
-   upstash/upstash-kv`. The Upstash legal-terms acceptance REQUIRES a human
+upstash/upstash-kv`. The Upstash legal-terms acceptance REQUIRES a human
    in the loop; do it in your own shell.
 3. **Verify:** `curl
-   'https://vantage.vercel.app/api/provider-usage?mode=status'` — expect
+'https://vantage.vercel.app/api/provider-usage?mode=status'` — expect
    `{ "store": "VercelKvStore", "kvConfigured": true, "ready": true }`.
 
 Once Vercel KV is live, every lambda instance's `mirrors` hydrate from
@@ -82,11 +82,11 @@ promote its cache from the in-process `NodeCache` to **Vercel KV**
 
 TTL policy:
 
-| Response | TTL | Reason |
-|---|---|---|
-| Healthy row payload | 1 h | FMP caps the endpoint at ~10 rows; re-fetching sooner is wasted quota. |
-| `rateLimited: true` (HTTP 429/403 or FMP error body) | 5 min | Hard backoff so a quota FMP still refuses is not re-banged. |
-| `unavailable: true` (no `FMP_KEY`) | 1 h | Stable config — fresh peers learn "no FMP key" from KV instead of probing every request. |
+| Response                                             | TTL   | Reason                                                                                   |
+| ---------------------------------------------------- | ----- | ---------------------------------------------------------------------------------------- |
+| Healthy row payload                                  | 1 h   | FMP caps the endpoint at ~10 rows; re-fetching sooner is wasted quota.                   |
+| `rateLimited: true` (HTTP 429/403 or FMP error body) | 5 min | Hard backoff so a quota FMP still refuses is not re-banged.                              |
+| `unavailable: true` (no `FMP_KEY`)                   | 1 h   | Stable config — fresh peers learn "no FMP key" from KV instead of probing every request. |
 
 Adding KV to other routes: import `kvJsonCache` from
 `server/helpers/kvJsonCache.ts` (or the JS twin in `api/_router.js`)
@@ -100,12 +100,12 @@ Currently migrated (slow-changing financial routes only — quote /
 chart / news / FX stay on the in-process NodeCache because they
 are hot-path and ephemeral):
 
-| Route | Method | TTL | Why |
-|---|---|---|---|
-| `/api/stock-revenue-segmentation` (`getRevenueSegmentation`) | FMP `revenue-product-segmentation` | 1h healthy / 5min rate-limited / 1h unavailable | First non-counter migration; locked-premium state is the headline use case. |
-| `/api/stock-overview` (`getProfileValidation` + parity mirror) | FMP `profile` (TS) / Yahoo `quote()` (parity) | 1h for real profile / 30s for empty fallback | Profiles are slow-moving; company description + sector stay stable across instances. |
-| `/api/stock-metrics` (`getMetrics` + parity mirror) | FMP `key-metrics-ttm` + ratios + scores (TS) / Yahoo `quoteSummary` x3 (parity) | 1h | Ratios don't tick minute-to-minute; the cross-instance mirror saves a `quoteSummary` round-trip per cold start. |
-| `/api/stock-financials` (`getFinancialStatements` + parity mirror) | FMP income/balance/cash (TS) / Yahoo FTS (parity) | 1h (TS) / 6h FTS / 24h quoteSummary fallback | Three statement families per call; skipping three FMP fan-outs on cold start is the headline savings. |
+| Route                                                              | Method                                                                          | TTL                                             | Why                                                                                                             |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `/api/stock-revenue-segmentation` (`getRevenueSegmentation`)       | FMP `revenue-product-segmentation`                                              | 1h healthy / 5min rate-limited / 1h unavailable | First non-counter migration; locked-premium state is the headline use case.                                     |
+| `/api/stock-overview` (`getProfileValidation` + parity mirror)     | FMP `profile` (TS) / Yahoo `quote()` (parity)                                   | 1h for real profile / 30s for empty fallback    | Profiles are slow-moving; company description + sector stay stable across instances.                            |
+| `/api/stock-metrics` (`getMetrics` + parity mirror)                | FMP `key-metrics-ttm` + ratios + scores (TS) / Yahoo `quoteSummary` x3 (parity) | 1h                                              | Ratios don't tick minute-to-minute; the cross-instance mirror saves a `quoteSummary` round-trip per cold start. |
+| `/api/stock-financials` (`getFinancialStatements` + parity mirror) | FMP income/balance/cash (TS) / Yahoo FTS (parity)                               | 1h (TS) / 6h FTS / 24h quoteSummary fallback    | Three statement families per call; skipping three FMP fan-outs on cold start is the headline savings.           |
 
 Routes deliberately NOT migrated: quote (60s TTL, fan-out is per-symbol
 and rate-limit-sensitive), chart (10min but re-fetched on mount per
@@ -121,39 +121,40 @@ provider-health (probe-driven, intentionally fresh), earnings calendar
 Live API routes are wired in `server/index.ts`; every endpoint below is a
 live route backed by `stockService`.
 
-| Data point | Route | Primary | Fallback chain | Free-tier availability |
-|---|---|---|---|---|
-| **Single quote** | `/api/stock-quote` | Yahoo `quote()` | FMP `/stable/quote` → AlphaVantage | ✅ Yahoo free; FMP free; AV only on its 25/day budget |
-| **Batch quotes** | `/api/stock-batch-quotes` | FMP `/stable/batch-quote` | per-symbol Yahoo via `resolveOrderedBatch` (bounded concurrency) | ⚠️ FMP batch-quote is **402 paid-gated** — every batch falls back to one Yahoo call per symbol (still free, live data) |
-| **Index quotes** (DOW/SPX/NASDAQ) | `/api/index-quotes` | Yahoo `^GSPC ^IXIC ^DJI` | FMP multi-symbol quote (also 402) | ✅ Yahoo first; FMP fallback is paid-gated noise |
-| **Stock chart** (OHLC) | `/api/stock-chart` | FMP `/stable/historical-price-eod/full` | Yahoo `chart()` | ✅ both free; FMP returns full OHLC (~1,250 bars) |
-| **Chart history** (periods) | `/api/chart-history` | Yahoo `chart()` (5m→1wk intervals) | daily retry | ✅ free |
-| **Company profile** | `/api/stock-overview` | FMP `/stable/profile` | — (returns 503 if unavailable) | ✅ FMP free |
-| **Financial statements** | `/api/stock-financials` | FMP income/balance/cash | — | ✅ FMP free (route requests `limit=5`, which returns 5 years of statements) |
-| **Revenue by segment** | `/api/stock-revenue-segmentation` | FMP `revenue-product-segmentation` (annual `limit=5`, quarter `limit=8`) | — (locked premium card on rate-limit miss) | ✅ FMP free; KV-backed cache (§1b) so the `rateLimited` lock state propagates across lambdas |
-| **Company profile** | `/api/stock-overview` | Yahoo `quote()` (parity mirror) / FMP `profile` (TS path via `getProfileValidation`) | — | ✅ both free; KV-backed cache (§1b, 1h for real profile / 30s for empty fallback) so a freshly-deployed peer reads company description + sector from KV |
-| **Key metrics / ratios / scores** | `/api/stock-metrics` | FMP `key-metrics-ttm`, `ratios-ttm`, `financial-scores` (TS) / Yahoo `quoteSummary` x3 (parity mirror) | — | ✅ FMP free (200s verified) / Yahoo free; KV-backed cache (§1b, 1h TTL) so a cold-started lambda reads the same ratios from KV |
-| **Financial statements** | `/api/stock-financials` | FMP income/balance/cash (TS, 5y default / 7q quarter) / Yahoo `fundamentalsTimeSeries` (parity mirror, 6h TTL) | Yahoo FTS (TS path when FMP missing) → `quoteSummary` history (parity fallback, 24h TTL) | ✅ FMP free / Yahoo free; KV-backed cache (§1b) so a freshly-deployed peer reads all three statement families from KV instead of re-fetching |
-| **Key metrics / ratios / scores** | `/api/stock-metrics` | FMP `key-metrics-ttm`, `ratios-ttm`, `financial-scores` | — | ✅ FMP free (200s verified) |
-| **Analyst estimates** | `/api/stock-analyst` | Yahoo `earningsTrend` | — | ✅ free |
-| **Insider trading** | `/api/stock-insider` | Yahoo `insiderTransactions` | — | ✅ free (FMP `insider-trades` is 404 — not on plan) |
-| **Stock news** | `/api/stock-news` | Yahoo `search(news)` | — | ✅ free (cap fan-out at 8 symbols — Yahoo 429s past that) |
-| **Earnings calendar** | `/api/earnings-calendar` | FMP `/stable/earnings-calendar` | Yahoo batch-quote enrichment for market caps | ✅ FMP free (verified 200); enrichment rides the Yahoo batch fallback |
-| **Earnings history** (per symbol) | aggregator only | FMP `/stable/earnings` | — | ✅ FMP free (165 rows verified) |
-| **FX rates** | `/api/fx-rates` | Yahoo `USDILS=X`-style pairs | — | ✅ free |
-| **SMA-200 distance** | `/api/sma-distances` | Yahoo chart closes (via `getChart`) | — | ✅ free (chart cache shared) |
-| **Sector heatmap** | `/api/sector-heatmap` | curated `sectorMeta` + Yahoo `getChart` per symbol | FMP profile sector for untagged symbols | ✅ free (whole aggregation cached 15 min) |
-| **Provider health** | `/api/provider-health` | per-feature probes: Yahoo quote **+** chart, FMP `/stable/quote` **+** `/stable/batch-quote`, AV `GLOBAL_QUOTE` | — | ✅ free (2 FMP calls / probe run, cached 5 min; UI shows outage banner, a cyan "free-tier limitation" strip with a docs link, and [MOCK] badges on Yahoo-dependent widgets) |
-| **Insights tabs** | `/api/insights-tab` | **curated static universes** (`insightsUniverses.ts`) | — | ✅ no provider needed |
-| **Price change (YTD/1Y/3Y)** | aggregator only | FMP `/stable/stock-price-change` | — | ✅ FMP free |
-| **Dividends** | aggregator only | FMP `/stable/dividends` | — | ✅ FMP free (92 rows verified) |
-| **Company logos** | client-side | Logo.dev CDN `img.logo.dev/ticker/X` | `TickerLogo` fallback initials | ✅ free tier |
+| Data point                        | Route                             | Primary                                                                                                         | Fallback chain                                                                           | Free-tier availability                                                                                                                                                      |
+| --------------------------------- | --------------------------------- | --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Single quote**                  | `/api/stock-quote`                | Yahoo `quote()`                                                                                                 | FMP `/stable/quote` → AlphaVantage                                                       | ✅ Yahoo free; FMP free; AV only on its 25/day budget                                                                                                                       |
+| **Batch quotes**                  | `/api/stock-batch-quotes`         | FMP `/stable/batch-quote`                                                                                       | per-symbol Yahoo via `resolveOrderedBatch` (bounded concurrency)                         | ⚠️ FMP batch-quote is **402 paid-gated** — every batch falls back to one Yahoo call per symbol (still free, live data)                                                      |
+| **Index quotes** (DOW/SPX/NASDAQ) | `/api/index-quotes`               | Yahoo `^GSPC ^IXIC ^DJI`                                                                                        | FMP multi-symbol quote (also 402)                                                        | ✅ Yahoo first; FMP fallback is paid-gated noise                                                                                                                            |
+| **Stock chart** (OHLC)            | `/api/stock-chart`                | FMP `/stable/historical-price-eod/full`                                                                         | Yahoo `chart()`                                                                          | ✅ both free; FMP returns full OHLC (~1,250 bars)                                                                                                                           |
+| **Chart history** (periods)       | `/api/chart-history`              | Yahoo `chart()` (5m→1wk intervals)                                                                              | daily retry                                                                              | ✅ free                                                                                                                                                                     |
+| **Company profile**               | `/api/stock-overview`             | FMP `/stable/profile`                                                                                           | — (returns 503 if unavailable)                                                           | ✅ FMP free                                                                                                                                                                 |
+| **Financial statements**          | `/api/stock-financials`           | FMP income/balance/cash                                                                                         | —                                                                                        | ✅ FMP free (route requests `limit=5`, which returns 5 years of statements)                                                                                                 |
+| **Revenue by segment**            | `/api/stock-revenue-segmentation` | FMP `revenue-product-segmentation` (annual `limit=5`, quarter `limit=8`)                                        | — (locked premium card on rate-limit miss)                                               | ✅ FMP free; KV-backed cache (§1b) so the `rateLimited` lock state propagates across lambdas                                                                                |
+| **Company profile**               | `/api/stock-overview`             | Yahoo `quote()` (parity mirror) / FMP `profile` (TS path via `getProfileValidation`)                            | —                                                                                        | ✅ both free; KV-backed cache (§1b, 1h for real profile / 30s for empty fallback) so a freshly-deployed peer reads company description + sector from KV                     |
+| **Key metrics / ratios / scores** | `/api/stock-metrics`              | FMP `key-metrics-ttm`, `ratios-ttm`, `financial-scores` (TS) / Yahoo `quoteSummary` x3 (parity mirror)          | —                                                                                        | ✅ FMP free (200s verified) / Yahoo free; KV-backed cache (§1b, 1h TTL) so a cold-started lambda reads the same ratios from KV                                              |
+| **Financial statements**          | `/api/stock-financials`           | FMP income/balance/cash (TS, 5y default / 7q quarter) / Yahoo `fundamentalsTimeSeries` (parity mirror, 6h TTL)  | Yahoo FTS (TS path when FMP missing) → `quoteSummary` history (parity fallback, 24h TTL) | ✅ FMP free / Yahoo free; KV-backed cache (§1b) so a freshly-deployed peer reads all three statement families from KV instead of re-fetching                                |
+| **Key metrics / ratios / scores** | `/api/stock-metrics`              | FMP `key-metrics-ttm`, `ratios-ttm`, `financial-scores`                                                         | —                                                                                        | ✅ FMP free (200s verified)                                                                                                                                                 |
+| **Analyst estimates**             | `/api/stock-analyst`              | Yahoo `earningsTrend`                                                                                           | —                                                                                        | ✅ free                                                                                                                                                                     |
+| **Insider trading**               | `/api/stock-insider`              | Yahoo `insiderTransactions`                                                                                     | —                                                                                        | ✅ free (FMP `insider-trades` is 404 — not on plan)                                                                                                                         |
+| **Stock news**                    | `/api/stock-news`                 | Yahoo `search(news)`                                                                                            | —                                                                                        | ✅ free (cap fan-out at 8 symbols — Yahoo 429s past that)                                                                                                                   |
+| **Earnings calendar**             | `/api/earnings-calendar`          | FMP `/stable/earnings-calendar`                                                                                 | Yahoo batch-quote enrichment for market caps                                             | ✅ FMP free (verified 200); enrichment rides the Yahoo batch fallback                                                                                                       |
+| **Earnings history** (per symbol) | aggregator only                   | FMP `/stable/earnings`                                                                                          | —                                                                                        | ✅ FMP free (165 rows verified)                                                                                                                                             |
+| **FX rates**                      | `/api/fx-rates`                   | Yahoo `USDILS=X`-style pairs                                                                                    | —                                                                                        | ✅ free                                                                                                                                                                     |
+| **SMA-200 distance**              | `/api/sma-distances`              | Yahoo chart closes (via `getChart`)                                                                             | —                                                                                        | ✅ free (chart cache shared)                                                                                                                                                |
+| **Sector heatmap**                | `/api/sector-heatmap`             | curated `sectorMeta` + Yahoo `getChart` per symbol                                                              | FMP profile sector for untagged symbols                                                  | ✅ free (whole aggregation cached 15 min)                                                                                                                                   |
+| **Provider health**               | `/api/provider-health`            | per-feature probes: Yahoo quote **+** chart, FMP `/stable/quote` **+** `/stable/batch-quote`, AV `GLOBAL_QUOTE` | —                                                                                        | ✅ free (2 FMP calls / probe run, cached 5 min; UI shows outage banner, a cyan "free-tier limitation" strip with a docs link, and [MOCK] badges on Yahoo-dependent widgets) |
+| **Insights tabs**                 | `/api/insights-tab`               | **curated static universes** (`insightsUniverses.ts`)                                                           | —                                                                                        | ✅ no provider needed                                                                                                                                                       |
+| **Price change (YTD/1Y/3Y)**      | aggregator only                   | FMP `/stable/stock-price-change`                                                                                | —                                                                                        | ✅ FMP free                                                                                                                                                                 |
+| **Dividends**                     | aggregator only                   | FMP `/stable/dividends`                                                                                         | —                                                                                        | ✅ FMP free (92 rows verified)                                                                                                                                              |
+| **Company logos**                 | client-side                       | Logo.dev CDN `img.logo.dev/ticker/X`                                                                            | `TickerLogo` fallback initials                                                           | ✅ free tier                                                                                                                                                                |
 
 ---
 
 ## 3. Free-tier details per provider
 
 ### 3.1 Yahoo Finance — free, unlimited, no key
+
 The reliability backbone. Powers quotes, charts, profiles (sector/industry
 via `summaryProfile`), analyst estimates, insider transactions, news, FX, and
 index quotes. **Caveats:**
@@ -167,28 +168,31 @@ index quotes. **Caveats:**
   (see `useWatchlistNews` cap and `resolveOrderedBatch` concurrency).
 
 ### 3.2 FMP — 250 req/day free
+
 `/stable/` is the canonical API family (default). **Verified with the current
 key (see `scripts/fmp-audit.ts`):**
 
-| Endpoint | Status | Notes |
-|---|---|---|
-| `quote`, `profile`, `historical-price-eod/full`, `key-metrics`, `key-metrics-ttm`, `ratios`, `ratios-ttm`, `financial-scores`, `earnings`, `earnings-calendar`, `stock-price-change`, `dividends` | ✅ 200 | All free-tier available |
-| `income-statement`, `balance-sheet-statement`, `cash-flow-statement` | ⚠️ 402 at `limit=10`; ✅ 200 at `limit=5` | **Free tier = 5 statements max.** `stockService.getFinancialStatements` now requests `limit=5`. |
-| `batch-quote`, multi-symbol `quote` | ⛔ 402 | Paid-gated ("Restricted Endpoint") — the health probe reports it as `known_restriction`, so the UI labels it a plan limitation, not an outage. |
-| `earning-calendar` (singular) | ❌ 404 | `fmp.ts` typo — the correct endpoint is `earnings-calendar` (plural). |
-| `insider-trades` | ❌ 404 | Not available on this plan (also 404s as `insider-trading`). |
-| `sector-pe-snapshot` | ⚠️ 200 but **0 rows on weekends** | Date-sensitive; empty on non-trading days. |
-| Legacy `/api/v3/*` | ❌ 403 | Deprecated — dead for current keys. `FMP_USE_STABLE=0` opts back in (grandfathered keys only). |
+| Endpoint                                                                                                                                                                                          | Status                                    | Notes                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quote`, `profile`, `historical-price-eod/full`, `key-metrics`, `key-metrics-ttm`, `ratios`, `ratios-ttm`, `financial-scores`, `earnings`, `earnings-calendar`, `stock-price-change`, `dividends` | ✅ 200                                    | All free-tier available                                                                                                                        |
+| `income-statement`, `balance-sheet-statement`, `cash-flow-statement`                                                                                                                              | ⚠️ 402 at `limit=10`; ✅ 200 at `limit=5` | **Free tier = 5 statements max.** `stockService.getFinancialStatements` now requests `limit=5`.                                                |
+| `batch-quote`, multi-symbol `quote`                                                                                                                                                               | ⛔ 402                                    | Paid-gated ("Restricted Endpoint") — the health probe reports it as `known_restriction`, so the UI labels it a plan limitation, not an outage. |
+| `earning-calendar` (singular)                                                                                                                                                                     | ❌ 404                                    | `fmp.ts` typo — the correct endpoint is `earnings-calendar` (plural).                                                                          |
+| `insider-trades`                                                                                                                                                                                  | ❌ 404                                    | Not available on this plan (also 404s as `insider-trading`).                                                                                   |
+| `sector-pe-snapshot`                                                                                                                                                                              | ⚠️ 200 but **0 rows on weekends**         | Date-sensitive; empty on non-trading days.                                                                                                     |
+| Legacy `/api/v3/*`                                                                                                                                                                                | ❌ 403                                    | Deprecated — dead for current keys. `FMP_USE_STABLE=0` opts back in (grandfathered keys only).                                                 |
 
 **Budget:** every audit run burns ~28 of the 250/day. Batch quote requests
 each burn 1 doomed FMP call (402) before falling back to Yahoo — harmless
 (logs a throttled warning) but worth knowing if you watch the counter.
 
 ### 3.3 Finnhub — 60 req/min free
+
 Provides company news and an earnings calendar. **Currently dead code** (see
 §5) — `FINNHUB_KEY` is set but nothing live calls it.
 
 ### 3.4 AlphaVantage — 25 req/day free
+
 Only used as the last-resort quote fallback in `stockService.getQuote`.
 Budget is tiny — effectively never reached because Yahoo is first.
 
@@ -199,14 +203,14 @@ Budget is tiny — effectively never reached because Yahoo is first.
 All in `stockService` via `node-cache`; understanding it matters for free-tier
 budgeting:
 
-| Cache | TTL | Purpose |
-|---|---|---|
-| Quotes (single/batch) | 60 s | Quotes are the only thing refetched live |
-| Chart series | 1 h | Heavy OHLC payloads; shared by heatmap + SMA |
-| Financials / metrics / analyst / insider / news | 1 h | Slow-moving |
-| Sector heatmap aggregation | 15 min | Recomputation is expensive (30+ charts) |
-| Negative TTLs | 15–30 s | Suppress retry storms after provider misses |
-| In-flight registries | — | Coalesce concurrent duplicate requests |
+| Cache                                           | TTL     | Purpose                                      |
+| ----------------------------------------------- | ------- | -------------------------------------------- |
+| Quotes (single/batch)                           | 60 s    | Quotes are the only thing refetched live     |
+| Chart series                                    | 1 h     | Heavy OHLC payloads; shared by heatmap + SMA |
+| Financials / metrics / analyst / insider / news | 1 h     | Slow-moving                                  |
+| Sector heatmap aggregation                      | 15 min  | Recomputation is expensive (30+ charts)      |
+| Negative TTLs                                   | 15–30 s | Suppress retry storms after provider misses  |
+| In-flight registries                            | —       | Coalesce concurrent duplicate requests       |
 
 **Practical consequence:** a 30-ticker Insights universe costs ~30 Yahoo calls
 on first warm, then 0 inside the TTL window. FMP fundamentals are hit once per
@@ -231,13 +235,13 @@ through many tickers rapidly is the only way to exhaust it.
 
 **Dead / unwired modules (not referenced by any live route):**
 
-| Module | What it would power | Status |
-|---|---|---|
-| `server/routes/earnings.ts` | Finnhub earnings calendar (`/api/earnings/calendar`) | ❌ Not registered in `index.ts`; client uses FMP `/api/earnings-calendar` instead |
-| `server/routes/insights.ts` | Yahoo batch quotes + sectors for Insights tabs | ❌ Not registered; superseded by curated `/api/insights-tab` + batch-quote route |
-| `server/services/stockAggregator.ts` | Rich aggregated ticker view | ❌ Exported but never imported — its FMP helpers (`fmp.ts`) still exist but only this dead module consumes them |
-| `server/services/finnhub.ts` | Company + market news | ❌ Only imported by the dead aggregator — **Finnhub is configured but unused** |
-| `server/services/fmp.ts` | FMP fundamentals (limit=5) | ⚠️ Only consumed by the dead aggregator; its `earning-calendar` singular form 404s |
+| Module                               | What it would power                                  | Status                                                                                                          |
+| ------------------------------------ | ---------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `server/routes/earnings.ts`          | Finnhub earnings calendar (`/api/earnings/calendar`) | ❌ Not registered in `index.ts`; client uses FMP `/api/earnings-calendar` instead                               |
+| `server/routes/insights.ts`          | Yahoo batch quotes + sectors for Insights tabs       | ❌ Not registered; superseded by curated `/api/insights-tab` + batch-quote route                                |
+| `server/services/stockAggregator.ts` | Rich aggregated ticker view                          | ❌ Exported but never imported — its FMP helpers (`fmp.ts`) still exist but only this dead module consumes them |
+| `server/services/finnhub.ts`         | Company + market news                                | ❌ Only imported by the dead aggregator — **Finnhub is configured but unused**                                  |
+| `server/services/fmp.ts`             | FMP fundamentals (limit=5)                           | ⚠️ Only consumed by the dead aggregator; its `earning-calendar` singular form 404s                              |
 
 **Env vars in use:** `FMP_KEY`, `AV_KEY`, `FINNHUB_KEY`, `VITE_LOGO_DEV_KEY` (build-time client-side override),
 plus optional `FMP_USE_STABLE` (defaults to `/stable/`).

@@ -48,8 +48,8 @@ export default function I18nDebug() {
           behind import.meta.env.DEV
         </p>
         <p className="text-xs text-slate-500 mt-2">
-          {baseKeys.length} plural base key{baseKeys.length === 1 ? "" : "s"}{" "}
-          · {COUNT_OPTIONS.length} count variants ·{" "}
+          {baseKeys.length} plural base key{baseKeys.length === 1 ? "" : "s"} ·{" "}
+          {COUNT_OPTIONS.length} count variants ·{" "}
           {lang === "he"
             ? "Hebrew dual `_two` should produce text containing שני on count=2"
             : "no Hebrew dual in EN — confirm `_two` falls through to `_other`"}
@@ -58,7 +58,9 @@ export default function I18nDebug() {
 
       {/* Count selector chips */}
       <div className="px-8 py-6 border-b border-slate-700 flex items-center gap-3 flex-wrap">
-        <span className="text-sm text-slate-400 font-medium">Highlight count:</span>
+        <span className="text-sm text-slate-400 font-medium">
+          Highlight count:
+        </span>
         {COUNT_OPTIONS.map((c) => {
           const isActive = activeCount === c;
           return (
@@ -125,21 +127,18 @@ export default function I18nDebug() {
                   colSpan={COUNT_OPTIONS.length + 1}
                   className="p-6 text-center text-slate-500 italic"
                 >
-                  No plural-form keys defined in the {lang} dictionary. Add
-                  {" "}
-                  <code className="font-mono text-slate-300">
-                    some.key_one
-                  </code>{" "}
+                  No plural-form keys defined in the {lang} dictionary. Add{" "}
+                  <code className="font-mono text-slate-300">some.key_one</code>{" "}
                   /{" "}
-                  <code className="font-mono text-slate-300">
-                    some.key_two
-                  </code>{" "}
+                  <code className="font-mono text-slate-300">some.key_two</code>{" "}
                   /{" "}
                   <code className="font-mono text-slate-300">
                     some.key_other
                   </code>{" "}
-                  (and optionally <code className="font-mono text-slate-300">_few</code> /{" "}
-                  <code className="font-mono text-slate-300">_many</code>) to populate this grid.
+                  (and optionally{" "}
+                  <code className="font-mono text-slate-300">_few</code> /{" "}
+                  <code className="font-mono text-slate-300">_many</code>) to
+                  populate this grid.
                 </td>
               </tr>
             ) : (
@@ -159,8 +158,8 @@ export default function I18nDebug() {
 
       <footer className="px-8 py-6 border-t border-slate-700 text-xs text-slate-500 font-mono">
         <p>
-          Tip: switch language via the top-right selector to flip en ↔ he.
-          The key_*(category) column picks come straight from{" "}
+          Tip: switch language via the top-right selector to flip en ↔ he. The
+          key_*(category) column picks come straight from{" "}
           <code>getPluralCategory(lang, count)</code>; the resolved text comes
           straight from{" "}
           <code>

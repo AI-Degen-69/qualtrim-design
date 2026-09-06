@@ -36,11 +36,15 @@ describe("resolveLogoDevKey", () => {
   });
 
   it("throws when both env and fallback are empty", () => {
-    expect(() => resolveLogoDevKey("", "")).toThrow(/Logo\.dev publishable key/);
+    expect(() => resolveLogoDevKey("", "")).toThrow(
+      /Logo\.dev publishable key/,
+    );
   });
 
   it("throws when both env and fallback are whitespace-only", () => {
-    expect(() => resolveLogoDevKey("   ", "  ")).toThrow(/Logo\.dev publishable key/);
+    expect(() => resolveLogoDevKey("   ", "  ")).toThrow(
+      /Logo\.dev publishable key/,
+    );
   });
 
   it("error message mentions VITE_LOGO_DEV_KEY so an operator can grep-fix it", () => {

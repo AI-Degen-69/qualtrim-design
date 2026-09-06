@@ -286,7 +286,8 @@ describe("parseTradeDateMs (sort-friendly, sink=0)", () => {
     // and all sink rows are at the end.
     const realCount = sorted.filter((n) => n.startsWith("real")).length;
     const sinkCountStart = realCount;
-    for (let i = 0; i < realCount; i++) expect(sorted[i].startsWith("real")).toBe(true);
+    for (let i = 0; i < realCount; i++)
+      expect(sorted[i].startsWith("real")).toBe(true);
     for (let i = sinkCountStart; i < sorted.length; i++) {
       expect(["A", "B", "C"]).toContain(sorted[i]);
     }
@@ -409,15 +410,25 @@ describe("formatEarningsDate", () => {
 
 describe("detectPeriodGranularity", () => {
   it("returns 'quarter' when the last row is Q1..Q4", () => {
-    expect(detectPeriodGranularity([{ period: "FY" }, { period: "FY" }, { period: "Q1" }])).toBe(
-      "quarter",
-    );
+    expect(
+      detectPeriodGranularity([
+        { period: "FY" },
+        { period: "FY" },
+        { period: "Q1" },
+      ]),
+    ).toBe("quarter");
   });
 
   it("returns 'annual' when the last row is FY or blank", () => {
-    expect(detectPeriodGranularity([{ period: "Q1" }, { period: "FY" }])).toBe("annual");
-    expect(detectPeriodGranularity([{ period: "" }, { period: "FY" }])).toBe("annual");
-    expect(detectPeriodGranularity([{ period: null }, { period: undefined }])).toBe("annual");
+    expect(detectPeriodGranularity([{ period: "Q1" }, { period: "FY" }])).toBe(
+      "annual",
+    );
+    expect(detectPeriodGranularity([{ period: "" }, { period: "FY" }])).toBe(
+      "annual",
+    );
+    expect(
+      detectPeriodGranularity([{ period: null }, { period: undefined }]),
+    ).toBe("annual");
   });
 
   it("returns 'annual' for empty / unrecognised input", () => {

@@ -41,7 +41,7 @@ export function solveImpliedGrowthRate(
   multiple: number,
   sharesOutstanding: number,
   maxIterations = 40,
-  epsilon = 0.01
+  epsilon = 0.01,
 ): number | null {
   if (
     base <= 0 ||
@@ -57,15 +57,33 @@ export function solveImpliedGrowthRate(
   let high = 300.0;
 
   // Boundary check
-  const fvLow = computeDcfFairValue(base, low, discountRate, multiple, sharesOutstanding);
-  const fvHigh = computeDcfFairValue(base, high, discountRate, multiple, sharesOutstanding);
+  const fvLow = computeDcfFairValue(
+    base,
+    low,
+    discountRate,
+    multiple,
+    sharesOutstanding,
+  );
+  const fvHigh = computeDcfFairValue(
+    base,
+    high,
+    discountRate,
+    multiple,
+    sharesOutstanding,
+  );
 
   if (currentPrice <= fvLow) return low;
   if (currentPrice >= fvHigh) return high;
 
   for (let i = 0; i < maxIterations; i++) {
     const mid = (low + high) / 2;
-    const fvMid = computeDcfFairValue(base, mid, discountRate, multiple, sharesOutstanding);
+    const fvMid = computeDcfFairValue(
+      base,
+      mid,
+      discountRate,
+      multiple,
+      sharesOutstanding,
+    );
     const diff = fvMid - currentPrice;
 
     if (Math.abs(diff) < epsilon || high - low < 0.01) {
@@ -94,7 +112,8 @@ export function getExpectationRegime(impliedGrowth: number): {
   if (impliedGrowth > 25) {
     return {
       key: "dcf.regimeHyper",
-      badgeClass: "bg-chart-negative/15 text-chart-negative border-chart-negative/30",
+      badgeClass:
+        "bg-chart-negative/15 text-chart-negative border-chart-negative/30",
       textClass: "text-chart-negative",
       colorHex: "#ef4444",
     };
@@ -150,7 +169,7 @@ export const ReverseDCFGauge: React.FC<ReverseDCFGaugeProps> = ({
       currentPrice,
       discountRate,
       multiple,
-      sharesOutstanding
+      sharesOutstanding,
     );
   }, [activeBase, currentPrice, discountRate, multiple, sharesOutstanding]);
 
@@ -173,9 +192,7 @@ export const ReverseDCFGauge: React.FC<ReverseDCFGaugeProps> = ({
   const minG = -20;
   const maxG = 40;
   const clampedImplied =
-    impliedGrowth !== null
-      ? Math.max(minG, Math.min(maxG, impliedGrowth))
-      : 0;
+    impliedGrowth !== null ? Math.max(minG, Math.min(maxG, impliedGrowth)) : 0;
   const clampedUser = Math.max(minG, Math.min(maxG, userGrowthRate));
 
   const impliedAngle = ((clampedImplied - minG) / (maxG - minG)) * 180 - 90;
@@ -249,7 +266,13 @@ export const ReverseDCFGauge: React.FC<ReverseDCFGaugeProps> = ({
             role="img"
           >
             <defs>
-              <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <linearGradient
+                id="gaugeGradient"
+                x1="0%"
+                y1="0%"
+                x2="100%"
+                y2="0%"
+              >
                 <stop offset="0%" stopColor="#3b82f6" />
                 <stop offset="35%" stopColor="#10b981" />
                 <stop offset="65%" stopColor="#38bdf8" />
@@ -278,19 +301,49 @@ export const ReverseDCFGauge: React.FC<ReverseDCFGaugeProps> = ({
             />
 
             {/* Scale Tick Labels */}
-            <text x="14" y="136" fontSize="9" fill="hsl(var(--muted-foreground))" fontFamily="monospace">
+            <text
+              x="14"
+              y="136"
+              fontSize="9"
+              fill="hsl(var(--muted-foreground))"
+              fontFamily="monospace"
+            >
               -20%
             </text>
-            <text x="75" y="42" fontSize="9" fill="hsl(var(--muted-foreground))" fontFamily="monospace">
+            <text
+              x="75"
+              y="42"
+              fontSize="9"
+              fill="hsl(var(--muted-foreground))"
+              fontFamily="monospace"
+            >
               0%
             </text>
-            <text x="114" y="24" fontSize="9" fill="hsl(var(--muted-foreground))" fontFamily="monospace">
+            <text
+              x="114"
+              y="24"
+              fontSize="9"
+              fill="hsl(var(--muted-foreground))"
+              fontFamily="monospace"
+            >
               10%
             </text>
-            <text x="156" y="42" fontSize="9" fill="hsl(var(--muted-foreground))" fontFamily="monospace">
+            <text
+              x="156"
+              y="42"
+              fontSize="9"
+              fill="hsl(var(--muted-foreground))"
+              fontFamily="monospace"
+            >
               25%
             </text>
-            <text x="210" y="136" fontSize="9" fill="hsl(var(--muted-foreground))" fontFamily="monospace">
+            <text
+              x="210"
+              y="136"
+              fontSize="9"
+              fill="hsl(var(--muted-foreground))"
+              fontFamily="monospace"
+            >
               +40%
             </text>
 
@@ -333,13 +386,18 @@ export const ReverseDCFGauge: React.FC<ReverseDCFGaugeProps> = ({
             <div className="text-xs uppercase font-mono tracking-wider text-muted-foreground">
               {t("dcf.marketImpliedGrowth") || "Market-Implied 5Y CAGR"}
             </div>
-            <div className={`text-3xl font-bold font-mono tabular-nums ${regime.textClass}`}>
+            <div
+              className={`text-3xl font-bold font-mono tabular-nums ${regime.textClass}`}
+            >
               {impliedGrowth !== null
                 ? `${impliedGrowth >= 0 ? "+" : ""}${impliedGrowth.toFixed(1)}%`
                 : "—"}
             </div>
             <div className="text-[11px] font-mono text-muted-foreground">
-              {t("dcf.basedOnPriceAndWacc", { price: currentPrice.toFixed(2), wacc: discountRate })}
+              {t("dcf.basedOnPriceAndWacc", {
+                price: currentPrice.toFixed(2),
+                wacc: discountRate,
+              })}
             </div>
           </div>
         </div>
@@ -400,14 +458,22 @@ export const ReverseDCFGauge: React.FC<ReverseDCFGaugeProps> = ({
               <div className="text-xs text-foreground/90 space-y-1">
                 <p className="font-medium">
                   {hasHeadroom
-                    ? t("dcf.headroomDescription", { spread: absSpread.toFixed(1) }) ||
+                    ? t("dcf.headroomDescription", {
+                        spread: absSpread.toFixed(1),
+                      }) ||
                       `You expect ${absSpread.toFixed(1)}% higher growth than the market is pricing in (undervaluation cushion).`
-                    : t("dcf.deficitDescription", { spread: absSpread.toFixed(1) }) ||
+                    : t("dcf.deficitDescription", {
+                        spread: absSpread.toFixed(1),
+                      }) ||
                       `The market price requires ${absSpread.toFixed(1)}% higher growth than your current assumption.`}
                 </p>
                 <p className="text-[11px] text-muted-foreground font-mono">
-                  {t("dcf.impliedTerminalMetric") || "Implied Year 5 Base"}: ${impliedYear5Metric.toFixed(1)}B{" "}
-                  ({valuationMode === "cashFlow" ? t("dcf.fcfBase") || "FCF" : t("dcf.netIncomeBase") || "Net Income"})
+                  {t("dcf.impliedTerminalMetric") || "Implied Year 5 Base"}: $
+                  {impliedYear5Metric.toFixed(1)}B (
+                  {valuationMode === "cashFlow"
+                    ? t("dcf.fcfBase") || "FCF"
+                    : t("dcf.netIncomeBase") || "Net Income"}
+                  )
                 </p>
               </div>
             </div>
@@ -422,7 +488,9 @@ export const ReverseDCFGauge: React.FC<ReverseDCFGaugeProps> = ({
             >
               <Sparkles className="w-3.5 h-3.5" />
               <span>
-                {t("dcf.applyImpliedToSandbox") || "Apply Implied Growth to DCF"} ({impliedGrowth.toFixed(1)}%)
+                {t("dcf.applyImpliedToSandbox") ||
+                  "Apply Implied Growth to DCF"}{" "}
+                ({impliedGrowth.toFixed(1)}%)
               </span>
               <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
             </button>

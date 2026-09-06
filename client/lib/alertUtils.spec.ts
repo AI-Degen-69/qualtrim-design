@@ -1,8 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { eventEpochMs, isWithin24h, hoursUntil, formatTimeUntil } from "./alertUtils";
+import {
+  eventEpochMs,
+  isWithin24h,
+  hoursUntil,
+  formatTimeUntil,
+} from "./alertUtils";
 import type { EarningsEvent } from "@shared/api";
 
-function ev(partial: Partial<EarningsEvent> & { date: string; time: EarningsEvent["time"]; symbol: string }): EarningsEvent {
+function ev(
+  partial: Partial<EarningsEvent> & {
+    date: string;
+    time: EarningsEvent["time"];
+    symbol: string;
+  },
+): EarningsEvent {
   return {
     symbol: partial.symbol,
     date: partial.date,
@@ -20,32 +31,44 @@ function ev(partial: Partial<EarningsEvent> & { date: string; time: EarningsEven
 
 describe("eventEpochMs", () => {
   it("computes 09:30 local for bmo", () => {
-    const ms = eventEpochMs(ev({ symbol: "AAPL", date: "2025-09-15", time: "bmo" }));
+    const ms = eventEpochMs(
+      ev({ symbol: "AAPL", date: "2025-09-15", time: "bmo" }),
+    );
     const expected = new Date(2025, 8, 15, 9, 30, 0, 0).getTime();
     expect(ms).toBe(expected);
   });
 
   it("computes 16:00 local for amc", () => {
-    const ms = eventEpochMs(ev({ symbol: "NVDA", date: "2025-09-15", time: "amc" }));
+    const ms = eventEpochMs(
+      ev({ symbol: "NVDA", date: "2025-09-15", time: "amc" }),
+    );
     const expected = new Date(2025, 8, 15, 16, 0, 0, 0).getTime();
     expect(ms).toBe(expected);
   });
 
   it("computes 12:00 local for dmh", () => {
-    const ms = eventEpochMs(ev({ symbol: "MDT", date: "2025-09-15", time: "dmh" }));
+    const ms = eventEpochMs(
+      ev({ symbol: "MDT", date: "2025-09-15", time: "dmh" }),
+    );
     const expected = new Date(2025, 8, 15, 12, 0, 0, 0).getTime();
     expect(ms).toBe(expected);
   });
 
   it("falls back to 09:00 for unknown time strings", () => {
-    const ms = eventEpochMs(ev({ symbol: "X", date: "2025-09-15", time: "strange" }));
+    const ms = eventEpochMs(
+      ev({ symbol: "X", date: "2025-09-15", time: "strange" }),
+    );
     const expected = new Date(2025, 8, 15, 9, 0, 0, 0).getTime();
     expect(ms).toBe(expected);
   });
 
   it("returns NaN for malformed date strings", () => {
-    expect(eventEpochMs(ev({ symbol: "X", date: "not-a-date", time: "bmo" }))).toBeNaN();
-    expect(eventEpochMs(ev({ symbol: "X", date: "2025", time: "bmo" }))).toBeNaN();
+    expect(
+      eventEpochMs(ev({ symbol: "X", date: "not-a-date", time: "bmo" })),
+    ).toBeNaN();
+    expect(
+      eventEpochMs(ev({ symbol: "X", date: "2025", time: "bmo" })),
+    ).toBeNaN();
   });
 });
 

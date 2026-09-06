@@ -115,9 +115,7 @@ export function normalizeYahooQuote(
     sharesOutstanding: toFiniteNumber(raw.sharesOutstanding),
     eps: toFiniteNumber(raw.epsTrailingTwelveMonths),
     pe: toFiniteNumber(raw.trailingPE),
-    earningsAnnouncement: normalizeEarningsAnnouncement(
-      raw.earningsTimestamp,
-    ),
+    earningsAnnouncement: normalizeEarningsAnnouncement(raw.earningsTimestamp),
     dividendRate: toFiniteNumber(raw.dividendRate),
     dividendYield: normalizeDividendYield(
       raw.dividendYield,

@@ -24,7 +24,7 @@ export interface NewsItem {
  */
 export async function fetchCompanyNews(
   ticker: string,
-  daysBack: number = 7
+  daysBack: number = 7,
 ): Promise<NewsItem[]> {
   if (!FINNHUB_KEY) {
     console.error("[Finnhub] API key is missing. Set FINNHUB_KEY in .env");
@@ -54,7 +54,10 @@ export async function fetchCompanyNews(
     const data = await res.json();
 
     if (!Array.isArray(data)) {
-      console.error(`[Finnhub] Unexpected response for ${symbol}:`, typeof data);
+      console.error(
+        `[Finnhub] Unexpected response for ${symbol}:`,
+        typeof data,
+      );
       return [];
     }
 
@@ -88,7 +91,7 @@ export async function fetchCompanyNews(
  * Fetch market news (general, not company-specific) from Finnhub.
  */
 export async function fetchMarketNews(
-  category: string = "general"
+  category: string = "general",
 ): Promise<NewsItem[]> {
   if (!FINNHUB_KEY) {
     console.error("[Finnhub] API key is missing. Set FINNHUB_KEY in .env");

@@ -86,7 +86,8 @@ describe("getMetrics availability classification", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (url.includes("key-metrics-ttm")) return fakeResponse("{}", false, 429);
+        if (url.includes("key-metrics-ttm"))
+          return fakeResponse("{}", false, 429);
         if (url.includes("ratios-ttm"))
           return fakeResponse('[{"priceToSalesRatioTTM":1.5}]');
         return fakeResponse("[]");
@@ -122,7 +123,8 @@ describe("getMetrics availability classification", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (url.includes("key-metrics-ttm")) return fakeResponse("{}", false, 404);
+        if (url.includes("key-metrics-ttm"))
+          return fakeResponse("{}", false, 404);
         if (url.includes("ratios-ttm"))
           return fakeResponse('[{"priceToSalesRatioTTM":1.5}]');
         return fakeResponse("[]");

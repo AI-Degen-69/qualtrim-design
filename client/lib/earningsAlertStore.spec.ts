@@ -20,7 +20,8 @@ import {
 function installInMemoryStorage() {
   const backing = new Map<string, string>();
   const stub = {
-    getItem: (k: string) => (backing.has(k) ? (backing.get(k) as string) : null),
+    getItem: (k: string) =>
+      backing.has(k) ? (backing.get(k) as string) : null,
     setItem: (k: string, v: string) => backing.set(k, String(v)),
     removeItem: (k: string) => backing.delete(k),
     clear: () => backing.clear(),
@@ -38,7 +39,10 @@ function installInMemoryStorage() {
 }
 
 function teardownStorage() {
-  Object.defineProperty(globalThis, "window", { value: undefined, configurable: true });
+  Object.defineProperty(globalThis, "window", {
+    value: undefined,
+    configurable: true,
+  });
 }
 
 describe("earningsAlertStore", () => {
@@ -63,7 +67,9 @@ describe("earningsAlertStore", () => {
 
     it("round-trips through save → load", () => {
       const stub = (globalThis as any).window.localStorage;
-      const map = { "2025-09-15|AAPL": { snoozedAt: 100, expiresAt: 100 + 24 * 3600_000 } };
+      const map = {
+        "2025-09-15|AAPL": { snoozedAt: 100, expiresAt: 100 + 24 * 3600_000 },
+      };
       saveSnoozed(map);
       expect(stub.getItem(EARNINGS_ALERT_STORAGE_SNOOZED)).not.toBeNull();
       expect(loadSnoozed()).toEqual(map);
@@ -127,8 +133,20 @@ describe("earningsAlertStore", () => {
 
     it("pruneOldHistory keeps entries on/after today", () => {
       const entries = [
-        { key: "yest|AAPL", symbol: "AAPL", date: "2000-01-01", action: "dismissed" as const, ts: 1 },
-        { key: "today|MSFT", symbol: "MSFT", date: "2099-09-15", action: "opened" as const, ts: 2 },
+        {
+          key: "yest|AAPL",
+          symbol: "AAPL",
+          date: "2000-01-01",
+          action: "dismissed" as const,
+          ts: 1,
+        },
+        {
+          key: "today|MSFT",
+          symbol: "MSFT",
+          date: "2099-09-15",
+          action: "opened" as const,
+          ts: 2,
+        },
       ];
       const out = pruneOldHistory(entries, "2099-09-15");
       expect(out).toHaveLength(1);

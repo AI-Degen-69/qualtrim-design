@@ -207,7 +207,9 @@ describe("ChartModal — segmentLockedReason banner (locked-premium UX)", () => 
     );
 
     // Banner title should NOT appear in segment mode.
-    expect(html).not.toMatch(/Per-segment breakdown locked|פילוח לפי מגזר נעול/);
+    expect(html).not.toMatch(
+      /Per-segment breakdown locked|פילוח לפי מגזר נעול/,
+    );
     // Locked "Segments" chip from the banner should NOT appear.
     // (The chip-filter row uses the *real* segment names instead.)
     expect(html).not.toMatch(/lucide-lock/);
@@ -231,7 +233,9 @@ describe("ChartModal — segmentLockedReason banner (locked-premium UX)", () => 
       ),
     );
 
-    expect(html).not.toMatch(/Per-segment breakdown locked|פילוח לפי מגזר נעול/);
+    expect(html).not.toMatch(
+      /Per-segment breakdown locked|פילוח לפי מגזר נעול/,
+    );
     // No lock icon in the banner — chart-specific icons may still
     // render elsewhere; we just pin the banner's own absence here.
     // (Note: lucide-react's `Lock` import is module-scoped only when

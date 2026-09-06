@@ -276,12 +276,48 @@ interface SectorData {
 }
 
 const SECTOR_DATA: SectorData[] = [
-  { id: "tech", name: "Technology", change1D: 2.14, leadingTicker: "NVDA", keyMetric: "78% Above 200 SMA" },
-  { id: "health", name: "Healthcare", change1D: -0.45, leadingTicker: "LLY", keyMetric: "P/E 24.1x TTM" },
-  { id: "financials", name: "Financials", change1D: 1.08, leadingTicker: "JPM", keyMetric: "ROE 14.8%" },
-  { id: "consumer", name: "Consumer Disc.", change1D: 0.62, leadingTicker: "AMZN", keyMetric: "CAGR +12.4%" },
-  { id: "comm", name: "Communication", change1D: 1.76, leadingTicker: "GOOGL", keyMetric: "FCF Yield 4.1%" },
-  { id: "energy", name: "Energy", change1D: -1.22, leadingTicker: "XOM", keyMetric: "Div Yield 3.4%" },
+  {
+    id: "tech",
+    name: "Technology",
+    change1D: 2.14,
+    leadingTicker: "NVDA",
+    keyMetric: "78% Above 200 SMA",
+  },
+  {
+    id: "health",
+    name: "Healthcare",
+    change1D: -0.45,
+    leadingTicker: "LLY",
+    keyMetric: "P/E 24.1x TTM",
+  },
+  {
+    id: "financials",
+    name: "Financials",
+    change1D: 1.08,
+    leadingTicker: "JPM",
+    keyMetric: "ROE 14.8%",
+  },
+  {
+    id: "consumer",
+    name: "Consumer Disc.",
+    change1D: 0.62,
+    leadingTicker: "AMZN",
+    keyMetric: "CAGR +12.4%",
+  },
+  {
+    id: "comm",
+    name: "Communication",
+    change1D: 1.76,
+    leadingTicker: "GOOGL",
+    keyMetric: "FCF Yield 4.1%",
+  },
+  {
+    id: "energy",
+    name: "Energy",
+    change1D: -1.22,
+    leadingTicker: "XOM",
+    keyMetric: "Div Yield 3.4%",
+  },
 ];
 
 // ----------------------------------------------------------------------------
@@ -312,11 +348,17 @@ export default function Landing() {
   const [searchOpen, setSearchOpen] = useState<boolean>(false);
 
   // Mini interactive toggle for feature card 1 preview
-  const [previewPeriod, setPreviewPeriod] = useState<"annual" | "quarterly">("annual");
+  const [previewPeriod, setPreviewPeriod] = useState<"annual" | "quarterly">(
+    "annual",
+  );
 
   // Earnings Calendar Showcase interactive filters
-  const [earningsDayFilter, setEarningsDayFilter] = useState<"all" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri">("all");
-  const [earningsCapFilter, setEarningsCapFilter] = useState<"all" | "large" | "watchlist">("all");
+  const [earningsDayFilter, setEarningsDayFilter] = useState<
+    "all" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri"
+  >("all");
+  const [earningsCapFilter, setEarningsCapFilter] = useState<
+    "all" | "large" | "watchlist"
+  >("all");
 
   // DCF Sandbox interactive parameters
   const [dcfFcf, setDcfFcf] = useState<number>(108.8);
@@ -328,9 +370,15 @@ export default function Landing() {
   // Filtered earnings events
   const filteredEarnings = useMemo(() => {
     return SHOWCASE_EARNINGS.filter((ev) => {
-      if (earningsDayFilter !== "all" && ev.date !== earningsDayFilter) return false;
+      if (earningsDayFilter !== "all" && ev.date !== earningsDayFilter)
+        return false;
       if (earningsCapFilter === "watchlist" && !ev.isWatchlist) return false;
-      if (earningsCapFilter === "large" && !ev.marketCap.includes("T") && parseFloat(ev.marketCap.replace(/[^0-9.]/g, "")) < 200) return false;
+      if (
+        earningsCapFilter === "large" &&
+        !ev.marketCap.includes("T") &&
+        parseFloat(ev.marketCap.replace(/[^0-9.]/g, "")) < 200
+      )
+        return false;
       return true;
     });
   }, [earningsDayFilter, earningsCapFilter]);
@@ -348,11 +396,13 @@ export default function Landing() {
       totalPv += currentFcf / discountFactor;
     }
 
-    const terminalValue = (currentFcf * dcfMultiple) / Math.pow(1 + discountRate, 5);
+    const terminalValue =
+      (currentFcf * dcfMultiple) / Math.pow(1 + discountRate, 5);
     const enterpriseValue = totalPv + terminalValue;
     const fairValuePerShare = dcfShares > 0 ? enterpriseValue / dcfShares : 0;
     const currentPriceRef = 231.42; // AAPL baseline reference
-    const marginOfSafety = ((fairValuePerShare - currentPriceRef) / currentPriceRef) * 100;
+    const marginOfSafety =
+      ((fairValuePerShare - currentPriceRef) / currentPriceRef) * 100;
 
     return {
       enterpriseValue,
@@ -364,8 +414,10 @@ export default function Landing() {
   }, [dcfFcf, dcfGrowth, dcfMultiple, dcfDiscount, dcfShares]);
 
   const activeSpotlight = useMemo(
-    () => SPOTLIGHT_TICKERS.find((item) => item.symbol === selectedTicker) || SPOTLIGHT_TICKERS[0],
-    [selectedTicker]
+    () =>
+      SPOTLIGHT_TICKERS.find((item) => item.symbol === selectedTicker) ||
+      SPOTLIGHT_TICKERS[0],
+    [selectedTicker],
   );
 
   // Calculate SVG light curve path coordinates
@@ -379,11 +431,17 @@ export default function Landing() {
 
     const points = data.map((d, index) => {
       const x = padding + (index / (data.length - 1)) * (width - padding * 2);
-      const y = height - padding - ((d.value - minVal) / (maxVal - minVal)) * (height - padding * 2);
+      const y =
+        height -
+        padding -
+        ((d.value - minVal) / (maxVal - minVal)) * (height - padding * 2);
       return { x, y, year: d.year, val: d.value };
     });
 
-    const pathString = points.reduce((acc, pt, i) => `${acc} ${i === 0 ? "M" : "L"} ${pt.x},${pt.y}`, "");
+    const pathString = points.reduce(
+      (acc, pt, i) => `${acc} ${i === 0 ? "M" : "L"} ${pt.x},${pt.y}`,
+      "",
+    );
     const areaString = `${pathString} L ${points[points.length - 1].x},${height} L ${points[0].x},${height} Z`;
 
     return { points, pathString, areaString, width, height };
@@ -421,7 +479,9 @@ export default function Landing() {
             </span>
             <span>{t("landing.hero.eyebrow")}</span>
             <span className="text-border">·</span>
-            <span className="text-muted-foreground">{t("landing.hero.badge")}</span>
+            <span className="text-muted-foreground">
+              {t("landing.hero.badge")}
+            </span>
           </div>
 
           {/* Starlight Typography Headline */}
@@ -527,7 +587,11 @@ export default function Landing() {
               {/* Left Column: Asset Identity & Key Fundamentals */}
               <div className="lg:col-span-5 space-y-6">
                 <div className="flex items-center gap-4">
-                  <TickerLogo ticker={activeSpotlight.symbol} size="lg" className="rounded-lg shadow-sm" />
+                  <TickerLogo
+                    ticker={activeSpotlight.symbol}
+                    size="lg"
+                    className="rounded-lg shadow-sm"
+                  />
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-2xl font-bold font-mono text-foreground">
@@ -546,12 +610,18 @@ export default function Landing() {
                       </span>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {activeSpotlight.name} · <span className="text-foreground/80">{activeSpotlight.sector}</span>
+                      {activeSpotlight.name} ·{" "}
+                      <span className="text-foreground/80">
+                        {activeSpotlight.sector}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="text-3xl sm:text-4xl font-extrabold font-mono text-foreground" dir="ltr">
+                <div
+                  className="text-3xl sm:text-4xl font-extrabold font-mono text-foreground"
+                  dir="ltr"
+                >
                   ${activeSpotlight.price.toFixed(2)}
                 </div>
 
@@ -561,7 +631,10 @@ export default function Landing() {
                     <div className="text-[11px] font-mono text-muted-foreground truncate">
                       {t("landing.spotlight.marketCap")}
                     </div>
-                    <div className="text-sm font-bold font-mono text-foreground" dir="ltr">
+                    <div
+                      className="text-sm font-bold font-mono text-foreground"
+                      dir="ltr"
+                    >
                       {activeSpotlight.marketCap}
                     </div>
                   </div>
@@ -570,7 +643,10 @@ export default function Landing() {
                     <div className="text-[11px] font-mono text-muted-foreground truncate">
                       {t("landing.spotlight.pe")}
                     </div>
-                    <div className="text-sm font-bold font-mono text-foreground" dir="ltr">
+                    <div
+                      className="text-sm font-bold font-mono text-foreground"
+                      dir="ltr"
+                    >
                       {activeSpotlight.pe}
                     </div>
                   </div>
@@ -579,7 +655,10 @@ export default function Landing() {
                     <div className="text-[11px] font-mono text-muted-foreground truncate">
                       {t("landing.spotlight.cagr3Y")}
                     </div>
-                    <div className="text-sm font-bold font-mono text-chart-positive" dir="ltr">
+                    <div
+                      className="text-sm font-bold font-mono text-chart-positive"
+                      dir="ltr"
+                    >
                       {activeSpotlight.cagr3Y}
                     </div>
                   </div>
@@ -588,7 +667,10 @@ export default function Landing() {
                     <div className="text-[11px] font-mono text-muted-foreground truncate">
                       {t("landing.spotlight.revenue")}
                     </div>
-                    <div className="text-sm font-bold font-mono text-foreground" dir="ltr">
+                    <div
+                      className="text-sm font-bold font-mono text-foreground"
+                      dir="ltr"
+                    >
                       {activeSpotlight.revenue}
                     </div>
                   </div>
@@ -597,7 +679,10 @@ export default function Landing() {
                     <div className="text-[11px] font-mono text-muted-foreground truncate">
                       {t("landing.spotlight.fcf")}
                     </div>
-                    <div className="text-sm font-bold font-mono text-foreground" dir="ltr">
+                    <div
+                      className="text-sm font-bold font-mono text-foreground"
+                      dir="ltr"
+                    >
                       {activeSpotlight.fcf}
                     </div>
                   </div>
@@ -606,7 +691,10 @@ export default function Landing() {
                     <div className="text-[11px] font-mono text-muted-foreground truncate">
                       {t("landing.spotlight.grossMargin")}
                     </div>
-                    <div className="text-sm font-bold font-mono text-foreground" dir="ltr">
+                    <div
+                      className="text-sm font-bold font-mono text-foreground"
+                      dir="ltr"
+                    >
                       {activeSpotlight.grossMargin}
                     </div>
                   </div>
@@ -644,19 +732,60 @@ export default function Landing() {
                     className="w-full h-44 overflow-visible"
                   >
                     <defs>
-                      <linearGradient id="curveGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.25" />
-                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0.0" />
+                      <linearGradient
+                        id="curveGradient"
+                        x1="0%"
+                        y1="0%"
+                        x2="0%"
+                        y2="100%"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="hsl(var(--primary))"
+                          stopOpacity="0.25"
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="hsl(var(--primary))"
+                          stopOpacity="0.0"
+                        />
                       </linearGradient>
                     </defs>
 
                     {/* Graticule Ruled Gridlines */}
-                    <line x1="20" y1="30" x2="460" y2="30" stroke="hsl(var(--border))" strokeDasharray="3 3" strokeWidth="1" />
-                    <line x1="20" y1="70" x2="460" y2="70" stroke="hsl(var(--border))" strokeDasharray="3 3" strokeWidth="1" />
-                    <line x1="20" y1="110" x2="460" y2="110" stroke="hsl(var(--border))" strokeDasharray="3 3" strokeWidth="1" />
+                    <line
+                      x1="20"
+                      y1="30"
+                      x2="460"
+                      y2="30"
+                      stroke="hsl(var(--border))"
+                      strokeDasharray="3 3"
+                      strokeWidth="1"
+                    />
+                    <line
+                      x1="20"
+                      y1="70"
+                      x2="460"
+                      y2="70"
+                      stroke="hsl(var(--border))"
+                      strokeDasharray="3 3"
+                      strokeWidth="1"
+                    />
+                    <line
+                      x1="20"
+                      y1="110"
+                      x2="460"
+                      y2="110"
+                      stroke="hsl(var(--border))"
+                      strokeDasharray="3 3"
+                      strokeWidth="1"
+                    />
 
                     {/* Area fill */}
-                    <path d={svgPathData.areaString} fill="url(#curveGradient)" />
+                    <path
+                      d={svgPathData.areaString}
+                      fill="url(#curveGradient)"
+                    />
 
                     {/* Luminous Light Curve Path */}
                     <path
@@ -675,7 +804,11 @@ export default function Landing() {
                         <circle
                           cx={pt.x}
                           cy={pt.y}
-                          r={index === svgPathData.points.length - 1 ? "5" : "3.5"}
+                          r={
+                            index === svgPathData.points.length - 1
+                              ? "5"
+                              : "3.5"
+                          }
                           className="fill-background stroke-primary"
                           strokeWidth="2"
                         />
@@ -702,7 +835,9 @@ export default function Landing() {
 
                 <div className="flex items-center justify-between text-[11px] font-mono text-muted-foreground pt-2 border-t border-border/40">
                   <span>Instrument: Revenue (Historical Light-Curve)</span>
-                  <span className="text-chart-positive font-semibold">Verified Annual Reporting</span>
+                  <span className="text-chart-positive font-semibold">
+                    Verified Annual Reporting
+                  </span>
                 </div>
               </div>
             </motion.div>
@@ -745,25 +880,33 @@ export default function Landing() {
           <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-[6px] bg-background/80 border border-border">
             {/* Day selector */}
             <div className="flex items-center gap-1">
-              {(["all", "Mon", "Tue", "Wed", "Thu", "Fri"] as const).map((day) => (
-                <button
-                  key={day}
-                  onClick={() => setEarningsDayFilter(day)}
-                  className={`px-3 py-1 rounded-[4px] text-xs font-mono font-medium transition-colors ${
-                    earningsDayFilter === day
-                      ? "bg-primary text-primary-foreground font-bold shadow-sm"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                  }`}
-                >
-                  {day === "all" ? t("landing.earningsShowcase.filterAll") : day}
-                </button>
-              ))}
+              {(["all", "Mon", "Tue", "Wed", "Thu", "Fri"] as const).map(
+                (day) => (
+                  <button
+                    key={day}
+                    onClick={() => setEarningsDayFilter(day)}
+                    className={`px-3 py-1 rounded-[4px] text-xs font-mono font-medium transition-colors ${
+                      earningsDayFilter === day
+                        ? "bg-primary text-primary-foreground font-bold shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {day === "all"
+                      ? t("landing.earningsShowcase.filterAll")
+                      : day}
+                  </button>
+                ),
+              )}
             </div>
 
             {/* Watchlist & Cap filter */}
             <div className="flex items-center gap-1.5">
               <button
-                onClick={() => setEarningsCapFilter((prev) => (prev === "watchlist" ? "all" : "watchlist"))}
+                onClick={() =>
+                  setEarningsCapFilter((prev) =>
+                    prev === "watchlist" ? "all" : "watchlist",
+                  )
+                }
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-[4px] text-xs font-mono transition-colors ${
                   earningsCapFilter === "watchlist"
                     ? "bg-amber-400/20 text-amber-300 border border-amber-400/40 font-semibold"
@@ -775,7 +918,11 @@ export default function Landing() {
               </button>
 
               <button
-                onClick={() => setEarningsCapFilter((prev) => (prev === "large" ? "all" : "large"))}
+                onClick={() =>
+                  setEarningsCapFilter((prev) =>
+                    prev === "large" ? "all" : "large",
+                  )
+                }
                 className={`px-3 py-1 rounded-[4px] text-xs font-mono transition-colors ${
                   earningsCapFilter === "large"
                     ? "bg-primary/20 text-primary border border-primary/40 font-semibold"
@@ -797,7 +944,11 @@ export default function Landing() {
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2.5">
-                    <TickerLogo ticker={ev.ticker} size="sm" className="rounded" />
+                    <TickerLogo
+                      ticker={ev.ticker}
+                      size="sm"
+                      className="rounded"
+                    />
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-bold font-mono text-base text-foreground group-hover:text-primary transition-colors">
@@ -825,7 +976,9 @@ export default function Landing() {
                             : "bg-chart-negative/20 text-chart-negative border border-chart-negative/30"
                         }`}
                       >
-                        {ev.surprise === "beat" ? t("landing.earningsShowcase.beat") : t("landing.earningsShowcase.miss")}
+                        {ev.surprise === "beat"
+                          ? t("landing.earningsShowcase.beat")
+                          : t("landing.earningsShowcase.miss")}
                       </span>
                     )}
 
@@ -837,7 +990,11 @@ export default function Landing() {
                       }`}
                       title={ev.time}
                     >
-                      {ev.time === "Before Open" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                      {ev.time === "Before Open" ? (
+                        <Sun className="w-3.5 h-3.5" />
+                      ) : (
+                        <Moon className="w-3.5 h-3.5" />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -846,15 +1003,23 @@ export default function Landing() {
                 <div className="space-y-1.5 text-xs font-mono pt-2 border-t border-border/50">
                   <div className="flex justify-between text-muted-foreground">
                     <span>{t("landing.earningsShowcase.epsEst")}</span>
-                    <span className="text-foreground font-semibold" dir="ltr">${ev.epsEst.toFixed(2)}</span>
+                    <span className="text-foreground font-semibold" dir="ltr">
+                      ${ev.epsEst.toFixed(2)}
+                    </span>
                   </div>
 
                   {ev.epsActual !== undefined && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t("landing.earningsShowcase.epsActual")}</span>
+                      <span className="text-muted-foreground">
+                        {t("landing.earningsShowcase.epsActual")}
+                      </span>
                       <span
                         className={`font-bold ${
-                          ev.surprise === "beat" ? "text-chart-positive" : ev.surprise === "miss" ? "text-chart-negative" : "text-foreground"
+                          ev.surprise === "beat"
+                            ? "text-chart-positive"
+                            : ev.surprise === "miss"
+                              ? "text-chart-negative"
+                              : "text-foreground"
                         }`}
                         dir="ltr"
                       >
@@ -865,13 +1030,19 @@ export default function Landing() {
 
                   <div className="flex justify-between text-muted-foreground">
                     <span>{t("landing.earningsShowcase.revEst")}</span>
-                    <span className="text-foreground font-semibold" dir="ltr">${ev.revEst.toFixed(2)}B</span>
+                    <span className="text-foreground font-semibold" dir="ltr">
+                      ${ev.revEst.toFixed(2)}B
+                    </span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between text-[10px] font-mono text-muted-foreground pt-1">
-                  <span>{ev.dateFull} · {ev.time}</span>
-                  <span className="text-primary group-hover:underline">View →</span>
+                  <span>
+                    {ev.dateFull} · {ev.time}
+                  </span>
+                  <span className="text-primary group-hover:underline">
+                    View →
+                  </span>
                 </div>
               </div>
             ))}
@@ -909,7 +1080,10 @@ export default function Landing() {
               {/* Slider 1: Base FCF */}
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-mono">
-                  <label htmlFor="dcf-fcf-slider" className="text-muted-foreground font-medium">
+                  <label
+                    htmlFor="dcf-fcf-slider"
+                    className="text-muted-foreground font-medium"
+                  >
                     {t("landing.dcfSandbox.fcfInput")}
                   </label>
                   <span className="font-semibold text-foreground bg-muted/60 px-2 py-0.5 rounded border border-border/60">
@@ -936,7 +1110,10 @@ export default function Landing() {
               {/* Slider 2: Growth Rate */}
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-mono">
-                  <label htmlFor="dcf-growth-slider" className="text-muted-foreground font-medium">
+                  <label
+                    htmlFor="dcf-growth-slider"
+                    className="text-muted-foreground font-medium"
+                  >
                     {t("landing.dcfSandbox.growthInput")}
                   </label>
                   <span className="font-semibold text-chart-positive bg-muted/60 px-2 py-0.5 rounded border border-border/60">
@@ -963,7 +1140,10 @@ export default function Landing() {
               {/* Slider 3: Exit Multiple */}
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-mono">
-                  <label htmlFor="dcf-multiple-slider" className="text-muted-foreground font-medium">
+                  <label
+                    htmlFor="dcf-multiple-slider"
+                    className="text-muted-foreground font-medium"
+                  >
                     {t("landing.dcfSandbox.multipleInput")}
                   </label>
                   <span className="font-semibold text-foreground bg-muted/60 px-2 py-0.5 rounded border border-border/60">
@@ -990,7 +1170,10 @@ export default function Landing() {
               {/* Slider 4: Discount Rate */}
               <div className="space-y-2">
                 <div className="flex justify-between text-xs font-mono">
-                  <label htmlFor="dcf-discount-slider" className="text-muted-foreground font-medium">
+                  <label
+                    htmlFor="dcf-discount-slider"
+                    className="text-muted-foreground font-medium"
+                  >
                     {t("landing.dcfSandbox.discountInput")}
                   </label>
                   <span className="font-semibold text-foreground bg-muted/60 px-2 py-0.5 rounded border border-border/60">
@@ -1019,7 +1202,8 @@ export default function Landing() {
             <div className="lg:col-span-5 p-6 rounded-[6px] bg-background/90 border border-border space-y-5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
-                  {t("landing.dcfSandbox.computedFairValue")} {t("landing.dcfSandbox.perShare")}
+                  {t("landing.dcfSandbox.computedFairValue")}{" "}
+                  {t("landing.dcfSandbox.perShare")}
                 </span>
 
                 <span
@@ -1027,33 +1211,42 @@ export default function Landing() {
                     computedDcf.isUndervalued
                       ? "bg-chart-positive/20 text-chart-positive border border-chart-positive/40"
                       : computedDcf.isOvervalued
-                      ? "bg-chart-negative/20 text-chart-negative border border-chart-negative/40"
-                      : "bg-primary/20 text-primary border border-primary/40"
+                        ? "bg-chart-negative/20 text-chart-negative border border-chart-negative/40"
+                        : "bg-primary/20 text-primary border border-primary/40"
                   }`}
                 >
                   {computedDcf.isUndervalued
                     ? t("landing.dcfSandbox.undervalued")
                     : computedDcf.isOvervalued
-                    ? t("landing.dcfSandbox.overvalued")
-                    : t("landing.dcfSandbox.fairValue")}
+                      ? t("landing.dcfSandbox.overvalued")
+                      : t("landing.dcfSandbox.fairValue")}
                 </span>
               </div>
 
-              <div className="text-4xl sm:text-5xl font-extrabold font-mono text-foreground" dir="ltr">
+              <div
+                className="text-4xl sm:text-5xl font-extrabold font-mono text-foreground"
+                dir="ltr"
+              >
                 ${computedDcf.fairValue.toFixed(2)}
               </div>
 
               <div className="space-y-2 pt-3 border-t border-border/60 text-xs font-mono">
                 <div className="flex justify-between text-muted-foreground">
                   <span>{t("landing.dcfSandbox.marketPrice")}</span>
-                  <span className="text-foreground font-semibold" dir="ltr">$231.42</span>
+                  <span className="text-foreground font-semibold" dir="ltr">
+                    $231.42
+                  </span>
                 </div>
 
                 <div className="flex justify-between items-center">
-                  <span className="text-muted-foreground">{t("landing.dcfSandbox.upside")}</span>
+                  <span className="text-muted-foreground">
+                    {t("landing.dcfSandbox.upside")}
+                  </span>
                   <span
                     className={`font-bold ${
-                      computedDcf.marginOfSafety >= 0 ? "text-chart-positive" : "text-chart-negative"
+                      computedDcf.marginOfSafety >= 0
+                        ? "text-chart-positive"
+                        : "text-chart-negative"
                     }`}
                     dir="ltr"
                   >
@@ -1065,7 +1258,8 @@ export default function Landing() {
                 <div className="flex justify-between text-muted-foreground/80 pt-1 border-t border-border/40 text-[11px]">
                   <span>{t("landing.dcfSandbox.totalEnterpriseValue")}</span>
                   <span className="font-semibold text-foreground" dir="ltr">
-                    ${(computedDcf.enterpriseValue / 1e3).toFixed(2)}T (${computedDcf.enterpriseValue.toFixed(0)}B)
+                    ${(computedDcf.enterpriseValue / 1e3).toFixed(2)}T ($
+                    {computedDcf.enterpriseValue.toFixed(0)}B)
                   </span>
                 </div>
               </div>
@@ -1165,13 +1359,21 @@ export default function Landing() {
 
               <div className="mt-5 p-3 rounded-[6px] bg-background/70 border border-border/80 text-[11px] font-mono space-y-1.5">
                 <div className="flex flex-wrap gap-1">
-                  <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-semibold">✓ Stocks</span>
-                  <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-semibold">✓ ETF</span>
-                  <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px]">Crypto</span>
+                  <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-semibold">
+                    ✓ Stocks
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-primary/20 text-primary text-[10px] font-semibold">
+                    ✓ ETF
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground text-[10px]">
+                    Crypto
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-muted-foreground pt-1 text-[10px]">
                   <span>Scope: Primary Listings</span>
-                  <span className="text-chart-positive font-bold">18,406 Assets</span>
+                  <span className="text-chart-positive font-bold">
+                    18,406 Assets
+                  </span>
                 </div>
               </div>
             </motion.div>
@@ -1195,7 +1397,9 @@ export default function Landing() {
 
               <div className="mt-5 p-3 rounded-[6px] bg-background/70 border border-border/80 text-[11px] font-mono flex items-center justify-between">
                 <span className="text-muted-foreground">Active Lists: 3</span>
-                <span className="text-chart-positive font-semibold">18 Tracked Symbols</span>
+                <span className="text-chart-positive font-semibold">
+                  18 Tracked Symbols
+                </span>
               </div>
             </motion.div>
 
@@ -1247,11 +1451,15 @@ export default function Landing() {
 
               <div className="mt-5 p-3 rounded-[6px] bg-background/70 border border-border/80 text-[11px] font-mono grid grid-cols-3 gap-2 text-center">
                 <div>
-                  <div className="text-muted-foreground text-[10px]">Sharpe</div>
+                  <div className="text-muted-foreground text-[10px]">
+                    Sharpe
+                  </div>
                   <div className="text-foreground font-bold">1.84</div>
                 </div>
                 <div>
-                  <div className="text-muted-foreground text-[10px]">Sortino</div>
+                  <div className="text-muted-foreground text-[10px]">
+                    Sortino
+                  </div>
                   <div className="text-foreground font-bold">2.31</div>
                 </div>
                 <div>
@@ -1283,7 +1491,9 @@ export default function Landing() {
                   <CheckCircle2 className="w-3 h-3 text-chart-positive" />
                   Yahoo + FMP + AlphaV
                 </span>
-                <span className="text-chart-positive font-bold">100% HEALTHY</span>
+                <span className="text-chart-positive font-bold">
+                  100% HEALTHY
+                </span>
               </div>
             </motion.div>
           </motion.div>
@@ -1327,7 +1537,9 @@ export default function Landing() {
                 <div className="flex items-baseline justify-between">
                   <span
                     className={`text-xs font-mono font-bold tabular-nums ${
-                      sector.change1D >= 0 ? "text-chart-positive" : "text-chart-negative"
+                      sector.change1D >= 0
+                        ? "text-chart-positive"
+                        : "text-chart-negative"
                     }`}
                     dir="ltr"
                   >
@@ -1362,25 +1574,33 @@ export default function Landing() {
               <kbd className="inline-flex items-center justify-center min-w-[56px] px-3 py-1.5 rounded-[4px] bg-muted/90 border border-primary/40 text-primary font-mono font-bold text-xs shadow-sm whitespace-nowrap">
                 ⌘K
               </kbd>
-              <span className="text-muted-foreground leading-snug">{t("landing.shortcuts.cmdK")}</span>
+              <span className="text-muted-foreground leading-snug">
+                {t("landing.shortcuts.cmdK")}
+              </span>
             </div>
             <div className="flex items-center gap-3 p-3.5 rounded-[6px] bg-background/50 border border-border/80 hover:border-primary/40 transition-colors">
               <kbd className="inline-flex items-center justify-center min-w-[68px] px-3 py-1.5 rounded-[4px] bg-muted/90 border border-border text-foreground font-mono font-bold text-xs shadow-sm whitespace-nowrap">
                 1 – 5
               </kbd>
-              <span className="text-muted-foreground leading-snug">{t("landing.shortcuts.key15")}</span>
+              <span className="text-muted-foreground leading-snug">
+                {t("landing.shortcuts.key15")}
+              </span>
             </div>
             <div className="flex items-center gap-3 p-3.5 rounded-[6px] bg-background/50 border border-border/80 hover:border-primary/40 transition-colors">
               <kbd className="inline-flex items-center justify-center min-w-[76px] px-3 py-1.5 rounded-[4px] bg-muted/90 border border-border text-foreground font-mono font-bold text-xs shadow-sm whitespace-nowrap">
                 Q / A
               </kbd>
-              <span className="text-muted-foreground leading-snug">{t("landing.shortcuts.keyQA")}</span>
+              <span className="text-muted-foreground leading-snug">
+                {t("landing.shortcuts.keyQA")}
+              </span>
             </div>
             <div className="flex items-center gap-3 p-3.5 rounded-[6px] bg-background/50 border border-border/80 hover:border-primary/40 transition-colors">
               <kbd className="inline-flex items-center justify-center min-w-[84px] px-3 py-1.5 rounded-[4px] bg-muted/90 border border-border text-foreground font-mono font-bold text-xs shadow-sm whitespace-nowrap">
                 EN / עב
               </kbd>
-              <span className="text-muted-foreground leading-snug">{t("landing.shortcuts.keyLang")}</span>
+              <span className="text-muted-foreground leading-snug">
+                {t("landing.shortcuts.keyLang")}
+              </span>
             </div>
           </div>
         </section>

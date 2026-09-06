@@ -32,10 +32,9 @@ import type { FinancialMetric } from "@/lib/mockData";
 // the real module's other exports (so e.g. `useI18n` keeps working)
 // and replace only the one we need to control.
 vi.mock("@/hooks/useStockData", async () => {
-  const actual =
-    await vi.importActual<typeof import("@/hooks/useStockData")>(
-      "@/hooks/useStockData",
-    );
+  const actual = await vi.importActual<typeof import("@/hooks/useStockData")>(
+    "@/hooks/useStockData",
+  );
 
   return {
     ...actual,

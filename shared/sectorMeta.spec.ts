@@ -8,22 +8,29 @@ import {
 describe("sectorMeta helpers", () => {
   describe("normalizeSectorMeta", () => {
     it("uppercases symbols and trims sector names", () => {
-      expect(normalizeSectorMeta({ aapl: "  Technology ", MSFT: "Consumer Defensive" })).toEqual({
+      expect(
+        normalizeSectorMeta({
+          aapl: "  Technology ",
+          MSFT: "Consumer Defensive",
+        }),
+      ).toEqual({
         AAPL: "Technology",
         MSFT: "Consumer Defensive",
       });
     });
 
     it("drops blank symbols and blank sectors", () => {
-      expect(normalizeSectorMeta({ "": "Technology", AAPL: "", MSFT: "  " })).toEqual({});
+      expect(
+        normalizeSectorMeta({ "": "Technology", AAPL: "", MSFT: "  " }),
+      ).toEqual({});
     });
   });
 
   describe("serializeSectorMeta", () => {
     it("produces a canonical sorted SYM:SECTOR wire string", () => {
-      expect(serializeSectorMeta({ MSFT: "Technology", AAPL: "Technology" })).toBe(
-        "AAPL:Technology,MSFT:Technology",
-      );
+      expect(
+        serializeSectorMeta({ MSFT: "Technology", AAPL: "Technology" }),
+      ).toBe("AAPL:Technology,MSFT:Technology");
     });
 
     it("is order-insensitive for the same contents", () => {

@@ -2,7 +2,9 @@ import { useI18n } from "@/lib/i18n";
 import { useState, useMemo, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-import EarningsCalendar, { type MarketCapFilter } from "@/components/EarningsCalendar";
+import EarningsCalendar, {
+  type MarketCapFilter,
+} from "@/components/EarningsCalendar";
 import PageHeader from "@/components/PageHeader";
 import DataLegend from "@/components/DataLegend";
 import DataStatusBadge from "@/components/DataStatusBadge";
@@ -45,7 +47,11 @@ function currentWeekRange(): { from: string; to: string } {
  * @param weeks - The number of weeks to shift; positive values move forward and negative values move backward
  * @returns The shifted date range in ISO date format
  */
-function shiftRange(from: string, to: string, weeks: number): { from: string; to: string } {
+function shiftRange(
+  from: string,
+  to: string,
+  weeks: number,
+): { from: string; to: string } {
   const f = parseLocalDate(from);
   const t = parseLocalDate(to);
   f.setDate(f.getDate() + weeks * 7);
@@ -68,7 +74,11 @@ function parseLocalDate(isoStr: string): Date {
   return new Date(isoStr);
 }
 
-function formatHumanRange(from: string, to: string, lang: string = "en"): string {
+function formatHumanRange(
+  from: string,
+  to: string,
+  lang: string = "en",
+): string {
   const f = parseLocalDate(from);
   const t = parseLocalDate(to);
   const locale = lang === "he" ? "he-IL" : "en-US";
@@ -102,7 +112,10 @@ export function EarningsPage() {
     if (!focusDate) return;
     const target = new Date(focusDate);
     const base = new Date(initial.from);
-    if (!Number.isFinite(target.getTime()) || !Number.isFinite(base.getTime())) {
+    if (
+      !Number.isFinite(target.getTime()) ||
+      !Number.isFinite(base.getTime())
+    ) {
       return;
     }
     const diffMs = target.getTime() - base.getTime();
@@ -113,7 +126,7 @@ export function EarningsPage() {
 
   const { from, to } = useMemo(
     () => shiftRange(initial.from, initial.to, offset),
-    [initial.from, initial.to, offset]
+    [initial.from, initial.to, offset],
   );
 
   // `forceWatchlistOnly` is auto-set while ?focus is in play regardless of
@@ -124,7 +137,9 @@ export function EarningsPage() {
   const hasPrev = offset > -8; // up to 8 weeks back
   const hasNext = offset < 4; // up to 4 weeks forward
 
-  const normalizedFocusSymbol = focusSymbol ? focusSymbol.toUpperCase() : undefined;
+  const normalizedFocusSymbol = focusSymbol
+    ? focusSymbol.toUpperCase()
+    : undefined;
 
   return (
     <div className="w-full bg-background dark min-h-screen p-8">
@@ -175,28 +190,58 @@ export function EarningsPage() {
             >
               <ChevronRight className="w-5 h-5" />
             </button>
-            <span className="ml-4 text-sm font-medium text-foreground font-mono" dir="ltr">
-              {t("earningsCalendar.weekOf", { range: formatHumanRange(from, to, lang) })}
+            <span
+              className="ml-4 text-sm font-medium text-foreground font-mono"
+              dir="ltr"
+            >
+              {t("earningsCalendar.weekOf", {
+                range: formatHumanRange(from, to, lang),
+              })}
             </span>
           </div>
 
           {/* Filters: Market Cap + Watchlists */}
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2 bg-secondary/50 px-3 py-1.5 rounded-lg text-sm border border-border">
-              <label htmlFor="earnings-market-cap-select" className="text-muted-foreground text-xs font-mono">
+              <label
+                htmlFor="earnings-market-cap-select"
+                className="text-muted-foreground text-xs font-mono"
+              >
                 {t("earningsCalendar.marketCap")}:
               </label>
               <select
                 id="earnings-market-cap-select"
                 aria-label={t("earningsCalendar.marketCap") || "Market Cap"}
                 value={marketCap}
-                onChange={(e) => setMarketCap(e.target.value as MarketCapFilter)}
+                onChange={(e) =>
+                  setMarketCap(e.target.value as MarketCapFilter)
+                }
                 className="bg-transparent focus:outline-none text-foreground text-sm sm:text-xs font-mono font-medium cursor-pointer"
               >
-                <option value="all" className="bg-popover text-popover-foreground">{t("earningsCalendar.marketCapAll")}</option>
-                <option value="large" className="bg-popover text-popover-foreground">{t("earningsCalendar.marketCapLarge")}</option>
-                <option value="mid" className="bg-popover text-popover-foreground">{t("earningsCalendar.marketCapMid")}</option>
-                <option value="small" className="bg-popover text-popover-foreground">{t("earningsCalendar.marketCapSmall")}</option>
+                <option
+                  value="all"
+                  className="bg-popover text-popover-foreground"
+                >
+                  {t("earningsCalendar.marketCapAll")}
+                </option>
+                <option
+                  value="large"
+                  className="bg-popover text-popover-foreground"
+                >
+                  {t("earningsCalendar.marketCapLarge")}
+                </option>
+                <option
+                  value="mid"
+                  className="bg-popover text-popover-foreground"
+                >
+                  {t("earningsCalendar.marketCapMid")}
+                </option>
+                <option
+                  value="small"
+                  className="bg-popover text-popover-foreground"
+                >
+                  {t("earningsCalendar.marketCapSmall")}
+                </option>
               </select>
             </div>
 
@@ -206,7 +251,11 @@ export function EarningsPage() {
                   ? "bg-secondary/20 border-border/50 text-muted-foreground cursor-not-allowed opacity-80"
                   : "bg-secondary/30 border-border text-muted-foreground hover:text-foreground cursor-pointer"
               }`}
-              title={focusSymbol ? t("earningsCalendar.watchlistLockedByFocus") : undefined}
+              title={
+                focusSymbol
+                  ? t("earningsCalendar.watchlistLockedByFocus")
+                  : undefined
+              }
             >
               <input
                 type="checkbox"
@@ -215,7 +264,9 @@ export function EarningsPage() {
                 onChange={(e) => setWatchlistOnly(e.target.checked)}
                 className="rounded border-border bg-secondary text-primary focus:ring-primary cursor-pointer disabled:cursor-not-allowed"
               />
-              <span className="text-xs font-mono">{t("earningsCalendar.filterByWatchlist")}</span>
+              <span className="text-xs font-mono">
+                {t("earningsCalendar.filterByWatchlist")}
+              </span>
             </label>
           </div>
         </div>

@@ -10,14 +10,22 @@ const PRICE_NUMBER = "\\$?([0-9][0-9,]*(?:\\.[0-9]+)?)";
 
 function toFinite(value: unknown): number | null {
   if (value === undefined || value === null || value === "") return null;
-  const number = typeof value === "number" ? value : Number(String(value).replace(/[$,]/g, ""));
+  const number =
+    typeof value === "number"
+      ? value
+      : Number(String(value).replace(/[$,]/g, ""));
   return Number.isFinite(number) ? number : null;
 }
 
 /** Parse Yahoo's human-readable transaction text, including price ranges. */
-export function parseTransactionPrice(text: unknown): ParsedTransactionPrice | null {
+export function parseTransactionPrice(
+  text: unknown,
+): ParsedTransactionPrice | null {
   if (typeof text !== "string" || text.trim() === "") return null;
-  const range = new RegExp(`\\bprice\\s+${PRICE_NUMBER}\\s*(?:-|–|—|to)\\s*${PRICE_NUMBER}\\s+per\\s+share`, "i").exec(text);
+  const range = new RegExp(
+    `\\bprice\\s+${PRICE_NUMBER}\\s*(?:-|–|—|to)\\s*${PRICE_NUMBER}\\s+per\\s+share`,
+    "i",
+  ).exec(text);
   if (range) {
     const low = toFinite(range[1]);
     const high = toFinite(range[2]);
@@ -26,7 +34,10 @@ export function parseTransactionPrice(text: unknown): ParsedTransactionPrice | n
     }
   }
 
-  const exact = new RegExp(`\\bprice\\s+${PRICE_NUMBER}\\s+per\\s+share`, "i").exec(text);
+  const exact = new RegExp(
+    `\\bprice\\s+${PRICE_NUMBER}\\s+per\\s+share`,
+    "i",
+  ).exec(text);
   const price = exact ? toFinite(exact[1]) : null;
   return price !== null && price > 0
     ? { low: price, high: price, exact: price }
@@ -41,10 +52,14 @@ export function classifyTransaction(
   text: unknown,
   code?: unknown,
 ): { category: InsiderTransactionCategory; isAdministrative: boolean } {
-  const normalizedCode = typeof code === "string" ? code.trim().toUpperCase() : "";
+  const normalizedCode =
+    typeof code === "string" ? code.trim().toUpperCase() : "";
   const normalizedText = typeof text === "string" ? text.toLowerCase() : "";
 
-  if (normalizedCode === "P" || /\bpurchase\b|bought|buy/.test(normalizedText)) {
+  if (
+    normalizedCode === "P" ||
+    /\bpurchase\b|bought|buy/.test(normalizedText)
+  ) {
     return { category: "purchase", isAdministrative: false };
   }
   if (normalizedCode === "S" || /\bsale\b|sold|sell/.test(normalizedText)) {
@@ -53,13 +68,19 @@ export function classifyTransaction(
   if (normalizedCode === "G" || /gift/.test(normalizedText)) {
     return { category: "gift", isAdministrative: true };
   }
-  if (normalizedCode === "A" || /award|grant|restricted stock|rsu/.test(normalizedText)) {
+  if (
+    normalizedCode === "A" ||
+    /award|grant|restricted stock|rsu/.test(normalizedText)
+  ) {
     return { category: "award", isAdministrative: true };
   }
   if (normalizedCode === "F" || /withholding|tax/.test(normalizedText)) {
     return { category: "withholding", isAdministrative: true };
   }
-  if (normalizedCode === "M" || /option exercise|exercise/.test(normalizedText)) {
+  if (
+    normalizedCode === "M" ||
+    /option exercise|exercise/.test(normalizedText)
+  ) {
     return { category: "optionExercise", isAdministrative: true };
   }
   if (normalizedCode === "X" || /option grant/.test(normalizedText)) {
@@ -88,17 +109,29 @@ export function resolveTransactionValue(
   return { value: null, source: null };
 }
 
-export function transactionCategoryLabelKey(category: InsiderTransactionCategory): string {
+export function transactionCategoryLabelKey(
+  category: InsiderTransactionCategory,
+): string {
   switch (category) {
-    case "purchase": return "insider.type.P";
-    case "sale": return "insider.type.S";
-    case "award": return "insider.type.A";
-    case "gift": return "insider.type.G";
-    case "optionExercise": return "insider.type.M";
-    case "withholding": return "insider.type.F";
-    case "disposal": return "insider.type.D";
-    case "optionGrant": return "insider.type.X";
-    case "conversion": return "insider.type.C";
-    default: return "insider.type.other";
+    case "purchase":
+      return "insider.type.P";
+    case "sale":
+      return "insider.type.S";
+    case "award":
+      return "insider.type.A";
+    case "gift":
+      return "insider.type.G";
+    case "optionExercise":
+      return "insider.type.M";
+    case "withholding":
+      return "insider.type.F";
+    case "disposal":
+      return "insider.type.D";
+    case "optionGrant":
+      return "insider.type.X";
+    case "conversion":
+      return "insider.type.C";
+    default:
+      return "insider.type.other";
   }
 }

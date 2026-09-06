@@ -79,9 +79,10 @@ export interface ProviderProbeOutcome {
  * `PROVIDER_HEALTH_TIMEOUT_MS` and returns null, and every caller maps
  * that to `down` with `detail: "network error"`.
  */
-export function providerStatusFromProbe(
-  outcome: ProviderProbeOutcome | null,
-): { status: ProviderStatus; detail?: string } {
+export function providerStatusFromProbe(outcome: ProviderProbeOutcome | null): {
+  status: ProviderStatus;
+  detail?: string;
+} {
   if (!outcome) return { status: "down", detail: "network error" };
   return {
     status: classifyProviderResult(outcome.status, outcome.errorMessage),

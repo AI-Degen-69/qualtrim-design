@@ -253,19 +253,21 @@ export function selectUpcoming(
   // re-plumbing the selector. Today: no-op.
   void state.tick;
   void policy;
-  return data
-    .filter((e) => passWatchlist(e, watchlistSymbols))
-    .filter((e) => pass24hWindow(e, now))
-    .filter((e) => passSnoozed(e, snoozedKeys))
-    .filter((e) => passHistory(e, historyKeys))
-    // Extension point — when a new AlertPolicy dimension is added,
-    // append `.filter((e) => passPolicyX(e, policy))` here.
-    .map((e) => ({
-      key: alertKey(e.date, e.symbol),
-      event: e,
-      hoursUntil: (eventEpochMs(e) - now) / (60 * 60 * 1000),
-    }))
-    .sort((a, b) => eventEpochMs(a.event) - eventEpochMs(b.event));
+  return (
+    data
+      .filter((e) => passWatchlist(e, watchlistSymbols))
+      .filter((e) => pass24hWindow(e, now))
+      .filter((e) => passSnoozed(e, snoozedKeys))
+      .filter((e) => passHistory(e, historyKeys))
+      // Extension point — when a new AlertPolicy dimension is added,
+      // append `.filter((e) => passPolicyX(e, policy))` here.
+      .map((e) => ({
+        key: alertKey(e.date, e.symbol),
+        event: e,
+        hoursUntil: (eventEpochMs(e) - now) / (60 * 60 * 1000),
+      }))
+      .sort((a, b) => eventEpochMs(a.event) - eventEpochMs(b.event))
+  );
 }
 
 function passWatchlist(e: EarningsEvent, wl: Set<string>): boolean {
@@ -451,11 +453,7 @@ const EarningsAlertEngineContext = createContext<EngineData | null>(null);
  * EngineData shape, same `useEarningsAlerts()` consumer. The refactor
  * is internal.
  */
-export function EarningsAlertEngine({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export function EarningsAlertEngine({ children }: { children: ReactNode }) {
   const data = useEarningsAlertsInternal();
   return createElement(
     EarningsAlertEngineContext.Provider,

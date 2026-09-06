@@ -33,8 +33,12 @@ export default function PageHeader({
   className = "",
 }: PageHeaderProps) {
   return (
-    <header className={`flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between ${className} ${centered ? "sm:flex-col sm:items-center sm:justify-center text-center" : ""}`}>
-      <div className={`min-w-0 ${centered ? "flex flex-col items-center text-center" : ""}`}>
+    <header
+      className={`flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between ${className} ${centered ? "sm:flex-col sm:items-center sm:justify-center text-center" : ""}`}
+    >
+      <div
+        className={`min-w-0 ${centered ? "flex flex-col items-center text-center" : ""}`}
+      >
         {eyebrow && (
           <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/80">
             {eyebrow}
@@ -46,11 +50,26 @@ export default function PageHeader({
             {title}
           </h1>
           {titleAdornment}
-          {status && <DataStatusBadge status={status} source={source} updatedAt={updatedAt} iconOnly />}
+          {status && (
+            <DataStatusBadge
+              status={status}
+              source={source}
+              updatedAt={updatedAt}
+              iconOnly
+            />
+          )}
         </div>
-        {description && <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>}
+        {description && (
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
+            {description}
+          </p>
+        )}
       </div>
-      {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+      {actions && (
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {actions}
+        </div>
+      )}
     </header>
   );
 }

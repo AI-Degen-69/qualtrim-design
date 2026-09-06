@@ -48,7 +48,11 @@ function formatRevenueEst(val: number | null | undefined): string {
  * @param onSelect - Optional custom click handler
  * @returns The rendered earnings card component
  */
-export function EarningsCard({ event, isFocus = false, onSelect }: EarningsCardProps) {
+export function EarningsCard({
+  event,
+  isFocus = false,
+  onSelect,
+}: EarningsCardProps) {
   const { t } = useI18n();
 
   const timeNormalized = (event.time || "").toLowerCase();
@@ -64,11 +68,19 @@ export function EarningsCard({ event, isFocus = false, onSelect }: EarningsCardP
   const timingLabel = isBmo
     ? t("earningsCalendar.beforeOpen")
     : isAmc
-    ? t("earningsCalendar.afterClose")
-    : t("earningsCalendar.unknownTiming");
+      ? t("earningsCalendar.afterClose")
+      : t("earningsCalendar.unknownTiming");
 
-  const hasActualEps = event.epsActual !== undefined && event.epsActual !== null && Number.isFinite(event.epsActual);
-  const epsEstVal = event.epsEst !== undefined && event.epsEst !== null && Number.isFinite(event.epsEst) ? event.epsEst : null;
+  const hasActualEps =
+    event.epsActual !== undefined &&
+    event.epsActual !== null &&
+    Number.isFinite(event.epsActual);
+  const epsEstVal =
+    event.epsEst !== undefined &&
+    event.epsEst !== null &&
+    Number.isFinite(event.epsEst)
+      ? event.epsEst
+      : null;
 
   // Derive surprise if not explicitly set
   let surpriseState = event.surprise;
@@ -93,7 +105,11 @@ export function EarningsCard({ event, isFocus = false, onSelect }: EarningsCardP
       {/* Top Row: Identity & Badges */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <TickerLogo ticker={event.ticker} size="sm" className="rounded shrink-0 shadow-sm" />
+          <TickerLogo
+            ticker={event.ticker}
+            size="sm"
+            className="rounded shrink-0 shadow-sm"
+          />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 flex-wrap">
               <Link
@@ -134,8 +150,8 @@ export function EarningsCard({ event, isFocus = false, onSelect }: EarningsCardP
               isBmo
                 ? "bg-amber-500/15 text-amber-400"
                 : isAmc
-                ? "bg-primary/15 text-primary"
-                : "bg-muted text-muted-foreground"
+                  ? "bg-primary/15 text-primary"
+                  : "bg-muted text-muted-foreground"
             }`}
             title={timingLabel}
             aria-label={timingLabel}
@@ -155,21 +171,26 @@ export function EarningsCard({ event, isFocus = false, onSelect }: EarningsCardP
       <div className="space-y-1.5 text-xs font-mono pt-2 border-t border-border/60">
         <div className="flex justify-between items-center text-muted-foreground">
           <span>{t("earningsCalendar.epsEst")}</span>
-          <span className="text-foreground font-semibold tabular-nums" dir="ltr">
+          <span
+            className="text-foreground font-semibold tabular-nums"
+            dir="ltr"
+          >
             {epsEstVal !== null ? `$${epsEstVal.toFixed(2)}` : "—"}
           </span>
         </div>
 
         {hasActualEps && (
           <div className="flex justify-between items-center font-medium">
-            <span className="text-muted-foreground">{t("earningsCalendar.actualEps")}</span>
+            <span className="text-muted-foreground">
+              {t("earningsCalendar.actualEps")}
+            </span>
             <span
               className={`tabular-nums font-bold ${
                 surpriseState === "beat"
                   ? "text-chart-positive"
                   : surpriseState === "miss"
-                  ? "text-chart-negative"
-                  : "text-foreground"
+                    ? "text-chart-negative"
+                    : "text-foreground"
               }`}
               dir="ltr"
             >
@@ -180,7 +201,10 @@ export function EarningsCard({ event, isFocus = false, onSelect }: EarningsCardP
 
         <div className="flex justify-between items-center text-muted-foreground">
           <span>{t("earningsCalendar.revEst")}</span>
-          <span className="text-foreground font-semibold tabular-nums" dir="ltr">
+          <span
+            className="text-foreground font-semibold tabular-nums"
+            dir="ltr"
+          >
             {formatRevenueEst(event.revEst)}
           </span>
         </div>

@@ -97,11 +97,19 @@ const COMMON_PARAMS = {
  * @param size - Tile size to render (`sm` | `md` | `lg`); scaled to retina by Logo.dev.
  * @returns A fully-qualified URL string, or `null` when the ticker is empty.
  */
-export function getLogoDevUrl(ticker: string, size: LogoDevSize = "md"): string | null {
-  const trimmed = String(ticker ?? "").trim().toUpperCase();
+export function getLogoDevUrl(
+  ticker: string,
+  size: LogoDevSize = "md",
+): string | null {
+  const trimmed = String(ticker ?? "")
+    .trim()
+    .toUpperCase();
   if (!trimmed) return null;
   const sizePx = SIZE_MAP[size] ?? SIZE_MAP.md;
-  const params = new URLSearchParams({ ...COMMON_PARAMS, size: String(sizePx) });
+  const params = new URLSearchParams({
+    ...COMMON_PARAMS,
+    size: String(sizePx),
+  });
   return `https://img.logo.dev/ticker/${encodeURIComponent(trimmed)}?${params.toString()}`;
 }
 
@@ -123,11 +131,17 @@ export function getLogoDevUrl(ticker: string, size: LogoDevSize = "md"): string 
  * @param size - Tile size; matches `getLogoDevUrl`'s scale.
  * @returns A fully-qualified URL string, or `null` when the input is empty.
  */
-export function getLogoDevNameUrl(companyName: string, size: LogoDevSize = "md"): string | null {
+export function getLogoDevNameUrl(
+  companyName: string,
+  size: LogoDevSize = "md",
+): string | null {
   const trimmed = String(companyName ?? "").trim();
   if (!trimmed) return null;
   const sizePx = SIZE_MAP[size] ?? SIZE_MAP.md;
-  const params = new URLSearchParams({ ...COMMON_PARAMS, size: String(sizePx) });
+  const params = new URLSearchParams({
+    ...COMMON_PARAMS,
+    size: String(sizePx),
+  });
   return `https://img.logo.dev/name/${encodeURIComponent(trimmed)}?${params.toString()}`;
 }
 
@@ -202,4 +216,3 @@ export function setCachedTier(ticker: string, value: CachedTier): void {
     /* swallow — caching is a perf hint, not correctness */
   }
 }
-

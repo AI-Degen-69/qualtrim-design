@@ -12,8 +12,7 @@ export function prefersReducedMotionFrom(
   matchMedia: ((query: string) => { matches: boolean }) | undefined,
 ): boolean {
   return (
-    typeof matchMedia === "function" &&
-    matchMedia(REDUCED_MOTION_QUERY).matches
+    typeof matchMedia === "function" && matchMedia(REDUCED_MOTION_QUERY).matches
   );
 }
 
@@ -27,12 +26,17 @@ export function usePrefersReducedMotion(): boolean {
     prefersReducedMotionFrom(
       // `?.` guards browsers where `matchMedia` is missing — the resolver
       // already treats a non-function as "no reduced-motion preference".
-      typeof window === "undefined" ? undefined : window.matchMedia?.bind(window),
+      typeof window === "undefined"
+        ? undefined
+        : window.matchMedia?.bind(window),
     ),
   );
 
   useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    ) {
       return;
     }
     const mql = window.matchMedia(REDUCED_MOTION_QUERY);

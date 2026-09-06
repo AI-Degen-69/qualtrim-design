@@ -31,13 +31,19 @@ export default function NotFound() {
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             {t("notfound.description")}
           </h1>
-          <p className="text-sm text-muted-foreground font-mono truncate px-2 py-1 rounded bg-muted/50" dir="ltr">
+          <p
+            className="text-sm text-muted-foreground font-mono truncate px-2 py-1 rounded bg-muted/50"
+            dir="ltr"
+          >
             {location.pathname}
           </p>
         </div>
         <div>
           <Button asChild className="w-full">
-            <Link to="/" className="inline-flex items-center justify-center gap-2">
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center gap-2"
+            >
               <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
               <span>{t("notfound.returnHome")}</span>
             </Link>
@@ -47,4 +53,3 @@ export default function NotFound() {
     </div>
   );
 }
-

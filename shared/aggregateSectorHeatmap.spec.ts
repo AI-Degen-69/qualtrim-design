@@ -29,7 +29,10 @@ function makeChart(
 }
 
 /** Build a chart where each close's date string is supplied verbatim. */
-function makeChartWithDates(symbol: string, points: Array<{ date: string; close: number }>): ChartSeries {
+function makeChartWithDates(
+  symbol: string,
+  points: Array<{ date: string; close: number }>,
+): ChartSeries {
   const historical = points.map((p) => ({
     date: p.date,
     open: p.close,
@@ -58,7 +61,11 @@ describe("aggregateSectorHeatmap", () => {
   it("returns empty shape when no ticker has 2+ valid closes", () => {
     const out = aggregateSectorHeatmap(
       [
-        { symbol: "AAPL", sector: "Technology", chart: makeChart("AAPL", [100]) },
+        {
+          symbol: "AAPL",
+          sector: "Technology",
+          chart: makeChart("AAPL", [100]),
+        },
         { symbol: "MSFT", sector: "Technology", chart: null },
       ],
       5,
@@ -69,7 +76,7 @@ describe("aggregateSectorHeatmap", () => {
 
   it("computes a single-sector single-ticker 5-day heatmap", () => {
     // 6 closes → 5 deltas; each step is +1% so the per-day avg should be +1%.
-    const closes = [100, 101, 102.01, 103.0301, 104.0604, 105.1010];
+    const closes = [100, 101, 102.01, 103.0301, 104.0604, 105.101];
     const aapl = makeChart("AAPL", closes, "2025-03-10");
     const out = aggregateSectorHeatmap(
       [{ symbol: "AAPL", sector: "Technology", chart: aapl }],
@@ -102,7 +109,11 @@ describe("aggregateSectorHeatmap", () => {
     expect(out.days).toHaveLength(3);
     // 2025-03-15 is a Saturday → rightmost is NOT partial (Friday's settled
     // close shouldn't be mislabeled as today's intraday).
-    expect(out.rows[0].cells.map((c) => c.isPartial)).toEqual([false, false, false]);
+    expect(out.rows[0].cells.map((c) => c.isPartial)).toEqual([
+      false,
+      false,
+      false,
+    ]);
   });
 
   it("marks partial on a weekday landing that matches the axis end", () => {
@@ -114,7 +125,11 @@ describe("aggregateSectorHeatmap", () => {
       5,
       { todayIso: "2025-03-13" }, // Friday, matches axis end
     );
-    expect(out.rows[0].cells.map((c) => c.isPartial)).toEqual([false, false, true]);
+    expect(out.rows[0].cells.map((c) => c.isPartial)).toEqual([
+      false,
+      false,
+      true,
+    ]);
   });
 
   it("averages daily moves across multiple tickers in the same sector", () => {
@@ -137,8 +152,16 @@ describe("aggregateSectorHeatmap", () => {
   });
 
   it("sorts rows by weekNet desc so the hottest sector is at the top", () => {
-    const aapl = makeChart("AAPL", [100, 102, 104.04, 106.1208, 108.2432, 110.4081], "2025-03-10");
-    const jnj = makeChart("JNJ", [100, 99.5, 99.0, 98.5, 98.01, 97.51], "2025-03-10");
+    const aapl = makeChart(
+      "AAPL",
+      [100, 102, 104.04, 106.1208, 108.2432, 110.4081],
+      "2025-03-10",
+    );
+    const jnj = makeChart(
+      "JNJ",
+      [100, 99.5, 99.0, 98.5, 98.01, 97.51],
+      "2025-03-10",
+    );
     const out = aggregateSectorHeatmap(
       [
         { symbol: "AAPL", sector: "Technology", chart: aapl },
@@ -150,7 +173,11 @@ describe("aggregateSectorHeatmap", () => {
   });
 
   it("aligns the date axis to the universe's most-recent distinct dates", () => {
-    const aapl = makeChart("AAPL", [100, 101, 102, 103, 104, 105], "2025-03-10");
+    const aapl = makeChart(
+      "AAPL",
+      [100, 101, 102, 103, 104, 105],
+      "2025-03-10",
+    );
     const msft = makeChart("MSFT", [200, 202, 204], "2025-03-13");
     const out = aggregateSectorHeatmap(
       [
@@ -195,7 +222,11 @@ describe("aggregateSectorHeatmap", () => {
     // Without allowlist: Healthcare row appears. With allowlist=
     // ["Technology"]: JNJ must NOT be in rows[] (filtered out), and MUST
     // also appear in untagged[] (so the heatmap count stays honest).
-    const aapl = makeChart("AAPL", [100, 102, 104, 106, 108, 110], "2025-03-10");
+    const aapl = makeChart(
+      "AAPL",
+      [100, 102, 104, 106, 108, 110],
+      "2025-03-10",
+    );
     const jnj = makeChart("JNJ", [100, 99, 98, 97, 96, 95], "2025-03-10");
     const outNoAllow = aggregateSectorHeatmap(
       [
@@ -204,7 +235,10 @@ describe("aggregateSectorHeatmap", () => {
       ],
       5,
     );
-    expect(outNoAllow.rows.map((r) => r.sector)).toEqual(["Technology", "Healthcare"]);
+    expect(outNoAllow.rows.map((r) => r.sector)).toEqual([
+      "Technology",
+      "Healthcare",
+    ]);
     expect(outNoAllow.untagged).toEqual([]);
 
     const outAllow = aggregateSectorHeatmap(
@@ -267,7 +301,11 @@ describe("aggregateSectorHeatmap", () => {
       [
         { symbol: "AAPL", sector: "Technology", chart: aapl },
         { symbol: "MSFT", sector: "Technology", chart: msft },
-        { symbol: "COST", sector: "Consumer Defensive", chart: makeChart("COST", [500, 502], "2025-03-13") },
+        {
+          symbol: "COST",
+          sector: "Consumer Defensive",
+          chart: makeChart("COST", [500, 502], "2025-03-13"),
+        },
       ],
       5,
     );
@@ -281,10 +319,50 @@ describe("aggregateSectorHeatmap", () => {
     const disordered: ChartSeries = {
       symbol: "AAPL",
       historical: [
-        { date: "2025-03-13", open: 103, high: 103, low: 103, close: 103, adjClose: 103, volume: 0, change: 0, changePercent: 0 },
-        { date: "2025-03-11", open: 101, high: 101, low: 101, close: 101, adjClose: 101, volume: 0, change: 0, changePercent: 0 },
-        { date: "2025-03-12", open: 102, high: 102, low: 102, close: 102, adjClose: 102, volume: 0, change: 0, changePercent: 0 },
-        { date: "2025-03-10", open: 100, high: 100, low: 100, close: 100, adjClose: 100, volume: 0, change: 0, changePercent: 0 },
+        {
+          date: "2025-03-13",
+          open: 103,
+          high: 103,
+          low: 103,
+          close: 103,
+          adjClose: 103,
+          volume: 0,
+          change: 0,
+          changePercent: 0,
+        },
+        {
+          date: "2025-03-11",
+          open: 101,
+          high: 101,
+          low: 101,
+          close: 101,
+          adjClose: 101,
+          volume: 0,
+          change: 0,
+          changePercent: 0,
+        },
+        {
+          date: "2025-03-12",
+          open: 102,
+          high: 102,
+          low: 102,
+          close: 102,
+          adjClose: 102,
+          volume: 0,
+          change: 0,
+          changePercent: 0,
+        },
+        {
+          date: "2025-03-10",
+          open: 100,
+          high: 100,
+          low: 100,
+          close: 100,
+          adjClose: 100,
+          volume: 0,
+          change: 0,
+          changePercent: 0,
+        },
       ],
     };
     const out = aggregateSectorHeatmap(

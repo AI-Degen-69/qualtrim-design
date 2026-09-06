@@ -187,7 +187,13 @@ class VercelKvJsonCache implements JsonCache {
   async set<T>(key: string, value: T, ttlSeconds: number): Promise<void> {
     this.cache.set(key, value, Math.max(1, ttlSeconds));
     try {
-      await this.kv.exec("SET", key, JSON.stringify(value), "EX", Math.max(1, ttlSeconds));
+      await this.kv.exec(
+        "SET",
+        key,
+        JSON.stringify(value),
+        "EX",
+        Math.max(1, ttlSeconds),
+      );
     } catch (e) {
       throttledWarn(
         `kvJsonCache.set:${key}`,

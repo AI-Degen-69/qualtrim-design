@@ -23,18 +23,28 @@ describe("api/_router.js classify ↔ shared classifyProviderResult parity", () 
   it("agrees with classifyProviderResult across the full status × error-body matrix", () => {
     for (const status of statuses) {
       for (const errorMessage of errorBodies) {
-        expect(classify(status, errorMessage), `status=${status} body=${JSON.stringify(errorMessage)}`).toBe(
-          classifyProviderResult(status, errorMessage),
-        );
+        expect(
+          classify(status, errorMessage),
+          `status=${status} body=${JSON.stringify(errorMessage)}`,
+        ).toBe(classifyProviderResult(status, errorMessage));
       }
     }
   });
 
   it("only ever emits one of the five ProviderStatus values", () => {
-    const valid = new Set(["ok", "known_restriction", "degraded", "down", "not_configured"]);
+    const valid = new Set([
+      "ok",
+      "known_restriction",
+      "degraded",
+      "down",
+      "not_configured",
+    ]);
     for (const status of statuses) {
       for (const errorMessage of errorBodies) {
-        expect(valid.has(classify(status, errorMessage)), `status=${status}`).toBe(true);
+        expect(
+          valid.has(classify(status, errorMessage)),
+          `status=${status}`,
+        ).toBe(true);
       }
     }
   });

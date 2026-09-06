@@ -7,11 +7,20 @@ interface DataLegendProps {
 }
 
 /** A small honesty legend for pages that mix provider data and calculations. */
-export default function DataLegend({ className = "", showDerived = true }: DataLegendProps) {
+export default function DataLegend({
+  className = "",
+  showDerived = true,
+}: DataLegendProps) {
   const { lang } = useI18n();
   return (
-    <div dir={lang === "he" ? "rtl" : "ltr"} className={`flex flex-wrap items-center gap-2 text-xs text-muted-foreground ${className}`} aria-label={lang === "he" ? "מקרא סטטוס נתונים" : "Data status legend"}>
-      <span className="mr-1 font-medium">{lang === "he" ? "נתונים:" : "Data:"}</span>
+    <div
+      dir={lang === "he" ? "rtl" : "ltr"}
+      className={`flex flex-wrap items-center gap-2 text-xs text-muted-foreground ${className}`}
+      aria-label={lang === "he" ? "מקרא סטטוס נתונים" : "Data status legend"}
+    >
+      <span className="mr-1 font-medium">
+        {lang === "he" ? "נתונים:" : "Data:"}
+      </span>
       <DataStatusBadge status="live" compact />
       <DataStatusBadge status="estimate" compact />
       <DataStatusBadge status="mock" compact />

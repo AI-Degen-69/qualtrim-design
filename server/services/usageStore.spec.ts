@@ -41,7 +41,10 @@ describe("LocalMemoryStore", () => {
 
   it("round-trips a save → load", async () => {
     const s = new LocalMemoryStore();
-    await s.save("fmp", "2026-08-04", { timestamps: [1, 2, 3], lastRateLimitAt: 9 });
+    await s.save("fmp", "2026-08-04", {
+      timestamps: [1, 2, 3],
+      lastRateLimitAt: 9,
+    });
     const loaded = await s.load("fmp", "2026-08-04");
     expect(loaded.timestamps).toEqual([1, 2, 3]);
     expect(loaded.lastRateLimitAt).toBe(9);
@@ -49,9 +52,18 @@ describe("LocalMemoryStore", () => {
 
   it("isolates buckets per provider per day", async () => {
     const s = new LocalMemoryStore();
-    await s.save("fmp", "2026-08-04", { timestamps: [1], lastRateLimitAt: null });
-    await s.save("alphavantage", "2026-08-04", { timestamps: [2, 3], lastRateLimitAt: null });
-    await s.save("fmp", "2026-08-05", { timestamps: [4], lastRateLimitAt: null });
+    await s.save("fmp", "2026-08-04", {
+      timestamps: [1],
+      lastRateLimitAt: null,
+    });
+    await s.save("alphavantage", "2026-08-04", {
+      timestamps: [2, 3],
+      lastRateLimitAt: null,
+    });
+    await s.save("fmp", "2026-08-05", {
+      timestamps: [4],
+      lastRateLimitAt: null,
+    });
     const f1 = await s.load("fmp", "2026-08-04");
     const a1 = await s.load("alphavantage", "2026-08-04");
     const f2 = await s.load("fmp", "2026-08-05");
@@ -62,7 +74,10 @@ describe("LocalMemoryStore", () => {
 
   it("returns defensive copies — mutating the caller's array doesn't corrupt the store", async () => {
     const s = new LocalMemoryStore();
-    await s.save("fmp", "2026-08-04", { timestamps: [1, 2, 3], lastRateLimitAt: null });
+    await s.save("fmp", "2026-08-04", {
+      timestamps: [1, 2, 3],
+      lastRateLimitAt: null,
+    });
     const loaded = await s.load("fmp", "2026-08-04");
     loaded.timestamps.push(99);
     loaded.timestamps.length = 0;
@@ -72,20 +87,47 @@ describe("LocalMemoryStore", () => {
 
   it("pruneOlderThan deletes buckets strictly older than the cutoff day", async () => {
     const s = new LocalMemoryStore();
-    await s.save("fmp", "2026-06-01", { timestamps: [1], lastRateLimitAt: null });
-    await s.save("fmp", "2026-06-15", { timestamps: [2], lastRateLimitAt: null });
-    await s.save("alphavantage", "2026-06-20", { timestamps: [3], lastRateLimitAt: 5 });
-    await s.save("fmp", "2026-07-01", { timestamps: [4], lastRateLimitAt: null });
-    await s.save("yahoo", "2026-07-20", { timestamps: [5], lastRateLimitAt: null });
+    await s.save("fmp", "2026-06-01", {
+      timestamps: [1],
+      lastRateLimitAt: null,
+    });
+    await s.save("fmp", "2026-06-15", {
+      timestamps: [2],
+      lastRateLimitAt: null,
+    });
+    await s.save("alphavantage", "2026-06-20", {
+      timestamps: [3],
+      lastRateLimitAt: 5,
+    });
+    await s.save("fmp", "2026-07-01", {
+      timestamps: [4],
+      lastRateLimitAt: null,
+    });
+    await s.save("yahoo", "2026-07-20", {
+      timestamps: [5],
+      lastRateLimitAt: null,
+    });
     // Cutoff 2026-07-02 keeps the `day < cutoff` semantics straight: the
     // 2026-07-01 bucket is deleted because it is strictly earlier than
     // the 2026-07-02 cutoff, making the strict-less boundary unambiguous.
     const result = await s.pruneOlderThan("2026-07-02");
     expect(result).toEqual({ scannedCount: 5, prunedCount: 4 });
-    expect(await s.load("fmp", "2026-06-01")).toEqual({ timestamps: [], lastRateLimitAt: null });
-    expect(await s.load("fmp", "2026-06-15")).toEqual({ timestamps: [], lastRateLimitAt: null });
-    expect(await s.load("alphavantage", "2026-06-20")).toEqual({ timestamps: [], lastRateLimitAt: null });
-    expect(await s.load("fmp", "2026-07-01")).toEqual({ timestamps: [], lastRateLimitAt: null });
+    expect(await s.load("fmp", "2026-06-01")).toEqual({
+      timestamps: [],
+      lastRateLimitAt: null,
+    });
+    expect(await s.load("fmp", "2026-06-15")).toEqual({
+      timestamps: [],
+      lastRateLimitAt: null,
+    });
+    expect(await s.load("alphavantage", "2026-06-20")).toEqual({
+      timestamps: [],
+      lastRateLimitAt: null,
+    });
+    expect(await s.load("fmp", "2026-07-01")).toEqual({
+      timestamps: [],
+      lastRateLimitAt: null,
+    });
     // 2026-07-20 stays (above cutoff).
     const kept = await s.load("yahoo", "2026-07-20");
     expect(kept.timestamps).toEqual([5]);
@@ -93,8 +135,14 @@ describe("LocalMemoryStore", () => {
 
   it("pruneOlderThan returns 0/0 when nothing falls below the cutoff", async () => {
     const s = new LocalMemoryStore();
-    await s.save("fmp", "2026-08-01", { timestamps: [1], lastRateLimitAt: null });
-    await s.save("fmp", "2026-08-02", { timestamps: [2], lastRateLimitAt: null });
+    await s.save("fmp", "2026-08-01", {
+      timestamps: [1],
+      lastRateLimitAt: null,
+    });
+    await s.save("fmp", "2026-08-02", {
+      timestamps: [2],
+      lastRateLimitAt: null,
+    });
     const result = await s.pruneOlderThan("2026-01-01");
     expect(result).toEqual({ scannedCount: 2, prunedCount: 0 });
     expect((await s.load("fmp", "2026-08-01")).timestamps).toEqual([1]);
@@ -124,17 +172,28 @@ describe("VercelKvStore — happy path", () => {
       }),
     );
 
-    const s = new VercelKvStore({ url: "https://kv.example/", token: "test-token" });
-    await s.save("fmp", "2026-08-04", { timestamps: [100, 200], lastRateLimitAt: 50 });
+    const s = new VercelKvStore({
+      url: "https://kv.example/",
+      token: "test-token",
+    });
+    await s.save("fmp", "2026-08-04", {
+      timestamps: [100, 200],
+      lastRateLimitAt: 50,
+    });
 
     expect(recorded).toHaveLength(1);
     expect(recorded[0].url).toBe("https://kv.example/");
     expect(recorded[0].init?.method).toBe("POST");
-    expect((recorded[0].init?.headers as Record<string, string>).Authorization).toBe("Bearer test-token");
+    expect(
+      (recorded[0].init?.headers as Record<string, string>).Authorization,
+    ).toBe("Bearer test-token");
     const body = JSON.parse(recorded[0].init?.body as string);
     expect(body[0]).toBe("SET");
     expect(body[1]).toBe("vantage:usage:fmp:2026-08-04");
-    expect(JSON.parse(body[2])).toEqual({ timestamps: [100, 200], lastRateLimitAt: 50 });
+    expect(JSON.parse(body[2])).toEqual({
+      timestamps: [100, 200],
+      lastRateLimitAt: 50,
+    });
   });
 
   it("load() POSTs the Upstash GET command and parses the JSON body", async () => {
@@ -199,7 +258,9 @@ describe("VercelKvStore — happy path", () => {
       })),
     );
     // Should warn but not throw, and return [] / null.
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     const s = new VercelKvStore({ url: "https://kv.example", token: "tok" });
     const loaded = await s.load("yahoo", "2026-08-04");
     expect(loaded).toEqual({ timestamps: [], lastRateLimitAt: null });
@@ -245,7 +306,9 @@ describe("VercelKvStore — failure modes", () => {
         text: async () => "",
       })),
     );
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     const s = new VercelKvStore({ url: "https://kv.example", token: "tok" });
     const loaded = await s.load("fmp", "2026-08-04");
     expect(loaded).toEqual({ timestamps: [], lastRateLimitAt: null });
@@ -264,7 +327,9 @@ describe("VercelKvStore — failure modes", () => {
         text: async () => "",
       })),
     );
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     const s = new VercelKvStore({ url: "https://kv.example", token: "tok" });
     await expect(
       s.save("fmp", "2026-08-04", { timestamps: [1], lastRateLimitAt: null }),
@@ -295,7 +360,10 @@ describe("VercelKvStore — pruneOlderThan", () => {
               json: async () => ({
                 result: [
                   "3",
-                  ["vantage:usage:fmp:2026-06-01", "vantage:usage:fmp:2026-06-15"],
+                  [
+                    "vantage:usage:fmp:2026-06-01",
+                    "vantage:usage:fmp:2026-06-15",
+                  ],
                 ],
               }),
               text: async () => "",
@@ -321,7 +389,12 @@ describe("VercelKvStore — pruneOlderThan", () => {
             text: async () => "",
           };
         }
-        return { ok: true, status: 200, json: async () => ({ result: "OK" }), text: async () => "" };
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ result: "OK" }),
+          text: async () => "",
+        };
       }),
     );
     const s = new VercelKvStore({ url: "https://kv.example", token: "tok" });
@@ -329,7 +402,10 @@ describe("VercelKvStore — pruneOlderThan", () => {
     expect(result).toEqual({ scannedCount: 3, prunedCount: 2 });
     expect(scancalls).toEqual(["0", "3"]);
     // Only the two below-cutoff keys get DEL'd; the 2026-07-01 stays.
-    expect(delcalls).toEqual(["vantage:usage:fmp:2026-06-01", "vantage:usage:fmp:2026-06-15"]);
+    expect(delcalls).toEqual([
+      "vantage:usage:fmp:2026-06-01",
+      "vantage:usage:fmp:2026-06-15",
+    ]);
   });
 
   it("returns 0/0 + warns when SCAN responds non-OK (no DEL attempted)", async () => {
@@ -345,7 +421,9 @@ describe("VercelKvStore — pruneOlderThan", () => {
         text: async () => "",
       })),
     );
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const warnSpy = vi
+      .spyOn(console, "warn")
+      .mockImplementation(() => undefined);
     const s = new VercelKvStore({ url: "https://kv.example", token: "tok" });
     const result = await s.pruneOlderThan("2026-08-01");
     expect(result).toEqual({ scannedCount: 0, prunedCount: 0 });
@@ -398,7 +476,10 @@ describe("default-store factory (KV env detection)", () => {
     // The `__test__.setStoreForTests` path uses the singleton as-is
     // (doesn't re-run the factory); the constructor-opts path can
     // deliver explicit url+token even when env is empty.
-    const store = new VercelKvStore({ url: "https://kv.example", token: "explicit-token" });
+    const store = new VercelKvStore({
+      url: "https://kv.example",
+      token: "explicit-token",
+    });
     expect(store).toBeInstanceOf(VercelKvStore);
   });
 });

@@ -85,7 +85,9 @@ describe("kvJsonCache (KV-backed JSON cache helper)", () => {
     vi.stubGlobal("fetch", fetchSpy);
 
     const { kvJsonCache } = await import("./kvJsonCache");
-    expect(await kvJsonCache.get<{ v: number }>("demo:aapl")).toEqual({ v: 99 });
+    expect(await kvJsonCache.get<{ v: number }>("demo:aapl")).toEqual({
+      v: 99,
+    });
   });
 
   it("treats an `{ error }` response as a miss without throwing", async () => {
@@ -122,13 +124,17 @@ describe("kvJsonCache (KV-backed JSON cache helper)", () => {
     vi.stubEnv("KV_REST_API_URL", "https://kv.example");
     vi.stubEnv("KV_REST_API_TOKEN", "test-token");
     // SET throws (GET is never called because the test only writes).
-    const fetchSpy = vi.fn().mockRejectedValueOnce(new Error("KV network down"));
+    const fetchSpy = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("KV network down"));
     vi.stubGlobal("fetch", fetchSpy);
 
     const { kvJsonCache } = await import("./kvJsonCache");
     // The awaited set() resolves (KV error caught inside the helper),
     // so it never rejects out of the helper — that's the test.
-    await expect(kvJsonCache.set("demo:aapl", { v: 1 }, 60)).resolves.toBeUndefined();
+    await expect(
+      kvJsonCache.set("demo:aapl", { v: 1 }, 60),
+    ).resolves.toBeUndefined();
     // Local mirror still has the value even though KV SET failed.
     expect(await kvJsonCache.get("demo:aapl")).toEqual({ v: 1 });
   });
@@ -165,9 +171,11 @@ describe("kvJsonCache (KV-backed JSON cache helper)", () => {
       { rows: [], rateLimited: false, unavailable: true },
       3600,
     );
-    expect(
-      await kvJsonCache.get("revenueSegmentation_AAPL_annual"),
-    ).toEqual({ rows: [], rateLimited: false, unavailable: true });
+    expect(await kvJsonCache.get("revenueSegmentation_AAPL_annual")).toEqual({
+      rows: [],
+      rateLimited: false,
+      unavailable: true,
+    });
   });
 
   it("keeps rate-limited payloads on a 5-min KV TTL (quota backoff)", async () => {

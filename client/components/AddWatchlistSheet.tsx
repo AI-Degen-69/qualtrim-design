@@ -14,7 +14,11 @@ import { Input } from "@/components/ui/input";
 import { useI18n } from "@/lib/i18n";
 import { parseTickers } from "@/lib/parseCsv";
 import { useValidateSymbols } from "@/hooks/useStockData";
-import type { Result, Watchlist, WatchlistSymbolEntry } from "@/lib/watchlistStore";
+import type {
+  Result,
+  Watchlist,
+  WatchlistSymbolEntry,
+} from "@/lib/watchlistStore";
 
 const MAX_WATCHLIST_SYMBOLS = 50;
 
@@ -48,7 +52,11 @@ interface AddWatchlistSheetProps {
  * hook) so they understand exactly why a paste got truncated — nothing
  * is silently dropped.
  */
-export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlistSheetProps) {
+export function AddWatchlistSheet({
+  open,
+  onOpenChange,
+  onCreate,
+}: AddWatchlistSheetProps) {
   const { t } = useI18n();
   const [name, setName] = useState("");
   const [rawSymbols, setRawSymbols] = useState("");
@@ -72,13 +80,18 @@ export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlist
   );
   const [debouncedCandidates, setDebouncedCandidates] = useState<string[]>([]);
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedCandidates(candidatesForValidation), 250);
+    const timer = setTimeout(
+      () => setDebouncedCandidates(candidatesForValidation),
+      250,
+    );
     return () => clearTimeout(timer);
   }, [candidatesForValidation]);
   const validated = useValidateSymbols(debouncedCandidates);
   const validationIsCurrent =
     debouncedCandidates.length === candidatesForValidation.length &&
-    debouncedCandidates.every((symbol, index) => symbol === candidatesForValidation[index]);
+    debouncedCandidates.every(
+      (symbol, index) => symbol === candidatesForValidation[index],
+    );
   // Ignore the previous query's result during the debounce window. Otherwise a
   // fast edit could briefly enable submission for symbols that are no longer
   // the current textarea value.
@@ -123,11 +136,21 @@ export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlist
         return { symbol: sym, displayName: null, state: "invalid" as const };
       }
       if (unavailableSet.has(sym)) {
-        return { symbol: sym, displayName: null, state: "unavailable" as const };
+        return {
+          symbol: sym,
+          displayName: null,
+          state: "unavailable" as const,
+        };
       }
       return { symbol: sym, displayName: null, state: "pending" as const };
     });
-  }, [candidatesForValidation, currentValid, currentInvalid, currentUnavailable, displayNames]);
+  }, [
+    candidatesForValidation,
+    currentValid,
+    currentInvalid,
+    currentUnavailable,
+    displayNames,
+  ]);
 
   const truncatedPreview = preview.slice(0, 48); // keep chip row scannable
   const visibleValidCount = currentValid.length;
@@ -168,17 +191,21 @@ export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlist
     // Persist only symbols whose upstream profile resolved successfully.
     // Format-clean-but-unknown symbols remain visible as invalid/pending and
     // are never treated as valid merely because they match the ticker regex.
-    const accept: WatchlistSymbolEntry[] = currentValid.map(({ symbol, profile }) => ({
-      symbol,
-      name: profile.companyName || undefined,
-    }));
+    const accept: WatchlistSymbolEntry[] = currentValid.map(
+      ({ symbol, profile }) => ({
+        symbol,
+        name: profile.companyName || undefined,
+      }),
+    );
 
     const result = onCreate(trimmedName, accept);
     // Explicit `result.ok === false` narrowing — TS sometimes loses the
     // union-narrow on callback return types; hard-split the failure path.
     if (result.ok === false) {
-      if (result.reason === "empty_name") setError(t("watchlists.emptyNameError"));
-      else if (result.reason === "duplicate_name") setError(t("watchlists.duplicateNameError", { name: trimmedName }));
+      if (result.reason === "empty_name")
+        setError(t("watchlists.emptyNameError"));
+      else if (result.reason === "duplicate_name")
+        setError(t("watchlists.duplicateNameError", { name: trimmedName }));
       return;
     }
     onOpenChange(false);
@@ -186,7 +213,10 @@ export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlist
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:max-w-md flex flex-col gap-4">
+      <SheetContent
+        side="right"
+        className="w-full sm:max-w-md flex flex-col gap-4"
+      >
         <SheetHeader>
           <SheetTitle>{t("watchlists.addTitle")}</SheetTitle>
           <SheetDescription>{t("watchlists.csvHint")}</SheetDescription>
@@ -195,7 +225,10 @@ export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlist
         {/* Name + symbols form */}
         <div className="space-y-4 px-1">
           <div>
-            <label htmlFor="watchlist-name" className="text-sm font-medium block mb-1.5">
+            <label
+              htmlFor="watchlist-name"
+              className="text-sm font-medium block mb-1.5"
+            >
               {t("watchlists.nameLabel")}
             </label>
             <Input
@@ -209,7 +242,10 @@ export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlist
           </div>
 
           <div>
-            <label htmlFor="watchlist-symbols" className="text-sm font-medium block mb-1.5">
+            <label
+              htmlFor="watchlist-symbols"
+              className="text-sm font-medium block mb-1.5"
+            >
               {t("watchlists.symbolsLabel")}
             </label>
             <textarea
@@ -224,7 +260,9 @@ export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlist
           {/* Validation chips — show what we have after parsing. Live
               upstream-validation chips flip from pending to valid/invalid
               as /api/stock-overview resolves per symbol (cap 8). */}
-          {(truncatedPreview.length > 0 || invalidSymbols.length > 0 || tooManySymbols) && (
+          {(truncatedPreview.length > 0 ||
+            invalidSymbols.length > 0 ||
+            tooManySymbols) && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-400 font-medium">
@@ -262,7 +300,9 @@ export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlist
               </div>
               {tooManySymbols && (
                 <div className="text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-md px-3 py-2">
-                  {t("watchlists.tooManySymbols", { max: MAX_WATCHLIST_SYMBOLS })}
+                  {t("watchlists.tooManySymbols", {
+                    max: MAX_WATCHLIST_SYMBOLS,
+                  })}
                 </div>
               )}
               {unavailableCount > 0 && (
@@ -273,7 +313,9 @@ export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlist
               {invalidSymbols.length > 0 && (
                 <>
                   <div className="text-xs text-slate-400 font-medium" dir="ltr">
-                    {t("watchlists.invalidCount", { count: visibleInvalidCount })}
+                    {t("watchlists.invalidCount", {
+                      count: visibleInvalidCount,
+                    })}
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     {invalidSymbols.slice(0, 24).map((s) => (
@@ -286,7 +328,10 @@ export function AddWatchlistSheet({ open, onOpenChange, onCreate }: AddWatchlist
                       </span>
                     ))}
                     {invalidSymbols.length > 24 && (
-                      <span className="text-xs text-slate-500 px-2 py-0.5" dir="ltr">
+                      <span
+                        className="text-xs text-slate-500 px-2 py-0.5"
+                        dir="ltr"
+                      >
                         +{invalidSymbols.length - 24}
                       </span>
                     )}

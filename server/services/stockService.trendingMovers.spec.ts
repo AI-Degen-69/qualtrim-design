@@ -39,11 +39,20 @@ describe("fetchTrendingMovers", () => {
       "fetch",
       vi.fn(async (url: string) => {
         if (url.includes("biggest-gainers"))
-          return fakeMoversResponse([row("AAPL", "Apple"), row("MSFT", "Microsoft")]);
+          return fakeMoversResponse([
+            row("AAPL", "Apple"),
+            row("MSFT", "Microsoft"),
+          ]);
         if (url.includes("most-actives"))
-          return fakeMoversResponse([row("msft", "Microsoft"), row("GOOGL", "Alphabet")]);
+          return fakeMoversResponse([
+            row("msft", "Microsoft"),
+            row("GOOGL", "Alphabet"),
+          ]);
         if (url.includes("biggest-losers"))
-          return fakeMoversResponse([row("aapl", "Apple"), row("NFLX", "Netflix")]);
+          return fakeMoversResponse([
+            row("aapl", "Apple"),
+            row("NFLX", "Netflix"),
+          ]);
         throw new Error(`unexpected url: ${url}`);
       }),
     );
@@ -51,7 +60,12 @@ describe("fetchTrendingMovers", () => {
     const { fetchTrendingMovers } = await freshModule();
     const { entries, rateLimited } = await fetchTrendingMovers();
 
-    expect(entries.map((e) => e.symbol)).toEqual(["AAPL", "MSFT", "GOOGL", "NFLX"]);
+    expect(entries.map((e) => e.symbol)).toEqual([
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+      "NFLX",
+    ]);
     expect(rateLimited).toBe(false);
   });
 
@@ -61,9 +75,12 @@ describe("fetchTrendingMovers", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (url.includes("biggest-gainers")) return fakeMoversResponse(makeRows("G", 15));
-        if (url.includes("most-actives")) return fakeMoversResponse(makeRows("A", 15));
-        if (url.includes("biggest-losers")) return fakeMoversResponse(makeRows("L", 15));
+        if (url.includes("biggest-gainers"))
+          return fakeMoversResponse(makeRows("G", 15));
+        if (url.includes("most-actives"))
+          return fakeMoversResponse(makeRows("A", 15));
+        if (url.includes("biggest-losers"))
+          return fakeMoversResponse(makeRows("L", 15));
         throw new Error(`unexpected url: ${url}`);
       }),
     );
@@ -79,7 +96,10 @@ describe("fetchTrendingMovers", () => {
   });
 
   it("flags rate-limited when every movers endpoint returns 429 with no rows", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => fakeMoversResponse([], 429)));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => fakeMoversResponse([], 429)),
+    );
 
     const { fetchTrendingMovers } = await freshModule();
     const { entries, rateLimited } = await fetchTrendingMovers();
@@ -124,7 +144,10 @@ describe("stockService.getTrendingUniverse", () => {
       "fetch",
       vi.fn(async (url: string) => {
         if (url.includes("biggest-gainers"))
-          return fakeMoversResponse([row("AAPL", "Apple"), row("MSFT", "Microsoft")]);
+          return fakeMoversResponse([
+            row("AAPL", "Apple"),
+            row("MSFT", "Microsoft"),
+          ]);
         if (url.includes("most-actives"))
           return fakeMoversResponse([row("GOOGL", "Alphabet")]);
         if (url.includes("biggest-losers"))
@@ -141,7 +164,13 @@ describe("stockService.getTrendingUniverse", () => {
 
   it("backs off for the full rate-limit TTL after a 429 instead of re-firing after 15s", async () => {
     vi.useFakeTimers({
-      toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"],
+      toFake: [
+        "setTimeout",
+        "clearTimeout",
+        "setInterval",
+        "clearInterval",
+        "Date",
+      ],
     });
     const fetchSpy = vi.fn(async () => fakeMoversResponse([], 429));
     vi.stubGlobal("fetch", fetchSpy);

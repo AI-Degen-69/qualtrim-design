@@ -40,7 +40,9 @@ describe("AnimatedNumber", () => {
     // Same first-paint contract as `format`: layout derived from the
     // animated value must not run until a value actually exists.
     const html = renderToString(
-      <AnimatedNumber value={12.34}>{() => <strong>never</strong>}</AnimatedNumber>,
+      <AnimatedNumber value={12.34}>
+        {() => <strong>never</strong>}
+      </AnimatedNumber>,
     );
     expect(html).toContain("—");
     expect(html).not.toContain("never");

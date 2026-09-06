@@ -221,7 +221,9 @@ export default function CompanyProfile({
                       className="transition-colors hover:bg-muted/40"
                     >
                       <td className="py-3 font-medium font-sans">
-                        <span className="font-semibold text-foreground text-sm">{trade.name}</span>
+                        <span className="font-semibold text-foreground text-sm">
+                          {trade.name}
+                        </span>
                         {trade.relation && (
                           <span className="block text-xs font-normal text-muted-foreground">
                             {trade.relation}
@@ -235,13 +237,15 @@ export default function CompanyProfile({
                         className="max-w-[190px] py-3"
                         title={trade.transactionText}
                       >
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-bold border ${
-                          isPurchase
-                            ? "bg-chart-positive/10 text-chart-positive border-chart-positive/30"
-                            : isSale
-                              ? "bg-chart-negative/10 text-chart-negative border-chart-negative/30"
-                              : "bg-muted text-muted-foreground border-border/50"
-                        }`}>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-[4px] text-[11px] font-bold border ${
+                            isPurchase
+                              ? "bg-chart-positive/10 text-chart-positive border-chart-positive/30"
+                              : isSale
+                                ? "bg-chart-negative/10 text-chart-negative border-chart-negative/30"
+                                : "bg-muted text-muted-foreground border-border/50"
+                          }`}
+                        >
                           {trade.typeLabel}
                         </span>
                         {trade.isAdministrative && (
@@ -250,7 +254,10 @@ export default function CompanyProfile({
                           </span>
                         )}
                       </td>
-                      <td className="py-3 font-mono tabular-nums text-foreground font-semibold" dir="ltr">
+                      <td
+                        className="py-3 font-mono tabular-nums text-foreground font-semibold"
+                        dir="ltr"
+                      >
                         {trade.shares.toLocaleString()}{" "}
                         <span className="text-[11px] text-muted-foreground/70 font-normal">
                           {t("common.sharesUnit")}
@@ -267,7 +274,10 @@ export default function CompanyProfile({
                       >
                         {price}
                       </td>
-                      <td className="py-3 font-mono tabular-nums text-foreground font-bold" dir="ltr">
+                      <td
+                        className="py-3 font-mono tabular-nums text-foreground font-bold"
+                        dir="ltr"
+                      >
                         {formatMoneyCompact(trade.value) ?? "—"}
                       </td>
                       <td
@@ -284,7 +294,10 @@ export default function CompanyProfile({
                 })}
                 {insiders.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="py-6 text-center text-xs text-muted-foreground italic font-sans">
+                    <td
+                      colSpan={7}
+                      className="py-6 text-center text-xs text-muted-foreground italic font-sans"
+                    >
                       No insider transaction records found for {ticker}.
                     </td>
                   </tr>
@@ -316,7 +329,10 @@ export default function CompanyProfile({
                 <span className="motion-safe:animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
               </span>
-              <h3 id="company-profile-card-title" className="font-display text-xs font-bold uppercase tracking-[0.14em] text-foreground flex items-center gap-1.5">
+              <h3
+                id="company-profile-card-title"
+                className="font-display text-xs font-bold uppercase tracking-[0.14em] text-foreground flex items-center gap-1.5"
+              >
                 <Building2 className="w-3.5 h-3.5 text-primary" />
                 <span>Corporate Summary & Executive Details</span>
               </h3>
@@ -372,7 +388,10 @@ export default function CompanyProfile({
                   <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground font-semibold">
                     {t("insights.ceo")}
                   </div>
-                  <div className="text-xs sm:text-sm font-bold font-mono text-foreground truncate" title={ceo ?? "—"}>
+                  <div
+                    className="text-xs sm:text-sm font-bold font-mono text-foreground truncate"
+                    title={ceo ?? "—"}
+                  >
                     {ceo ?? "—"}
                   </div>
                 </div>
@@ -381,7 +400,10 @@ export default function CompanyProfile({
                   <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground font-semibold">
                     {t("insights.sector")}
                   </div>
-                  <div className="text-xs sm:text-sm font-bold font-mono text-foreground truncate" title={sector ?? "—"}>
+                  <div
+                    className="text-xs sm:text-sm font-bold font-mono text-foreground truncate"
+                    title={sector ?? "—"}
+                  >
                     {sector ?? "—"}
                   </div>
                 </div>
@@ -390,7 +412,10 @@ export default function CompanyProfile({
                   <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground font-semibold">
                     {t("insights.industry")}
                   </div>
-                  <div className="text-xs sm:text-sm font-bold font-mono text-foreground truncate" title={industry ?? "—"}>
+                  <div
+                    className="text-xs sm:text-sm font-bold font-mono text-foreground truncate"
+                    title={industry ?? "—"}
+                  >
                     {industry ?? "—"}
                   </div>
                 </div>
@@ -399,7 +424,10 @@ export default function CompanyProfile({
                   <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground font-semibold">
                     {t("insights.beta")}
                   </div>
-                  <div className="text-xs sm:text-sm font-bold font-mono text-foreground tabular-nums" dir="ltr">
+                  <div
+                    className="text-xs sm:text-sm font-bold font-mono text-foreground tabular-nums"
+                    dir="ltr"
+                  >
                     {beta !== null ? beta.toFixed(2) : "—"}
                   </div>
                 </div>
@@ -408,8 +436,13 @@ export default function CompanyProfile({
                   <div className="text-[10px] uppercase font-mono tracking-wider text-muted-foreground font-semibold">
                     {t("insights.piotroskiScore")}
                   </div>
-                  <div className="text-xs sm:text-sm font-bold font-mono text-chart-positive tabular-nums" dir="ltr">
-                    {piotroskiScore !== null ? `${piotroskiScore} / 9 (Financial Health)` : "—"}
+                  <div
+                    className="text-xs sm:text-sm font-bold font-mono text-chart-positive tabular-nums"
+                    dir="ltr"
+                  >
+                    {piotroskiScore !== null
+                      ? `${piotroskiScore} / 9 (Financial Health)`
+                      : "—"}
                   </div>
                 </div>
               </div>
@@ -424,10 +457,16 @@ export default function CompanyProfile({
                     <Chip label={t("insights.cik")} value={overviewData.cik} />
                   )}
                   {overviewData?.isin && (
-                    <Chip label={t("insights.isin")} value={overviewData.isin} />
+                    <Chip
+                      label={t("insights.isin")}
+                      value={overviewData.isin}
+                    />
                   )}
                   {overviewData?.cusip && (
-                    <Chip label={t("insights.cusip")} value={overviewData.cusip} />
+                    <Chip
+                      label={t("insights.cusip")}
+                      value={overviewData.cusip}
+                    />
                   )}
                   {overviewData?.ipoDate && (
                     <Chip
@@ -438,7 +477,9 @@ export default function CompanyProfile({
                   {website && (
                     <Chip
                       label={t("insights.website")}
-                      value={website.replace(/^https?:\/\//i, "").replace(/\/+$/, "")}
+                      value={website
+                        .replace(/^https?:\/\//i, "")
+                        .replace(/\/+$/, "")}
                       href={website}
                     />
                   )}
@@ -452,7 +493,9 @@ export default function CompanyProfile({
                   {overviewData?.isActivelyTrading !== undefined && (
                     <FlagBadge
                       label={t("insights.activeStatus")}
-                      tone={overviewData.isActivelyTrading ? "success" : "danger"}
+                      tone={
+                        overviewData.isActivelyTrading ? "success" : "danger"
+                      }
                       value={
                         overviewData.isActivelyTrading
                           ? t("insights.yes")
@@ -574,18 +617,11 @@ function SectionHeading({
             {title}
           </h2>
           {live && source && (
-            <DataStatusBadge
-              status="live"
-              source={source}
-              compact
-              iconOnly
-            />
+            <DataStatusBadge status="live" source={source} compact iconOnly />
           )}
         </div>
         {subtitle && (
-          <p className="mt-1.5 text-xs text-muted-foreground/80">
-            {subtitle}
-          </p>
+          <p className="mt-1.5 text-xs text-muted-foreground/80">{subtitle}</p>
         )}
       </div>
     </div>

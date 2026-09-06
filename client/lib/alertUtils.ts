@@ -54,14 +54,20 @@ export function eventEpochMs(event: EarningsEvent): number {
  * A small 5-minute backward grace is permitted so an event whose call just
  * started remains visible (the user might be late to the page).
  */
-export function isWithin24h(event: EarningsEvent, now: number = Date.now()): boolean {
+export function isWithin24h(
+  event: EarningsEvent,
+  now: number = Date.now(),
+): boolean {
   const ms = eventEpochMs(event);
   if (!Number.isFinite(ms)) return false;
   return ms >= now - 5 * 60 * 1000 && ms <= now + MS_PER_DAY;
 }
 
 /** Hours until the event fires; negative if the event has already fired. */
-export function hoursUntil(event: EarningsEvent, now: number = Date.now()): number {
+export function hoursUntil(
+  event: EarningsEvent,
+  now: number = Date.now(),
+): number {
   return (eventEpochMs(event) - now) / MS_PER_HOUR;
 }
 
@@ -85,12 +91,27 @@ export function formatTimeUntil(
   const totalMin = Math.floor(deltaMs / (60 * 1000));
   if (totalMin < 60) {
     const count = Math.max(1, totalMin);
-    return t(count === 1 ? "earningsAlerts.timeUntilMinutes_one" : "earningsAlerts.timeUntilMinutes_other", { count });
+    return t(
+      count === 1
+        ? "earningsAlerts.timeUntilMinutes_one"
+        : "earningsAlerts.timeUntilMinutes_other",
+      { count },
+    );
   }
   const totalHour = Math.floor(deltaMs / MS_PER_HOUR);
   if (totalHour < 24) {
-    return t(totalHour === 1 ? "earningsAlerts.timeUntilHours_one" : "earningsAlerts.timeUntilHours_other", { count: totalHour });
+    return t(
+      totalHour === 1
+        ? "earningsAlerts.timeUntilHours_one"
+        : "earningsAlerts.timeUntilHours_other",
+      { count: totalHour },
+    );
   }
   const days = Math.floor(deltaMs / MS_PER_DAY);
-  return t(days === 1 ? "earningsAlerts.timeUntilDays_one" : "earningsAlerts.timeUntilDays_other", { count: days });
+  return t(
+    days === 1
+      ? "earningsAlerts.timeUntilDays_one"
+      : "earningsAlerts.timeUntilDays_other",
+    { count: days },
+  );
 }

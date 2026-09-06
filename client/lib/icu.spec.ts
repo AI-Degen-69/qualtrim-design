@@ -26,9 +26,7 @@ describe("solveTemplate — simple {var} interpolation", () => {
   it("renders the raw block when the variable isn't in vars", () => {
     // Preserves the missing-key signalization for the dev-mode warn to
     // detect upstream callers passing wrong var names.
-    expect(solveTemplate("Hello, {name}!", {}, enRule)).toBe(
-      "Hello, {name}!",
-    );
+    expect(solveTemplate("Hello, {name}!", {}, enRule)).toBe("Hello, {name}!");
   });
 
   it("returns the empty string for an empty {var} block", () => {
@@ -100,22 +98,14 @@ describe("solveTemplate — ICU plural with # counter", () => {
 
   it("falls back to 'other' when the picked category is missing from cases", () => {
     expect(
-      solveTemplate(
-        "{count, plural, one {# item}}",
-        { count: 5 },
-        enRule,
-      ),
+      solveTemplate("{count, plural, one {# item}}", { count: 5 }, enRule),
     ).toBe("5 item");
   });
 
   it("substitutes '#' with the numeric value, not a localized word", () => {
     // `1.5` keeps its fractional form via String(n).
     expect(
-      solveTemplate(
-        "{count, plural, other {# units}}",
-        { count: 1.5 },
-        enRule,
-      ),
+      solveTemplate("{count, plural, other {# units}}", { count: 1.5 }, enRule),
     ).toBe("1.5 units");
   });
 });
@@ -175,10 +165,9 @@ describe("solveTemplate — nested ICU", () => {
   });
 
   it("stack is safe for at least 3 nested levels", () => {
-    const tmpl = "{a, plural, one {a {b, plural, one {b {c, plural, one {c inner} other {c outer}}}}} other {a-outer}}";
-    expect(solveTemplate(tmpl, { a: 5, b: 5, c: 5 }, enRule)).toBe(
-      "a-outer",
-    );
+    const tmpl =
+      "{a, plural, one {a {b, plural, one {b {c, plural, one {c inner} other {c outer}}}}} other {a-outer}}";
+    expect(solveTemplate(tmpl, { a: 5, b: 5, c: 5 }, enRule)).toBe("a-outer");
     expect(solveTemplate(tmpl, { a: 1, b: 1, c: 1 }, enRule)).toBe(
       "a b c inner",
     );
@@ -189,16 +178,16 @@ describe("solveTemplate — malformed templates", () => {
   it("renders missing close brace as literal text (doesn't throw)", () => {
     // The parser hits `{count, plural, ...` with no closing `}}` — the
     // whole block is output verbatim rather than crashing.
-    expect(
-      solveTemplate("Hello, {{count}!", { count: 5 }, enRule),
-    ).toBe("Hello, {{count}!");
+    expect(solveTemplate("Hello, {{count}!", { count: 5 }, enRule)).toBe(
+      "Hello, {{count}!",
+    );
   });
 
   it("double-braced opening without close emits literal then advances", () => {
     // Forward progress is preserved — the `a` text is emitted correctly.
-    expect(
-      solveTemplate("a{{b, plural", { b: 5 }, enRule),
-    ).toBe("a{{b, plural");
+    expect(solveTemplate("a{{b, plural", { b: 5 }, enRule)).toBe(
+      "a{{b, plural",
+    );
   });
 
   it("treatment of nested `}` inside an outer `{{...}}` mid-template", () => {

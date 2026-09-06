@@ -13,12 +13,16 @@ interface DataStatusBadgeProps {
   className?: string;
 }
 
-const STATUS_META: Record<DataStatus, { label: string; he: string; icon: typeof Radio; className: string }> = {
+const STATUS_META: Record<
+  DataStatus,
+  { label: string; he: string; icon: typeof Radio; className: string }
+> = {
   live: {
     label: "LIVE",
     he: "חי",
     icon: Radio,
-    className: "border-chart-positive/30 bg-chart-positive/10 text-chart-positive",
+    className:
+      "border-chart-positive/30 bg-chart-positive/10 text-chart-positive",
   },
   mock: {
     label: "MOCK",
@@ -42,7 +46,10 @@ const STATUS_META: Record<DataStatus, { label: string; he: string; icon: typeof 
 
 function formatUpdatedAt(updatedAt: number | null | undefined): string | null {
   if (!updatedAt) return null;
-  return new Date(updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return new Date(updatedAt).toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 /**
@@ -63,7 +70,10 @@ export default function DataStatusBadge({
   const Icon = meta.icon;
   const fetched = formatUpdatedAt(updatedAt);
   const statusLabel = lang === "he" ? meta.he : meta.label;
-  const details = [source, fetched ? `${lang === "he" ? "עודכן" : "updated"} ${fetched}` : null]
+  const details = [
+    source,
+    fetched ? `${lang === "he" ? "עודכן" : "updated"} ${fetched}` : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 
@@ -79,9 +89,16 @@ export default function DataStatusBadge({
       title={details || statusLabel}
       aria-label={details ? `${statusLabel} · ${details}` : statusLabel}
     >
-      <Icon className={iconOnly ? "h-2.5 w-2.5" : "h-3 w-3"} aria-hidden="true" />
+      <Icon
+        className={iconOnly ? "h-2.5 w-2.5" : "h-3 w-3"}
+        aria-hidden="true"
+      />
       {!iconOnly && <span>{statusLabel}</span>}
-      {!iconOnly && source && !compact && <span className="font-sans normal-case tracking-normal opacity-75">· {source}</span>}
+      {!iconOnly && source && !compact && (
+        <span className="font-sans normal-case tracking-normal opacity-75">
+          · {source}
+        </span>
+      )}
     </span>
   );
 }

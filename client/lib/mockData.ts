@@ -123,7 +123,7 @@ function synthesizeCashflows(
   currentValue: number,
   annualIncome: number,
   gainLoss: number,
-  asOf: Date = new Date()
+  asOf: Date = new Date(),
 ): PortfolioCashflow[] {
   const flows: PortfolioCashflow[] = [];
   // Total invested = currentValue - gainLoss (backing out the gain to get original principal)
@@ -169,25 +169,91 @@ function synthesizeCashflows(
 
 // Curated Market Leaders & ETFs Watchlist
 export const defaultWatchlist: WatchlistTicker[] = [
-  { symbol: "NVDA", name: "NVIDIA Corp.", price: 1120.45, changePercent: 2.34, sma200Distance: 35.2 },
-  { symbol: "MSFT", name: "Microsoft Corp.", price: 425.10, changePercent: 1.15, sma200Distance: 12.4 },
-  { symbol: "AAPL", name: "Apple Inc.", price: 215.30, changePercent: 0.85, sma200Distance: 5.6 },
-  { symbol: "AMZN", name: "Amazon.com Inc.", price: 185.20, changePercent: -0.45, sma200Distance: 8.2 },
-  { symbol: "GOOGL", name: "Alphabet Inc.", price: 175.80, changePercent: 1.20, sma200Distance: 9.5 },
-  { symbol: "META", name: "Meta Platforms", price: 495.60, changePercent: 3.10, sma200Distance: 22.1 },
-  { symbol: "TSLA", name: "Tesla Inc.", price: 175.40, changePercent: -2.15, sma200Distance: -15.4 },
-  { symbol: "SPY", name: "SPDR S&P 500 ETF", price: 545.20, changePercent: 0.50, sma200Distance: 10.1 },
-  { symbol: "QQQ", name: "Invesco QQQ Trust", price: 475.10, changePercent: 0.80, sma200Distance: 14.5 },
-  { symbol: "XLV", name: "Health Care Select ETF", price: 145.30, changePercent: -0.10, sma200Distance: 4.2 },
-  { symbol: "XLF", name: "Financial Select ETF", price: 41.50, changePercent: 0.25, sma200Distance: 6.8 },
+  {
+    symbol: "NVDA",
+    name: "NVIDIA Corp.",
+    price: 1120.45,
+    changePercent: 2.34,
+    sma200Distance: 35.2,
+  },
+  {
+    symbol: "MSFT",
+    name: "Microsoft Corp.",
+    price: 425.1,
+    changePercent: 1.15,
+    sma200Distance: 12.4,
+  },
+  {
+    symbol: "AAPL",
+    name: "Apple Inc.",
+    price: 215.3,
+    changePercent: 0.85,
+    sma200Distance: 5.6,
+  },
+  {
+    symbol: "AMZN",
+    name: "Amazon.com Inc.",
+    price: 185.2,
+    changePercent: -0.45,
+    sma200Distance: 8.2,
+  },
+  {
+    symbol: "GOOGL",
+    name: "Alphabet Inc.",
+    price: 175.8,
+    changePercent: 1.2,
+    sma200Distance: 9.5,
+  },
+  {
+    symbol: "META",
+    name: "Meta Platforms",
+    price: 495.6,
+    changePercent: 3.1,
+    sma200Distance: 22.1,
+  },
+  {
+    symbol: "TSLA",
+    name: "Tesla Inc.",
+    price: 175.4,
+    changePercent: -2.15,
+    sma200Distance: -15.4,
+  },
+  {
+    symbol: "SPY",
+    name: "SPDR S&P 500 ETF",
+    price: 545.2,
+    changePercent: 0.5,
+    sma200Distance: 10.1,
+  },
+  {
+    symbol: "QQQ",
+    name: "Invesco QQQ Trust",
+    price: 475.1,
+    changePercent: 0.8,
+    sma200Distance: 14.5,
+  },
+  {
+    symbol: "XLV",
+    name: "Health Care Select ETF",
+    price: 145.3,
+    changePercent: -0.1,
+    sma200Distance: 4.2,
+  },
+  {
+    symbol: "XLF",
+    name: "Financial Select ETF",
+    price: 41.5,
+    changePercent: 0.25,
+    sma200Distance: 6.8,
+  },
 ];
 
 export const mockPortfolio: Portfolio = {
   id: "my-first-portfolio",
   name: "My First Portfolio",
-  currentValue: 1250450.00,
-  gainLoss: 154230.50,
-  annualIncome: 45200.00,
+  currentValue: 1250450.0,
+  gainLoss: 154230.5,
+  annualIncome: 45200.0,
   dividendYield: 3.6,
   baseCurrency: "USD",
   holdings: [
@@ -196,15 +262,15 @@ export const mockPortfolio: Portfolio = {
     { ticker: "NVDA", weight: 15.5, gainLoss: 125.4 },
     { ticker: "SPY", weight: 39.0, gainLoss: 12.5 },
   ],
-  cashflows: synthesizeCashflows(1250450.00, 45200.00, 154230.50)
+  cashflows: synthesizeCashflows(1250450.0, 45200.0, 154230.5),
 };
 
 export const techHeavyPortfolio: Portfolio = {
   id: "tech-heavy",
   name: "Tech Heavy",
-  currentValue: 3450000.00,
-  gainLoss: 890000.50,
-  annualIncome: 12500.00,
+  currentValue: 3450000.0,
+  gainLoss: 890000.5,
+  annualIncome: 12500.0,
   dividendYield: 0.36,
   baseCurrency: "USD",
   holdings: [
@@ -219,17 +285,17 @@ export const techHeavyPortfolio: Portfolio = {
     { ticker: "PLTR", weight: 5.0, gainLoss: 95.4 },
     { ticker: "AVGO", weight: 4.5, gainLoss: 75.2 },
     { ticker: "ORCL", weight: 4.0, gainLoss: 25.6 },
-    { ticker: "AMD", weight: 4.5, gainLoss: 40.5 }
+    { ticker: "AMD", weight: 4.5, gainLoss: 40.5 },
   ],
-  cashflows: synthesizeCashflows(3450000.00, 12500.00, 890000.50)
+  cashflows: synthesizeCashflows(3450000.0, 12500.0, 890000.5),
 };
 
 export const dividendKingsPortfolio: Portfolio = {
   id: "dividend-kings",
   name: "Dividend Kings",
-  currentValue: 850200.00,
-  gainLoss: 45000.00,
-  annualIncome: 35600.00,
+  currentValue: 850200.0,
+  gainLoss: 45000.0,
+  annualIncome: 35600.0,
   dividendYield: 4.18,
   baseCurrency: "USD",
   holdings: [
@@ -244,12 +310,16 @@ export const dividendKingsPortfolio: Portfolio = {
     { ticker: "KO", weight: 8.5, gainLoss: 22.4 },
     { ticker: "PG", weight: 7.5, gainLoss: 14.8 },
     { ticker: "MMM", weight: 6.0, gainLoss: -8.5 },
-    { ticker: "CL", weight: 6.0, gainLoss: 9.2 }
+    { ticker: "CL", weight: 6.0, gainLoss: 9.2 },
   ],
-  cashflows: synthesizeCashflows(850200.00, 35600.00, 45000.00)
+  cashflows: synthesizeCashflows(850200.0, 35600.0, 45000.0),
 };
 
-export const portfolios = [mockPortfolio, techHeavyPortfolio, dividendKingsPortfolio];
+export const portfolios = [
+  mockPortfolio,
+  techHeavyPortfolio,
+  dividendKingsPortfolio,
+];
 
 export interface WatchlistTicker {
   symbol: string;
@@ -266,30 +336,97 @@ export const mockCompanyProfile: CompanyProfile = {
   employees: 161000,
   beta: 1.25,
   piotroskiScore: 8,
-  description: "Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide. The company offers iPhone, a line of smartphones; Mac, a line of personal computers; iPad, a line of multi-purpose tablets; and wearables, home, and accessories comprising AirPods, Apple TV, Apple Watch, Beats products, and HomePod."
+  description:
+    "Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide. The company offers iPhone, a line of smartphones; Mac, a line of personal computers; iPad, a line of multi-purpose tablets; and wearables, home, and accessories comprising AirPods, Apple TV, Apple Watch, Beats products, and HomePod.",
 };
 
 export const mockAnalystEstimates: AnalystEstimate[] = [
   { metric: "EPS", period: "Current Qtr", avg: 1.54, low: 1.45, high: 1.62 },
-  { metric: "EPS", period: "Current Year", avg: 6.55, low: 6.30, high: 6.75 },
-  { metric: "EPS", period: "Next Year", avg: 7.20, low: 6.85, high: 7.50 },
-  { metric: "Revenue", period: "Current Qtr", avg: 90.2, low: 88.5, high: 92.1 },
-  { metric: "Revenue", period: "Current Year", avg: 385.5, low: 375.0, high: 395.0 },
-  { metric: "Revenue", period: "Next Year", avg: 410.2, low: 395.5, high: 425.0 }
+  { metric: "EPS", period: "Current Year", avg: 6.55, low: 6.3, high: 6.75 },
+  { metric: "EPS", period: "Next Year", avg: 7.2, low: 6.85, high: 7.5 },
+  {
+    metric: "Revenue",
+    period: "Current Qtr",
+    avg: 90.2,
+    low: 88.5,
+    high: 92.1,
+  },
+  {
+    metric: "Revenue",
+    period: "Current Year",
+    avg: 385.5,
+    low: 375.0,
+    high: 395.0,
+  },
+  {
+    metric: "Revenue",
+    period: "Next Year",
+    avg: 410.2,
+    low: 395.5,
+    high: 425.0,
+  },
 ];
 
 export const mockInsiderTrades: InsiderTrade[] = [
-  { name: "Tim Cook", date: "2024-05-15", type: "Sell", price: 185.50, transacted: -150000, value: -27825000 },
-  { name: "Luca Maestri", date: "2024-04-20", type: "Sell", price: 175.20, transacted: -25000, value: -4380000 },
-  { name: "Deirdre O'Brien", date: "2024-03-10", type: "Option Exercise", price: 45.50, transacted: 50000, value: 2275000 },
-  { name: "Craig Federighi", date: "2024-02-15", type: "Sell", price: 182.30, transacted: -40000, value: -7292000 }
+  {
+    name: "Tim Cook",
+    date: "2024-05-15",
+    type: "Sell",
+    price: 185.5,
+    transacted: -150000,
+    value: -27825000,
+  },
+  {
+    name: "Luca Maestri",
+    date: "2024-04-20",
+    type: "Sell",
+    price: 175.2,
+    transacted: -25000,
+    value: -4380000,
+  },
+  {
+    name: "Deirdre O'Brien",
+    date: "2024-03-10",
+    type: "Option Exercise",
+    price: 45.5,
+    transacted: 50000,
+    value: 2275000,
+  },
+  {
+    name: "Craig Federighi",
+    date: "2024-02-15",
+    type: "Sell",
+    price: 182.3,
+    transacted: -40000,
+    value: -7292000,
+  },
 ];
 
 export const mockNews: NewsItem[] = [
-  { headline: "Neutral Google appeals iPhone search ruling", publisher: "Financial Times", timestamp: "May 22, 2024", url: "#" },
-  { headline: "Apple faces labor concerns in Asia", publisher: "WSJ", timestamp: "May 21, 2024", url: "#" },
-  { headline: "New iPad Pro features OLED display", publisher: "Bloomberg", timestamp: "May 20, 2024", url: "#" },
-  { headline: "Apple announces WWDC dates", publisher: "TechCrunch", timestamp: "May 18, 2024", url: "#" }
+  {
+    headline: "Neutral Google appeals iPhone search ruling",
+    publisher: "Financial Times",
+    timestamp: "May 22, 2024",
+    url: "#",
+  },
+  {
+    headline: "Apple faces labor concerns in Asia",
+    publisher: "WSJ",
+    timestamp: "May 21, 2024",
+    url: "#",
+  },
+  {
+    headline: "New iPad Pro features OLED display",
+    publisher: "Bloomberg",
+    timestamp: "May 20, 2024",
+    url: "#",
+  },
+  {
+    headline: "Apple announces WWDC dates",
+    publisher: "TechCrunch",
+    timestamp: "May 18, 2024",
+    url: "#",
+  },
 ];
 
 export const mockEmployeeCount = [
@@ -377,7 +514,10 @@ export const quickStats: QuickStat[] = [
 ];
 
 // Generate quarterly data for the past 40 years (160 quarters)
-const generateQuarterlyData = (baseValue: number, variance: number): StockMetric[] => {
+const generateQuarterlyData = (
+  baseValue: number,
+  variance: number,
+): StockMetric[] => {
   const data: StockMetric[] = [];
   const now = new Date();
   let value = baseValue;
@@ -402,7 +542,7 @@ export const financialMetrics: FinancialMetric[] = [
     color: "chart-green",
     unit: "B",
     data: generateQuarterlyData(83.0, 8),
-    yoy: 16.60,
+    yoy: 16.6,
     cagr3Y: 8.65,
     cagr5Y: 4.41,
   },

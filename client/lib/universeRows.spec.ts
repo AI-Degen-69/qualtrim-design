@@ -35,9 +35,9 @@ describe("presentQuoteRow", () => {
 
   it("treats non-finite prices as not-live instead of emitting $NaN", () => {
     expect(presentQuoteRow({ price: Number.NaN }).liveText).toBe("—");
-    expect(
-      presentQuoteRow({ price: Number.POSITIVE_INFINITY }).liveText,
-    ).toBe("—");
+    expect(presentQuoteRow({ price: Number.POSITIVE_INFINITY }).liveText).toBe(
+      "—",
+    );
   });
 
   it("keeps zero change neutral-positive with an explicit plus", () => {

@@ -31,11 +31,23 @@ describe("solveImpliedGrowthRate", () => {
     const shares = 15;
     const targetPrice = 200;
 
-    const solvedG = solveImpliedGrowthRate(base, targetPrice, discountRate, multiple, shares);
+    const solvedG = solveImpliedGrowthRate(
+      base,
+      targetPrice,
+      discountRate,
+      multiple,
+      shares,
+    );
     expect(solvedG).not.toBeNull();
 
     if (solvedG !== null) {
-      const calculatedFV = computeDcfFairValue(base, solvedG, discountRate, multiple, shares);
+      const calculatedFV = computeDcfFairValue(
+        base,
+        solvedG,
+        discountRate,
+        multiple,
+        shares,
+      );
       expect(Math.abs(calculatedFV - targetPrice)).toBeLessThan(0.1);
     }
   });
@@ -70,8 +82,8 @@ describe("ReverseDCFGauge component", () => {
           sharesOutstanding={15.2}
           userGrowthRate={12.0}
           valuationMode="cashFlow"
-        />
-      )
+        />,
+      ),
     );
 
     expect(html).toContain("Reverse DCF Expectation Solver");
@@ -79,7 +91,7 @@ describe("ReverseDCFGauge component", () => {
     expect(html).toContain("Your Assumption");
     expect(html).toContain("Expectation Spread");
     expect(html).toContain("Implied Year 5 Base");
-    expect(html).toContain("role=\"img\"");
+    expect(html).toContain('role="img"');
   });
 
   it("renders in Hebrew RTL mode properly", () => {
@@ -98,7 +110,7 @@ describe("ReverseDCFGauge component", () => {
             />
           </MemoryRouter>
         </TooltipProvider>
-      </I18nProvider>
+      </I18nProvider>,
     );
 
     expect(html).toContain("Reverse DCF");
@@ -109,7 +121,7 @@ describe("ReverseDCFGauge component", () => {
 
   it("renders Reverse DCF tab in DCFWidget", () => {
     const html = renderToString(
-      withContext(<DCFWidget ticker="AAPL" currentPrice={231.42} />)
+      withContext(<DCFWidget ticker="AAPL" currentPrice={231.42} />),
     );
 
     expect(html).toContain("Reverse DCF");

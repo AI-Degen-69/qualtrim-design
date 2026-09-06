@@ -363,7 +363,8 @@ export function translateMarketCap(
   t: (key: string) => string,
   marketCap: string | number | null | undefined,
 ): string {
-  if (marketCap === null || marketCap === undefined || marketCap === "") return "—";
+  if (marketCap === null || marketCap === undefined || marketCap === "")
+    return "—";
   if (typeof marketCap === "number") {
     if (marketCap >= 1e9) return `$${(marketCap / 1e9).toFixed(2)}B`;
     if (marketCap >= 1e6) return `$${(marketCap / 1e6).toFixed(2)}M`;
@@ -455,9 +456,7 @@ export function I18nProvider({
   );
 
   return (
-    <I18nContext.Provider value={contextValue}>
-      {children}
-    </I18nContext.Provider>
+    <I18nContext.Provider value={contextValue}>{children}</I18nContext.Provider>
   );
 }
 

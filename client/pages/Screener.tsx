@@ -37,10 +37,21 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-import { useI18n, translateAssetType, translateCountry, translateMarketCap, translateSector } from "@/lib/i18n";
+import {
+  useI18n,
+  translateAssetType,
+  translateCountry,
+  translateMarketCap,
+  translateSector,
+} from "@/lib/i18n";
 import { formatMoneyCompact } from "@/lib/format";
 import { presentQuoteRow } from "@/lib/universeRows";
-import { useScreenerFilter, useScreenerFacets, useBatchQuotes, useYahooDown } from "@/hooks/useStockData";
+import {
+  useScreenerFilter,
+  useScreenerFacets,
+  useBatchQuotes,
+  useYahooDown,
+} from "@/hooks/useStockData";
 import type { StockQuote } from "@shared/api";
 import PageHeader from "@/components/PageHeader";
 import TickerLogo from "@/components/TickerLogo";
@@ -102,7 +113,10 @@ function FilterCategoryRow({
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(e.target as Node)
+      ) {
         setPopoverOpen(false);
       }
     }
@@ -118,18 +132,25 @@ function FilterCategoryRow({
   // Build unified extra options list (overflow chips + unlisted allOptions)
   const overflowChipValues = new Set(overflowChips.map((c) => c.value));
   const additionalOptions = (allOptions || []).filter(
-    (opt) => !visibleValues.has(opt) && !overflowChipValues.has(opt)
+    (opt) => !visibleValues.has(opt) && !overflowChipValues.has(opt),
   );
 
   const allExtraCount = overflowChips.length + additionalOptions.length;
-  const extraSelectedCount = selected.filter((v) => !visibleValues.has(v)).length;
-  const isAllSelected = visibleChips.length > 0 && visibleChips.every((c) => selected.includes(c.value));
+  const extraSelectedCount = selected.filter(
+    (v) => !visibleValues.has(v),
+  ).length;
+  const isAllSelected =
+    visibleChips.length > 0 &&
+    visibleChips.every((c) => selected.includes(c.value));
 
   const toggleSelectAll = () => {
     if (isAllSelected) {
       onChange(selected.filter((v) => !visibleValues.has(v)));
     } else {
-      const newVals = new Set([...selected, ...visibleChips.map((c) => c.value)]);
+      const newVals = new Set([
+        ...selected,
+        ...visibleChips.map((c) => c.value),
+      ]);
       onChange(Array.from(newVals));
     }
   };
@@ -138,7 +159,7 @@ function FilterCategoryRow({
     onChange(
       selected.includes(val)
         ? selected.filter((v) => v !== val)
-        : [...selected, val]
+        : [...selected, val],
     );
   };
 
@@ -159,13 +180,20 @@ function FilterCategoryRow({
           }`}
           title={isAllSelected ? t("screener.clear") : t("screener.selectAll")}
         >
-          <CheckCheck className={`w-3 h-3 ${isAllSelected ? "text-primary" : "opacity-60"}`} />
-          <span className="truncate">{isAllSelected ? t("screener.clear") : t("screener.selectAll")}</span>
+          <CheckCheck
+            className={`w-3 h-3 ${isAllSelected ? "text-primary" : "opacity-60"}`}
+          />
+          <span className="truncate">
+            {isAllSelected ? t("screener.clear") : t("screener.selectAll")}
+          </span>
         </button>
       </div>
 
       {/* Chip Pills (wraps cleanly inside container) */}
-      <div className="flex flex-wrap items-center gap-1.5 flex-1 relative" ref={popoverRef}>
+      <div
+        className="flex flex-wrap items-center gap-1.5 flex-1 relative"
+        ref={popoverRef}
+      >
         {visibleChips.map((chip) => {
           const isSelected = selected.includes(chip.value);
           const ChipIcon = chip.icon;
@@ -188,7 +216,9 @@ function FilterCategoryRow({
                   loading="lazy"
                 />
               )}
-              {ChipIcon && <ChipIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />}
+              {ChipIcon && (
+                <ChipIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
+              )}
               <span>{chip.label}</span>
             </button>
           );
@@ -210,14 +240,18 @@ function FilterCategoryRow({
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>
-                {extraSelectedCount > 0 ? `+${extraSelectedCount} ${moreLabel}` : `+ ${moreLabel}...`}
+                {extraSelectedCount > 0
+                  ? `+${extraSelectedCount} ${moreLabel}`
+                  : `+ ${moreLabel}...`}
               </span>
             </button>
 
             {popoverOpen && (
               <div className="absolute top-full start-0 mt-2 z-50 w-64 max-h-64 overflow-y-auto rounded-xl border border-border bg-card p-2 shadow-2xl animate-in fade-in-0 zoom-in-95">
                 <div className="flex items-center justify-between px-2 py-1 mb-1 border-b border-border text-xs font-semibold text-muted-foreground">
-                  <span>{title} ({allExtraCount})</span>
+                  <span>
+                    {title} ({allExtraCount})
+                  </span>
                   {extraSelectedCount > 0 && (
                     <button
                       type="button"
@@ -255,7 +289,9 @@ function FilterCategoryRow({
                             loading="lazy"
                           />
                         )}
-                        {ChipIcon && <ChipIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />}
+                        {ChipIcon && (
+                          <ChipIcon className="w-3.5 h-3.5 shrink-0 opacity-80" />
+                        )}
                         <span className="truncate">{chip.label}</span>
                       </div>
                       {isSelected && (
@@ -269,7 +305,10 @@ function FilterCategoryRow({
                 {additionalOptions.map((opt) => {
                   const isSelected = selected.includes(opt);
                   const flagCode = countryFlagMap[opt];
-                  const label = opt === "United States" ? t("screener.country.us") : translateCountry(t, opt) || opt;
+                  const label =
+                    opt === "United States"
+                      ? t("screener.country.us")
+                      : translateCountry(t, opt) || opt;
                   return (
                     <button
                       key={opt}
@@ -353,7 +392,7 @@ export default function Screener() {
       sort_dir: sortDir,
     },
     limit,
-    page * limit
+    page * limit,
   );
 
   const { data: facets } = useScreenerFacets();
@@ -380,8 +419,15 @@ export default function Screener() {
   }, [page, maxPages]);
 
   // Fetch real-time batch quotes for visible symbols on current page
-  const symbols = useMemo(() => results.map((asset) => asset.symbol), [results]);
-  const { data: quoteData, isLoading: quotesLoading, isError: quotesError } = useBatchQuotes(symbols);
+  const symbols = useMemo(
+    () => results.map((asset) => asset.symbol),
+    [results],
+  );
+  const {
+    data: quoteData,
+    isLoading: quotesLoading,
+    isError: quotesError,
+  } = useBatchQuotes(symbols);
   const yahooDown = useYahooDown();
 
   // Merge live quote data with asset row
@@ -404,7 +450,9 @@ export default function Screener() {
     });
   }, [results, quoteData]);
 
-  const liveCount = mergedResults.filter((r) => Number.isFinite(r.price)).length;
+  const liveCount = mergedResults.filter((r) =>
+    Number.isFinite(r.price),
+  ).length;
   const totalCount = mergedResults.length;
   const isLive = liveCount === totalCount && totalCount > 0 && !yahooDown;
   const isAnyLive = liveCount > 0 && !yahooDown;
@@ -418,7 +466,7 @@ export default function Screener() {
 
   const setFilter = <K extends keyof typeof filters>(
     key: K,
-    val: (typeof filters)[K]
+    val: (typeof filters)[K],
   ) => {
     setFilters((prev) => ({ ...prev, [key]: val }));
     setPage(0);
@@ -440,23 +488,51 @@ export default function Screener() {
   };
 
   const allAssetTypeChips: FilterChip[] = [
-    { value: "Equity", label: t("screener.assetType.stocks"), icon: TrendingUp },
+    {
+      value: "Equity",
+      label: t("screener.assetType.stocks"),
+      icon: TrendingUp,
+    },
     { value: "ETF", label: t("screener.assetType.etf"), icon: Layers },
     { value: "Index", label: t("screener.assetType.index"), icon: LineChart },
     { value: "Crypto", label: t("screener.assetType.crypto"), icon: Coins },
     { value: "Fund", label: t("screener.assetType.fund"), icon: Briefcase },
-    { value: "Currency", label: t("screener.assetType.currency"), icon: DollarSign },
-    { value: "MoneyMarket", label: t("screener.assetType.moneyMarket"), icon: Building2 },
+    {
+      value: "Currency",
+      label: t("screener.assetType.currency"),
+      icon: DollarSign,
+    },
+    {
+      value: "MoneyMarket",
+      label: t("screener.assetType.moneyMarket"),
+      icon: Building2,
+    },
   ];
 
   const sortedSectorChips: FilterChip[] = [
-    { value: "Information Technology", label: t("sector.informationTechnology"), icon: Cpu },
+    {
+      value: "Information Technology",
+      label: t("sector.informationTechnology"),
+      icon: Cpu,
+    },
     { value: "Financials", label: t("sector.financials"), icon: Landmark },
-    { value: "Communication Services", label: t("sector.communicationServices"), icon: Radio },
-    { value: "Consumer Discretionary", label: t("sector.consumerDiscretionary"), icon: ShoppingBag },
+    {
+      value: "Communication Services",
+      label: t("sector.communicationServices"),
+      icon: Radio,
+    },
+    {
+      value: "Consumer Discretionary",
+      label: t("sector.consumerDiscretionary"),
+      icon: ShoppingBag,
+    },
     { value: "Health Care", label: t("sector.healthCare"), icon: HeartPulse },
     { value: "Industrials", label: t("sector.industrials"), icon: Factory },
-    { value: "Consumer Staples", label: t("sector.consumerStaples"), icon: ShoppingCart },
+    {
+      value: "Consumer Staples",
+      label: t("sector.consumerStaples"),
+      icon: ShoppingCart,
+    },
     { value: "Energy", label: t("sector.energy"), icon: Flame },
     { value: "Utilities", label: t("sector.utilities"), icon: Zap },
     { value: "Real Estate", label: t("sector.realEstate"), icon: Building },
@@ -465,26 +541,106 @@ export default function Screener() {
 
   const popularCountryChips: FilterChip[] = [
     { value: "United States", label: t("screener.country.us"), flagCode: "us" },
-    { value: "China", label: translateCountry(t, "China") || "China", flagCode: "cn" },
-    { value: "Japan", label: translateCountry(t, "Japan") || "Japan", flagCode: "jp" },
-    { value: "Hong Kong", label: translateCountry(t, "Hong Kong") || "Hong Kong", flagCode: "hk" },
-    { value: "India", label: translateCountry(t, "India") || "India", flagCode: "in" },
-    { value: "Taiwan", label: translateCountry(t, "Taiwan") || "Taiwan", flagCode: "tw" },
-    { value: "United Kingdom", label: translateCountry(t, "United Kingdom") || "United Kingdom", flagCode: "gb" },
-    { value: "Germany", label: translateCountry(t, "Germany") || "Germany", flagCode: "de" },
-    { value: "Canada", label: translateCountry(t, "Canada") || "Canada", flagCode: "ca" },
-    { value: "France", label: translateCountry(t, "France") || "France", flagCode: "fr" },
-    { value: "Israel", label: translateCountry(t, "Israel") || "Israel", flagCode: "il" },
-    { value: "Switzerland", label: translateCountry(t, "Switzerland") || "Switzerland", flagCode: "ch" },
-    { value: "Australia", label: translateCountry(t, "Australia") || "Australia", flagCode: "au" },
-    { value: "South Korea", label: translateCountry(t, "South Korea") || "South Korea", flagCode: "kr" },
-    { value: "Netherlands", label: translateCountry(t, "Netherlands") || "Netherlands", flagCode: "nl" },
-    { value: "Sweden", label: translateCountry(t, "Sweden") || "Sweden", flagCode: "se" },
-    { value: "Brazil", label: translateCountry(t, "Brazil") || "Brazil", flagCode: "br" },
-    { value: "Singapore", label: translateCountry(t, "Singapore") || "Singapore", flagCode: "sg" },
-    { value: "Italy", label: translateCountry(t, "Italy") || "Italy", flagCode: "it" },
-    { value: "Mexico", label: translateCountry(t, "Mexico") || "Mexico", flagCode: "mx" },
-    { value: "Thailand", label: translateCountry(t, "Thailand") || "Thailand", flagCode: "th" },
+    {
+      value: "China",
+      label: translateCountry(t, "China") || "China",
+      flagCode: "cn",
+    },
+    {
+      value: "Japan",
+      label: translateCountry(t, "Japan") || "Japan",
+      flagCode: "jp",
+    },
+    {
+      value: "Hong Kong",
+      label: translateCountry(t, "Hong Kong") || "Hong Kong",
+      flagCode: "hk",
+    },
+    {
+      value: "India",
+      label: translateCountry(t, "India") || "India",
+      flagCode: "in",
+    },
+    {
+      value: "Taiwan",
+      label: translateCountry(t, "Taiwan") || "Taiwan",
+      flagCode: "tw",
+    },
+    {
+      value: "United Kingdom",
+      label: translateCountry(t, "United Kingdom") || "United Kingdom",
+      flagCode: "gb",
+    },
+    {
+      value: "Germany",
+      label: translateCountry(t, "Germany") || "Germany",
+      flagCode: "de",
+    },
+    {
+      value: "Canada",
+      label: translateCountry(t, "Canada") || "Canada",
+      flagCode: "ca",
+    },
+    {
+      value: "France",
+      label: translateCountry(t, "France") || "France",
+      flagCode: "fr",
+    },
+    {
+      value: "Israel",
+      label: translateCountry(t, "Israel") || "Israel",
+      flagCode: "il",
+    },
+    {
+      value: "Switzerland",
+      label: translateCountry(t, "Switzerland") || "Switzerland",
+      flagCode: "ch",
+    },
+    {
+      value: "Australia",
+      label: translateCountry(t, "Australia") || "Australia",
+      flagCode: "au",
+    },
+    {
+      value: "South Korea",
+      label: translateCountry(t, "South Korea") || "South Korea",
+      flagCode: "kr",
+    },
+    {
+      value: "Netherlands",
+      label: translateCountry(t, "Netherlands") || "Netherlands",
+      flagCode: "nl",
+    },
+    {
+      value: "Sweden",
+      label: translateCountry(t, "Sweden") || "Sweden",
+      flagCode: "se",
+    },
+    {
+      value: "Brazil",
+      label: translateCountry(t, "Brazil") || "Brazil",
+      flagCode: "br",
+    },
+    {
+      value: "Singapore",
+      label: translateCountry(t, "Singapore") || "Singapore",
+      flagCode: "sg",
+    },
+    {
+      value: "Italy",
+      label: translateCountry(t, "Italy") || "Italy",
+      flagCode: "it",
+    },
+    {
+      value: "Mexico",
+      label: translateCountry(t, "Mexico") || "Mexico",
+      flagCode: "mx",
+    },
+    {
+      value: "Thailand",
+      label: translateCountry(t, "Thailand") || "Thailand",
+      flagCode: "th",
+    },
   ];
 
   const hasActiveFilters =
@@ -606,9 +762,13 @@ export default function Screener() {
                     type="button"
                     role="switch"
                     aria-checked={filters.exclude_dots}
-                    onClick={() => setFilter("exclude_dots", !filters.exclude_dots)}
+                    onClick={() =>
+                      setFilter("exclude_dots", !filters.exclude_dots)
+                    }
                     className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                      filters.exclude_dots ? "bg-primary" : "bg-muted-foreground/30"
+                      filters.exclude_dots
+                        ? "bg-primary"
+                        : "bg-muted-foreground/30"
                     }`}
                     title={t("screener.primaryListingsTooltip")}
                   >
@@ -620,10 +780,14 @@ export default function Screener() {
                   </button>
                   <span
                     className={`text-[10px] font-bold tracking-wider select-none ${
-                      filters.exclude_dots ? "text-primary" : "text-muted-foreground"
+                      filters.exclude_dots
+                        ? "text-primary"
+                        : "text-muted-foreground"
                     }`}
                   >
-                    {filters.exclude_dots ? t("screener.on") : t("screener.off")}
+                    {filters.exclude_dots
+                      ? t("screener.on")
+                      : t("screener.off")}
                   </span>
                 </div>
               </div>
@@ -772,7 +936,9 @@ export default function Screener() {
                 price: asset.price,
                 changePercent: asset.changePercent,
               });
-              const flagCode = asset.country ? countryFlagMap[asset.country] : undefined;
+              const flagCode = asset.country
+                ? countryFlagMap[asset.country]
+                : undefined;
 
               return (
                 <div
@@ -805,17 +971,26 @@ export default function Screener() {
                         </div>
                       </div>
                       <div className="text-right rtl:text-left shrink-0">
-                        <p className="text-sm font-bold text-foreground font-mono tabular-nums" dir="ltr">
+                        <p
+                          className="text-sm font-bold text-foreground font-mono tabular-nums"
+                          dir="ltr"
+                        >
                           {liveText}
                         </p>
-                        <p className={`text-xs font-semibold font-mono tabular-nums ${cls}`} dir="ltr">
+                        <p
+                          className={`text-xs font-semibold font-mono tabular-nums ${cls}`}
+                          dir="ltr"
+                        >
                           {pctText}
                         </p>
                       </div>
                     </div>
 
                     {/* Company Name */}
-                    <p className="text-xs text-muted-foreground mb-3 truncate" title={asset.name}>
+                    <p
+                      className="text-xs text-muted-foreground mb-3 truncate"
+                      title={asset.name}
+                    >
                       {asset.name}
                     </p>
                   </div>
@@ -831,13 +1006,22 @@ export default function Screener() {
                           loading="lazy"
                         />
                       )}
-                      <span className="truncate">{asset.country ? translateCountry(t, asset.country) : "—"}</span>
+                      <span className="truncate">
+                        {asset.country
+                          ? translateCountry(t, asset.country)
+                          : "—"}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <span className="px-1.5 py-0.5 rounded bg-muted/60 text-[10px] uppercase font-semibold">
-                        {asset.asset_type ? translateAssetType(t, asset.asset_type) : "—"}
+                        {asset.asset_type
+                          ? translateAssetType(t, asset.asset_type)
+                          : "—"}
                       </span>
-                      <span className="font-mono text-foreground font-medium" dir="ltr">
+                      <span
+                        className="font-mono text-foreground font-medium"
+                        dir="ltr"
+                      >
                         {formatMoneyCompact(asset.marketCap) ?? "—"}
                       </span>
                     </div>
@@ -854,20 +1038,58 @@ export default function Screener() {
                 <thead className="text-xs text-muted-foreground uppercase bg-muted/50 border-b border-border sticky top-0 z-10 backdrop-blur">
                   <tr>
                     {[
-                      { key: "symbol", label: t("screener.col.symbol"), align: "left" },
-                      { key: "name", label: t("screener.col.name"), align: "left" },
-                      { key: "asset_type", label: t("screener.assetType"), align: "left" },
-                      { key: "sector", label: t("screener.col.sector"), align: "left" },
-                      { key: "country", label: t("screener.col.country"), align: "left" },
-                      { key: "price", label: t("common.price"), align: "right" },
-                      { key: "change", label: t("common.change"), align: "right" },
-                      { key: "market_cap", label: t("metrics.marketCap"), align: "right" },
+                      {
+                        key: "symbol",
+                        label: t("screener.col.symbol"),
+                        align: "left",
+                      },
+                      {
+                        key: "name",
+                        label: t("screener.col.name"),
+                        align: "left",
+                      },
+                      {
+                        key: "asset_type",
+                        label: t("screener.assetType"),
+                        align: "left",
+                      },
+                      {
+                        key: "sector",
+                        label: t("screener.col.sector"),
+                        align: "left",
+                      },
+                      {
+                        key: "country",
+                        label: t("screener.col.country"),
+                        align: "left",
+                      },
+                      {
+                        key: "price",
+                        label: t("common.price"),
+                        align: "right",
+                      },
+                      {
+                        key: "change",
+                        label: t("common.change"),
+                        align: "right",
+                      },
+                      {
+                        key: "market_cap",
+                        label: t("metrics.marketCap"),
+                        align: "right",
+                      },
                     ].map((col) => {
                       const isSorted = sortBy === col.key;
                       return (
                         <th
                           key={col.key}
-                          aria-sort={isSorted ? (sortDir === "asc" ? "ascending" : "descending") : "none"}
+                          aria-sort={
+                            isSorted
+                              ? sortDir === "asc"
+                                ? "ascending"
+                                : "descending"
+                              : "none"
+                          }
                           className={`px-5 py-3.5 font-semibold select-none hover:text-foreground transition-colors ${
                             col.align === "right" ? "text-right" : ""
                           } ${isSorted ? "text-primary font-bold" : ""}`}
@@ -897,7 +1119,9 @@ export default function Screener() {
                 </thead>
                 <tbody className="divide-y divide-border/60">
                   {mergedResults.map((asset) => {
-                    const flagCode = asset.country ? countryFlagMap[asset.country] : undefined;
+                    const flagCode = asset.country
+                      ? countryFlagMap[asset.country]
+                      : undefined;
                     const { liveText, pctText, cls } = presentQuoteRow({
                       price: asset.price,
                       changePercent: asset.changePercent,
@@ -934,7 +1158,9 @@ export default function Screener() {
                         {/* Asset Type */}
                         <td className="px-5 py-3 whitespace-nowrap">
                           <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-muted/60 text-muted-foreground border border-border/40">
-                            {asset.asset_type ? translateAssetType(t, asset.asset_type) : "—"}
+                            {asset.asset_type
+                              ? translateAssetType(t, asset.asset_type)
+                              : "—"}
                           </span>
                         </td>
 
@@ -943,7 +1169,9 @@ export default function Screener() {
                           className="px-5 py-3 text-muted-foreground max-w-[160px] truncate text-xs"
                           title={asset.sector}
                         >
-                          {asset.sector ? translateSector(t, asset.sector) : "—"}
+                          {asset.sector
+                            ? translateSector(t, asset.sector)
+                            : "—"}
                         </td>
 
                         {/* Country */}
@@ -957,23 +1185,37 @@ export default function Screener() {
                                 loading="lazy"
                               />
                             )}
-                            <span>{asset.country ? translateCountry(t, asset.country) || "—" : "—"}</span>
+                            <span>
+                              {asset.country
+                                ? translateCountry(t, asset.country) || "—"
+                                : "—"}
+                            </span>
                           </div>
                         </td>
 
                         {/* Live Price */}
-                        <td className="px-5 py-3 font-mono font-semibold text-right tabular-nums text-foreground" dir="ltr">
+                        <td
+                          className="px-5 py-3 font-mono font-semibold text-right tabular-nums text-foreground"
+                          dir="ltr"
+                        >
                           {liveText}
                         </td>
 
                         {/* Live Change % */}
-                        <td className={`px-5 py-3 font-mono font-semibold text-right tabular-nums text-xs ${cls}`} dir="ltr">
+                        <td
+                          className={`px-5 py-3 font-mono font-semibold text-right tabular-nums text-xs ${cls}`}
+                          dir="ltr"
+                        >
                           {pctText}
                         </td>
 
                         {/* Market Cap */}
-                        <td className="px-5 py-3 font-mono text-right tabular-nums text-muted-foreground" dir="ltr">
-                          {formatMoneyCompact(asset.marketCap) ?? translateMarketCap(t, asset.market_cap)}
+                        <td
+                          className="px-5 py-3 font-mono text-right tabular-nums text-muted-foreground"
+                          dir="ltr"
+                        >
+                          {formatMoneyCompact(asset.marketCap) ??
+                            translateMarketCap(t, asset.market_cap)}
                         </td>
                       </tr>
                     );
@@ -996,7 +1238,10 @@ export default function Screener() {
             </span>
 
             {/* Pagination Controls Spread: << < 1 2 3 4 [5] 6 7 8 9 10 > >> */}
-            <div className="flex flex-wrap items-center justify-center gap-1.5" dir="ltr">
+            <div
+              className="flex flex-wrap items-center justify-center gap-1.5"
+              dir="ltr"
+            >
               {/* << Jump -10 pages */}
               <button
                 type="button"

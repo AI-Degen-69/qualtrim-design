@@ -19,12 +19,14 @@ Ranked by effort — payout frequency adds **zero new FMP requests** (important 
 FMP `revenue-product-segmentation` (annual `limit=5` / quarter `limit=8`) → `RevenueSegmentsCard` on the company-page charts grid + stacked-bar chart modal with an annual/quarter granularity toggle. Backed by `/api/stock-revenue-segmentation` (TS path in `server/services/stockService.ts` + parity mirror in `api/_router.js`), cached through Vercel KV (`server/helpers/kvJsonCache.ts`) so the locked-premium state propagates across lambda cold starts. When the free FMP quota is exhausted (or no `FMP_KEY` is set) the card falls back to the plain total-revenue chart with a locked "Segments 🔒" chip and a placeholder `PricingModal` (`client/components/PricingModal.tsx`).
 
 ### 1. Surface already-fetched fields: company website + Net Debt — ✅ done
+
 Pure client work — both fields are already normalized and reachable from existing hooks, they are just never rendered.
 
 - **Company website** — `client/components/CompanyProfile.tsx`: in the id-chips row, render a clickable "Website" chip from `overviewData?.website` (`CompanyProfile.website`, already mapped in `stockService.normalizeProfile`). Wrap as `<a href target="_blank" rel="noopener noreferrer">` and only render when present.
 - **Net Debt** — `client/components/StockFundamentalsStrip.tsx`: add a `MetricRow` in the "Balance" group with `value={formatMoney(balance?.netDebt)}` and `source` from `balanceSource`. `BalanceSheetRow.netDebt` already exists and `normalizeBalanceRow` already maps it. Keep it provider-reported only (the component's stated contract) — no `totalDebt − cash` fallback for now.
 
 ### 2. Add P/CF, P/FCF, ROIC (TTM) ratios — ✅ done
+
 FMP already fetches `key-metrics-ttm` + `ratios-ttm` in `stockService.getMetrics()` and casts the raw records straight into the shared types — so adding fields to the types made them flow through with **no server logic change**.
 
 - `shared/api.ts`: added `priceToOperatingCashFlowRatioTTM?` (FMP's real `/stable/ratios-ttm` name) + legacy alias `priceToCashFlowRatioTTM?` and `priceToFreeCashFlowRatioTTM?` to `RatiosTTM`; added `roicTTM?` to `KeyMetricsTTM`.

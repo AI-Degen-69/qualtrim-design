@@ -11,9 +11,17 @@ import PageHeader from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import BatchQuoteFallbackHint from "@/components/BatchQuoteFallbackHint";
-import { useBatchQuotes, useEarningsCalendar, useWatchlistNews, useYahooDown } from "@/hooks/useStockData";
+import {
+  useBatchQuotes,
+  useEarningsCalendar,
+  useWatchlistNews,
+  useYahooDown,
+} from "@/hooks/useStockData";
 import { useWatchlists, useInlineRename } from "@/hooks/useWatchlists";
-import { applyDragReorder, type WatchlistSymbolEntry } from "@/lib/watchlistStore";
+import {
+  applyDragReorder,
+  type WatchlistSymbolEntry,
+} from "@/lib/watchlistStore";
 import { formatTimeAgo } from "@/lib/formatTimeAgo";
 
 /**
@@ -60,8 +68,15 @@ export function Watchlists() {
   }, []);
 
   const { data: batch } = useBatchQuotes(symbols);
-  const { data: earnings, isLoading: earningsLoading } = useEarningsCalendar(today, horizon);
-  const { items: newsItems, isLoading: newsLoading, isAnyFailing } = useWatchlistNews(symbols, 12);
+  const { data: earnings, isLoading: earningsLoading } = useEarningsCalendar(
+    today,
+    horizon,
+  );
+  const {
+    items: newsItems,
+    isLoading: newsLoading,
+    isAnyFailing,
+  } = useWatchlistNews(symbols, 12);
 
   // Batch quotes degrade to per-symbol Yahoo and the news feed is Yahoo-only
   // — when Yahoo is down both show mock/stale content, so badge [MOCK] from
@@ -74,11 +89,14 @@ export function Watchlists() {
   const [pendingDragIndex, setPendingDragIndex] = useState<number | null>(null);
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
-  const handleDragStart = useCallback((index: number) => (e: React.DragEvent<HTMLTableRowElement>) => {
-    setPendingDragIndex(index);
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(index));
-  }, []);
+  const handleDragStart = useCallback(
+    (index: number) => (e: React.DragEvent<HTMLTableRowElement>) => {
+      setPendingDragIndex(index);
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", String(index));
+    },
+    [],
+  );
 
   const handleDragOver = useCallback(
     (index: number) => (e: React.DragEvent<HTMLTableRowElement>) => {
@@ -94,7 +112,11 @@ export function Watchlists() {
     (dropIndex: number) => (e: React.DragEvent<HTMLTableRowElement>) => {
       e.preventDefault();
       if (pendingDragIndex === null || !active) return;
-      const next = applyDragReorder(active.symbols, pendingDragIndex, dropIndex);
+      const next = applyDragReorder(
+        active.symbols,
+        pendingDragIndex,
+        dropIndex,
+      );
       wl.reorderSymbols(active.id, next);
       setPendingDragIndex(null);
       setHoverIndex(null);
@@ -127,13 +149,17 @@ export function Watchlists() {
     if (!active) return;
     if (active.isSystem) return; // guard; UI also hides the delete button
     // eslint-disable-next-line no-alert
-    if (typeof window !== "undefined" && !window.confirm(t("watchlists.confirmDelete", { name: active.name }))) {
+    if (
+      typeof window !== "undefined" &&
+      !window.confirm(t("watchlists.confirmDelete", { name: active.name }))
+    ) {
       return;
     }
     const result = wl.deleteWatchlist(active.id);
     // Explicit narrowing — same TS quirk as the Add sheet's handleSubmit.
     if (result.ok === false && result.reason === "is_system") {
-      if (import.meta.env.DEV) console.warn("[Watchlists] system list cannot be deleted");
+      if (import.meta.env.DEV)
+        console.warn("[Watchlists] system list cannot be deleted");
     }
   }, [active, wl, t]);
 
@@ -177,7 +203,10 @@ export function Watchlists() {
                     {t("watchlists.systemBadge")}
                   </span>
                 )}
-                <span className="text-xs text-muted-foreground font-mono" dir="ltr">
+                <span
+                  className="text-xs text-muted-foreground font-mono"
+                  dir="ltr"
+                >
                   {list.symbols.length}
                 </span>
               </button>
@@ -209,7 +238,9 @@ export function Watchlists() {
               </div>
             ) : (
               <>
-                <h2 className="text-2xl font-bold text-foreground">{active.name}</h2>
+                <h2 className="text-2xl font-bold text-foreground">
+                  {active.name}
+                </h2>
                 {!active.isSystem && (
                   <button
                     onClick={rename.beginEdit}
@@ -250,17 +281,24 @@ export function Watchlists() {
         {/* Main symbol table */}
         <div className="bg-card border border-border rounded-xl overflow-hidden relative">
           <div className="absolute top-2 right-2 flex flex-col items-end gap-1.5">
-            {(!batch?.quotes || batch.quotes.length === 0 || yahooDown) && symbols.length > 0 && (
-              <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
-                [MOCK]
-              </span>
-            )}
+            {(!batch?.quotes || batch.quotes.length === 0 || yahooDown) &&
+              symbols.length > 0 && (
+                <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded">
+                  [MOCK]
+                </span>
+              )}
             <BatchQuoteFallbackHint />
           </div>
           {symbols.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-muted-foreground text-sm mb-4">{t("watchlists.empty")}</p>
-              <Button onClick={() => setAddOpen(true)} size="sm" variant="outline">
+              <p className="text-muted-foreground text-sm mb-4">
+                {t("watchlists.empty")}
+              </p>
+              <Button
+                onClick={() => setAddOpen(true)}
+                size="sm"
+                variant="outline"
+              >
                 <Plus className="w-4 h-4 me-1.5" />
                 {t("watchlists.addButton")}
               </Button>
@@ -270,22 +308,37 @@ export function Watchlists() {
               <thead className="bg-muted/40 text-xs text-muted-foreground uppercase border-b border-border">
                 <tr>
                   <th className="px-3 py-3 w-8" aria-label="grip" />
-                  <th className="px-6 py-3 font-medium">{t("common.symbol")}</th>
+                  <th className="px-6 py-3 font-medium">
+                    {t("common.symbol")}
+                  </th>
                   <th className="px-6 py-3 font-medium">{t("common.name")}</th>
-                  <th className="px-6 py-3 font-medium text-right">{t("common.price")}</th>
-                  <th className="px-6 py-3 font-medium text-right">{t("common.change")}</th>
+                  <th className="px-6 py-3 font-medium text-right">
+                    {t("common.price")}
+                  </th>
+                  <th className="px-6 py-3 font-medium text-right">
+                    {t("common.change")}
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {(active?.symbols ?? []).map((entry, index) => {
-                  const quote = batch?.quotes?.find((q) => q?.symbol === entry.symbol);
+                  const quote = batch?.quotes?.find(
+                    (q) => q?.symbol === entry.symbol,
+                  );
                   const price = quote?.price;
                   const change = quote?.changesPercentage;
                   const cls =
-                    change === undefined ? "text-muted-foreground" : change >= 0 ? "text-chart-positive" : "text-chart-negative";
+                    change === undefined
+                      ? "text-muted-foreground"
+                      : change >= 0
+                        ? "text-chart-positive"
+                        : "text-chart-negative";
                   const sign = change === undefined || change < 0 ? "" : "+";
                   const isDragged = pendingDragIndex === index;
-                  const isHover = hoverIndex === index && pendingDragIndex !== null && pendingDragIndex !== index;
+                  const isHover =
+                    hoverIndex === index &&
+                    pendingDragIndex !== null &&
+                    pendingDragIndex !== index;
                   return (
                     <tr
                       key={entry.symbol}
@@ -295,7 +348,11 @@ export function Watchlists() {
                       onDrop={handleDrop(index)}
                       onDragEnd={handleDragEnd}
                       className={`border-b border-border last:border-0 transition-colors ${
-                        isDragged ? "opacity-50" : isHover ? "bg-primary/10" : "hover:bg-muted/30"
+                        isDragged
+                          ? "opacity-50"
+                          : isHover
+                            ? "bg-primary/10"
+                            : "hover:bg-muted/30"
                       }`}
                     >
                       <td className="px-3 py-3 cursor-grab text-muted-foreground hover:text-foreground select-none">
@@ -312,19 +369,27 @@ export function Watchlists() {
                       <td className="px-6 py-3 text-muted-foreground">
                         {entry.name ?? symbolNames.get(entry.symbol) ?? "—"}
                       </td>
-                      <td className="px-6 py-3 text-right font-medium font-mono tabular-nums" dir="ltr">
+                      <td
+                        className="px-6 py-3 text-right font-medium font-mono tabular-nums"
+                        dir="ltr"
+                      >
                         {price !== undefined && Number.isFinite(price)
                           ? `$${price.toFixed(2)}`
                           : "—"}
                       </td>
-                      <td className={`px-6 py-3 text-right font-medium font-mono tabular-nums ${cls}`} dir="ltr">
+                      <td
+                        className={`px-6 py-3 text-right font-medium font-mono tabular-nums ${cls}`}
+                        dir="ltr"
+                      >
                         {change === undefined || !Number.isFinite(change)
                           ? "—"
                           : `${sign}${change.toFixed(2)}%`}
                       </td>
                       <td className="px-3 py-3 text-end">
                         <button
-                          onClick={() => wl.removeSymbol(active!.id, entry.symbol)}
+                          onClick={() =>
+                            wl.removeSymbol(active!.id, entry.symbol)
+                          }
                           className="text-muted-foreground hover:text-chart-negative transition-colors"
                           title="Remove"
                           aria-label="remove symbol"
@@ -357,11 +422,15 @@ export function Watchlists() {
                 {earningsLoading ? (
                   <p className="text-xs text-muted-foreground">…</p>
                 ) : watchlistEarnings.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">{t("watchlists.noUpcoming")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("watchlists.noUpcoming")}
+                  </p>
                 ) : (
                   watchlistEarnings.map((e) => {
                     const timeLabel =
-                      e.time === "bmo" ? "earningsCalendar.beforeOpen" : "earningsCalendar.afterClose";
+                      e.time === "bmo"
+                        ? "earningsCalendar.beforeOpen"
+                        : "earningsCalendar.afterClose";
                     const name = symbolNames.get(e.symbol) ?? e.symbol;
                     return (
                       <div
@@ -371,8 +440,13 @@ export function Watchlists() {
                         <div className="flex items-center gap-3 min-w-0">
                           <TickerLogo ticker={e.symbol} size="sm" />
                           <div className="min-w-0">
-                            <p className="font-semibold text-sm truncate text-foreground">{name}</p>
-                            <p className="text-xs text-muted-foreground" dir="ltr">
+                            <p className="font-semibold text-sm truncate text-foreground">
+                              {name}
+                            </p>
+                            <p
+                              className="text-xs text-muted-foreground"
+                              dir="ltr"
+                            >
                               {e.date}, {t(timeLabel)}
                             </p>
                           </div>
@@ -386,8 +460,12 @@ export function Watchlists() {
 
             <div className="bg-card border border-border rounded-xl p-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold text-foreground">{t("dipFinder.news")}</h3>
-                {(newsItems.length === 0 && !newsLoading) || isAnyFailing || yahooDown ? (
+                <h3 className="text-xl font-bold text-foreground">
+                  {t("dipFinder.news")}
+                </h3>
+                {(newsItems.length === 0 && !newsLoading) ||
+                isAnyFailing ||
+                yahooDown ? (
                   <span className="text-xs font-medium uppercase tracking-wide px-2 py-0.5 rounded text-amber-400 bg-amber-500/10">
                     [MOCK]
                   </span>
@@ -404,7 +482,9 @@ export function Watchlists() {
                     ))}
                   </div>
                 ) : newsItems.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">{t("insights.empty.desc")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("insights.empty.desc")}
+                  </p>
                 ) : (
                   newsItems.slice(0, 5).map((n, i) => {
                     const ago = formatTimeAgo(n.providerPublishTime, t) ?? "—";
@@ -426,7 +506,9 @@ export function Watchlists() {
                           {n.symbol && (
                             <>
                               <span>•</span>
-                              <span className="text-muted-foreground">{n.symbol}</span>
+                              <span className="text-muted-foreground">
+                                {n.symbol}
+                              </span>
                             </>
                           )}
                         </div>
@@ -443,7 +525,9 @@ export function Watchlists() {
       <AddWatchlistSheet
         open={addOpen}
         onOpenChange={setAddOpen}
-        onCreate={(name, symbols: WatchlistSymbolEntry[]) => wl.createWatchlist(name, symbols)}
+        onCreate={(name, symbols: WatchlistSymbolEntry[]) =>
+          wl.createWatchlist(name, symbols)
+        }
       />
     </div>
   );
