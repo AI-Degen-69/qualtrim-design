@@ -1,0 +1,20 @@
+# Git stores every text file with LF and checks it out with LF on all
+# platforms. Without this, core.autocrlf=true rewrites the working tree to
+# CRLF, prettier then reports every file as unformatted, and a single
+# `pnpm format.fix` buries a real diff under hundreds of EOL-only changes.
+* text=auto eol=lf
+
+# Lockfiles are generated. Keep them LF and out of diff review.
+pnpm-lock.yaml linguist-generated=true
+package-lock.json linguist-generated=true
+
+# Binary assets git must never touch.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.sqlite binary

@@ -1,0 +1,22 @@
+# Build output
+dist/
+.vercel/
+
+# Agent and tooling scratch space — not project source
+.gemini/
+.gstack/
+.impeccable/
+.builder/
+.codex/
+.freebuff/
+.agents/
+.claude/
+scratch/
+tmp/
+
+# Generated
+pnpm-lock.yaml
+package-lock.json
+
+# Data
+data/
