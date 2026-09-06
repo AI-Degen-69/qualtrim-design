@@ -21,18 +21,33 @@ afterEach(() => {
 
 describe("fetchJSON (diagnostic classification)", () => {
   it("returns parsed JSON on success", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => fakeResponse('{"price":100}')));
-    await expect(fetchJSON("https://example.test/x", "probe", 1000)).resolves.toEqual({ price: 100 });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => fakeResponse('{"price":100}')),
+    );
+    await expect(
+      fetchJSON("https://example.test/x", "probe", 1000),
+    ).resolves.toEqual({ price: 100 });
   });
 
   it("returns null and classifies an HTTP failure as http_<status>", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => fakeResponse("{}", false, 402)));
-    await expect(fetchJSON("https://example.test/x", "probe", 1000)).resolves.toBeNull();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => fakeResponse("{}", false, 402)),
+    );
+    await expect(
+      fetchJSON("https://example.test/x", "probe", 1000),
+    ).resolves.toBeNull();
   });
 
   it("returns null and classifies malformed JSON as invalid_json", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => fakeResponse("{not json")));
-    await expect(fetchJSON("https://example.test/x", "probe", 1000)).resolves.toBeNull();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => fakeResponse("{not json")),
+    );
+    await expect(
+      fetchJSON("https://example.test/x", "probe", 1000),
+    ).resolves.toBeNull();
   });
 
   it("returns null and classifies an abort as timeout", async () => {
@@ -51,14 +66,21 @@ describe("fetchJSON (diagnostic classification)", () => {
         return aborted;
       }),
     );
-    await expect(fetchJSON("https://example.test/x", "probe", 5)).resolves.toBeNull();
+    await expect(
+      fetchJSON("https://example.test/x", "probe", 5),
+    ).resolves.toBeNull();
   });
 
   it("returns null and classifies network failures as network_error", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => {
-      throw new TypeError("fetch failed");
-    }));
-    await expect(fetchJSON("https://example.test/x", "probe", 1000)).resolves.toBeNull();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("fetch failed");
+      }),
+    );
+    await expect(
+      fetchJSON("https://example.test/x", "probe", 1000),
+    ).resolves.toBeNull();
   });
 });
 
@@ -119,7 +141,13 @@ describe("normalizeRevenueSegmentationRows (FMP revenue-product-segmentation)", 
 
   it("falls back to the calendarYear / date-prefix when fiscalYear is absent", () => {
     const rows = normalizeRevenueSegmentationRows(
-      [{ date: "2023-10-01", calendarYear: "2024", products: [{ name: "A", revenue: 1 }] }],
+      [
+        {
+          date: "2023-10-01",
+          calendarYear: "2024",
+          products: [{ name: "A", revenue: 1 }],
+        },
+      ],
       "AAPL",
     );
     expect(rows[0].fiscalYear).toBe("2024");
@@ -151,14 +179,20 @@ describe("normalizeRevenueSegmentationRows (FMP revenue-product-segmentation)", 
   it("returns an empty array for non-array payloads", () => {
     expect(normalizeRevenueSegmentationRows(null, "AAPL")).toEqual([]);
     expect(normalizeRevenueSegmentationRows(undefined, "AAPL")).toEqual([]);
-    expect(normalizeRevenueSegmentationRows({ error: "boom" }, "AAPL")).toEqual([]);
+    expect(normalizeRevenueSegmentationRows({ error: "boom" }, "AAPL")).toEqual(
+      [],
+    );
     expect(normalizeRevenueSegmentationRows("nope", "AAPL")).toEqual([]);
   });
 });
 
 describe("isFmpErrorPayload (200-with-error-body detection)", () => {
   it("detects the canonical FMP quota / bad-key error bodies", () => {
-    expect(isFmpErrorPayload({ "Error Message": "You have exceeded your daily limit" })).toBe(true);
+    expect(
+      isFmpErrorPayload({
+        "Error Message": "You have exceeded your daily limit",
+      }),
+    ).toBe(true);
     expect(isFmpErrorPayload({ error: "boom" })).toBe(true);
     expect(isFmpErrorPayload({ message: "invalid key" })).toBe(true);
   });
@@ -167,7 +201,9 @@ describe("isFmpErrorPayload (200-with-error-body detection)", () => {
     expect(isFmpErrorPayload(null)).toBe(false);
     expect(isFmpErrorPayload(undefined)).toBe(false);
     expect(isFmpErrorPayload([])).toBe(false);
-    expect(isFmpErrorPayload([{ date: "2025-09-27", products: [] }])).toBe(false);
+    expect(isFmpErrorPayload([{ date: "2025-09-27", products: [] }])).toBe(
+      false,
+    );
     expect(isFmpErrorPayload({ rows: [] })).toBe(false);
     expect(isFmpErrorPayload({ message: 42 })).toBe(false); // non-string message
   });

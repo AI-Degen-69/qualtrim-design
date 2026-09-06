@@ -57,14 +57,17 @@ export function EarningsAlertStrip() {
       if (shownRef.current.has(alert.key)) continue;
       const id = toast.custom(
         () => (
-          <div className="flex items-start gap-3 w-full" data-alert-key={alert.key}>
+          <div
+            className="flex items-start gap-3 w-full"
+            data-alert-key={alert.key}
+          >
             <div
               className={`p-1.5 rounded-md shrink-0 ${
                 alert.event.time === "bmo"
                   ? "bg-amber-500/20 text-amber-400"
                   : alert.event.time === "amc"
-                  ? "bg-purple-500/20 text-purple-400"
-                  : "bg-slate-700/30 text-slate-300"
+                    ? "bg-purple-500/20 text-purple-400"
+                    : "bg-slate-700/30 text-slate-300"
               }`}
             >
               {alert.event.time === "bmo" ? (
@@ -85,15 +88,15 @@ export function EarningsAlertStrip() {
                     alert.event.time === "bmo"
                       ? "bg-amber-500/15 text-amber-300"
                       : alert.event.time === "amc"
-                      ? "bg-purple-500/15 text-purple-300"
-                      : "bg-slate-700 text-slate-300"
+                        ? "bg-purple-500/15 text-purple-300"
+                        : "bg-slate-700 text-slate-300"
                   }`}
                 >
                   {alert.event.time === "bmo"
                     ? t("earnings.bmo")
                     : alert.event.time === "amc"
-                    ? t("earnings.amc")
-                    : t("earnings.midday")}
+                      ? t("earnings.amc")
+                      : t("earnings.midday")}
                 </span>
                 <span className="text-xs text-slate-500">
                   {formatTimeUntil(alert.event, t)}

@@ -6,17 +6,17 @@ Stock research and valuation app. Vite + React 18 SPA on the client, Express 5 o
 
 Package manager is **pnpm** (`pnpm-lock.yaml`, `packageManager: pnpm@10.14.0`). Note the `build` script shells out to `npm run` internally.
 
-| Task | Command |
-|------|---------|
-| Dev server | `pnpm dev` (vite) |
-| Build (client + server) | `pnpm build` |
-| Build client only | `pnpm build:client` |
-| Build server only | `pnpm build:server` |
-| Start built server | `pnpm start` (`node dist/server/node-build.mjs`) |
-| Test | `pnpm test` (`vitest --run`) |
-| Typecheck | `pnpm typecheck` (`tsc`, noEmit) |
-| Format | `pnpm format.fix` (prettier) |
-| FMP data audit | `pnpm fmp:audit` (`tsx scripts/fmp-audit.ts`) |
+| Task                    | Command                                          |
+| ----------------------- | ------------------------------------------------ |
+| Dev server              | `pnpm dev` (vite)                                |
+| Build (client + server) | `pnpm build`                                     |
+| Build client only       | `pnpm build:client`                              |
+| Build server only       | `pnpm build:server`                              |
+| Start built server      | `pnpm start` (`node dist/server/node-build.mjs`) |
+| Test                    | `pnpm test` (`vitest --run`)                     |
+| Typecheck               | `pnpm typecheck` (`tsc`, noEmit)                 |
+| Format                  | `pnpm format.fix` (prettier)                     |
+| FMP data audit          | `pnpm fmp:audit` (`tsx scripts/fmp-audit.ts`)    |
 
 There is no lint script; prettier + `tsc` are the only static gates.
 

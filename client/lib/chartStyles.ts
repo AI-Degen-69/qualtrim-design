@@ -33,9 +33,14 @@ export function barStroke(value: unknown): string {
  * Null/locked periods are deliberately counted as unavailable rather than
  * being allowed to silently turn into empty chart space.
  */
-export function splitSparklineValues<T extends { value: unknown }>(rows: readonly T[]) {
+export function splitSparklineValues<T extends { value: unknown }>(
+  rows: readonly T[],
+) {
   return rows.map((row) => {
-    const value = typeof row.value === "number" && Number.isFinite(row.value) ? row.value : null;
+    const value =
+      typeof row.value === "number" && Number.isFinite(row.value)
+        ? row.value
+        : null;
     return {
       ...row,
       positiveValue: value === null ? null : Math.max(value, 0),
@@ -46,7 +51,8 @@ export function splitSparklineValues<T extends { value: unknown }>(rows: readonl
 
 export function getChartAvailability(values: unknown[], expectedCount: number) {
   const availableCount = values.filter(
-    (value): value is number => typeof value === "number" && Number.isFinite(value),
+    (value): value is number =>
+      typeof value === "number" && Number.isFinite(value),
   ).length;
   const totalCount = Math.max(Math.max(0, expectedCount), values.length);
   const lockedCount = Math.max(totalCount - availableCount, 0);
@@ -74,13 +80,16 @@ function niceStep(range: number, targetTicks = 5): number {
   const raw = range / Math.max(targetTicks - 1, 1);
   const power = 10 ** Math.floor(Math.log10(raw));
   const normalized = raw / power;
-  const factor = normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
+  const factor =
+    normalized <= 1 ? 1 : normalized <= 2 ? 2 : normalized <= 5 ? 5 : 10;
   return factor * power;
 }
 
 export function calculateChartDomain(values: unknown[]): [number, number] {
-  const finiteValues = values
-    .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
+  const finiteValues = values.filter(
+    (value): value is number =>
+      typeof value === "number" && Number.isFinite(value),
+  );
 
   if (finiteValues.length === 0) return [-1, 1];
 

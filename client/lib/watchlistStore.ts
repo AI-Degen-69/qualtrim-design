@@ -64,7 +64,9 @@ function makeSystemWatchlist(): Watchlist {
 // crashing.
 
 function hasStorage(): boolean {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+  return (
+    typeof window !== "undefined" && typeof window.localStorage !== "undefined"
+  );
 }
 
 // ── IO ────────────────────────────────────────────────────────────────────
@@ -85,7 +87,9 @@ export function loadWatchlists(): Watchlist[] {
     if (!raw) return [makeSystemWatchlist()];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [makeSystemWatchlist()];
-    const lists = parsed.filter(isWatchlist).filter((l) => l.version === SCHEMA_VERSION);
+    const lists = parsed
+      .filter(isWatchlist)
+      .filter((l) => l.version === SCHEMA_VERSION);
     return ensureSystemPresent(lists);
   } catch {
     return [makeSystemWatchlist()];
@@ -141,7 +145,10 @@ export function saveWatchlists(lists: Watchlist[]): void {
     // localStorage and trusted `useEffect([lists])` on every consumer
     // to redrive an apply — that was the divergence the Provider lift
     // fixes. Now the write-side is responsible for the notify.
-    setNextSnapshot({ lists: ensured, activeId: getCurrentSnapshot().activeId });
+    setNextSnapshot({
+      lists: ensured,
+      activeId: getCurrentSnapshot().activeId,
+    });
   } catch (e) {
     // Quota exceeded / private-mode guard. Dev-only console hint; the
     // UI keeps working in memory for the rest of the session.
@@ -204,7 +211,10 @@ export function unwrapOr<T>(r: Result<T>, fallback: T): T {
  * pseudo-UUID for older runtimes so the page never throws.
  */
 export function newWatchlistId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
   // RFC4122-ish v4 fallback — no PII entropy requirements here.
@@ -242,7 +252,10 @@ export function createWatchlist(
  * Delete a list. Refuses when the target is the seeded system list.
  * Returns the new array; callers wire the result to `saveWatchlists`.
  */
-export function deleteWatchlist(lists: Watchlist[], id: string): Result<Watchlist[]> {
+export function deleteWatchlist(
+  lists: Watchlist[],
+  id: string,
+): Result<Watchlist[]> {
   const target = lists.find((l) => l.id === id);
   if (!target) return { ok: false, reason: "not_found" };
   if (target.isSystem) return { ok: false, reason: "is_system" };
@@ -341,7 +354,9 @@ export function reorderSymbols(
   listId: string,
   orderedSymbols: WatchlistSymbolEntry[],
 ): Watchlist[] {
-  return lists.map((l) => (l.id === listId ? { ...l, symbols: orderedSymbols } : l));
+  return lists.map((l) =>
+    l.id === listId ? { ...l, symbols: orderedSymbols } : l,
+  );
 }
 
 /**
@@ -469,10 +484,7 @@ function getCurrentSnapshot(): WatchlistSnapshot {
 }
 
 function setNextSnapshot(next: WatchlistSnapshot): void {
-  if (
-    next.lists === snapshot.lists &&
-    next.activeId === snapshot.activeId
-  ) {
+  if (next.lists === snapshot.lists && next.activeId === snapshot.activeId) {
     return;
   }
   snapshot = next;

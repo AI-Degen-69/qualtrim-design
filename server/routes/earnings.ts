@@ -38,8 +38,7 @@ export const handleEarningsCalendar: RequestHandler = async (req, res) => {
 
     const today = new Date();
     const from =
-      (req.query.from as string) ||
-      today.toISOString().split("T")[0];
+      (req.query.from as string) || today.toISOString().split("T")[0];
     const to =
       (req.query.to as string) ||
       new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
@@ -91,7 +90,9 @@ export const handleEarningsCalendar: RequestHandler = async (req, res) => {
 
     // Enrich with company names from Yahoo Finance (batch quotes)
     try {
-      const { fetchYahooBatchQuotes } = await import("../services/yahooFinance");
+      const { fetchYahooBatchQuotes } = await import(
+        "../services/yahooFinance"
+      );
       const tickers = earnings.map((e) => e.symbol);
       const quotes = await fetchYahooBatchQuotes(tickers);
       const quoteMap = new Map(quotes.map((q: any) => [q.ticker, q]));

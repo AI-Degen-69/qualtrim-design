@@ -90,9 +90,16 @@ export async function fetchYahooProfile(ticker: string) {
  */
 export async function fetchYahooPriceHistory(
   ticker: string,
-  years: number = 1
+  years: number = 1,
 ): Promise<
-  Array<{ date: string; open: number; high: number; low: number; close: number; volume: number }>
+  Array<{
+    date: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }>
 > {
   try {
     const period1 = new Date();
@@ -133,9 +140,16 @@ export async function fetchYahooPriceHistory(
  */
 export async function fetchChartHistory(
   ticker: string,
-  period: "1d" | "5d" | "1mo" | "3mo" | "1y" | "5y"
+  period: "1d" | "5d" | "1mo" | "3mo" | "1y" | "5y",
 ): Promise<
-  Array<{ date: string; open: number; high: number; low: number; close: number; volume: number }>
+  Array<{
+    date: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }>
 > {
   try {
     const now = new Date();
@@ -197,7 +211,10 @@ export async function fetchChartHistory(
       .filter((q) => q.close !== null)
       .reverse();
   } catch (e) {
-    console.error(`[YahooFinance] Chart history error for ${ticker} (${period}):`, e);
+    console.error(
+      `[YahooFinance] Chart history error for ${ticker} (${period}):`,
+      e,
+    );
     // Fallback: try daily data
     if (period === "1d" || period === "5d") {
       const days = period === "1d" ? 1 : 6;
@@ -234,7 +251,9 @@ export async function fetchChartHistory(
  */
 export async function fetchYahooAnalystEstimates(ticker: string) {
   try {
-    const result = await yf.quoteSummary(ticker, { modules: ["earningsTrend"] });
+    const result = await yf.quoteSummary(ticker, {
+      modules: ["earningsTrend"],
+    });
     const trend = (result as any).earningsTrend?.trend || [];
     return trend.map((t: any) => ({
       date: t.period,
@@ -263,7 +282,8 @@ export async function fetchYahooFinancialData(ticker: string) {
     const nextYearTrend = trends.find((t: any) => t.period === "+1y");
     const nextYearEps = nextYearTrend?.earningsEstimate?.avg;
     const ltgTrend = trends.find((t: any) => t.period === "+5y");
-    const ltgRate = typeof ltgTrend?.growth === "number" ? ltgTrend.growth : null;
+    const ltgRate =
+      typeof ltgTrend?.growth === "number" ? ltgTrend.growth : null;
 
     return {
       revenue: fd.totalRevenue ?? null,
@@ -301,9 +321,14 @@ export async function fetchYahooFinancialData(ticker: string) {
  * so we use quoteSummary with summaryProfile module.
  * Returns a map of ticker -> { sector, industry }.
  */
-export async function fetchYahooBatchSectors(tickers: string[]): Promise<Record<string, { sector: string | null; industry: string | null }>> {
+export async function fetchYahooBatchSectors(
+  tickers: string[],
+): Promise<Record<string, { sector: string | null; industry: string | null }>> {
   const cacheKey = `batch-sectors:${tickers.sort().join(",")}`;
-  const cached = sectorCache.get<Record<string, { sector: string | null; industry: string | null }>>(cacheKey);
+  const cached =
+    sectorCache.get<
+      Record<string, { sector: string | null; industry: string | null }>
+    >(cacheKey);
   if (cached) return cached;
 
   const results = await Promise.allSettled(
@@ -314,9 +339,12 @@ export async function fetchYahooBatchSectors(tickers: string[]): Promise<Record<
         sector: profile.sector ?? null,
         industry: profile.industry ?? null,
       };
-    })
+    }),
   );
-  const map: Record<string, { sector: string | null; industry: string | null }> = {};
+  const map: Record<
+    string,
+    { sector: string | null; industry: string | null }
+  > = {};
   results.forEach((r, i) => {
     if (r.status === "fulfilled" && r.value.sector) {
       map[tickers[i].toUpperCase()] = r.value;
@@ -350,7 +378,7 @@ export async function fetchYahooBatchQuotes(tickers: string[]) {
         sector: (quote as any).sector ?? null,
         industry: (quote as any).industry ?? null,
       };
-    })
+    }),
   );
   return results.map((r, i) =>
     r.status === "fulfilled"
@@ -365,7 +393,6 @@ export async function fetchYahooBatchQuotes(tickers: string[]) {
           exchange: null,
           sector: null,
           industry: null,
-        }
+        },
   );
 }
-

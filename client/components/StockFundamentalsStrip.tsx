@@ -161,7 +161,12 @@ function Value({
 }) {
   if (loading) return <span className="text-muted-foreground/60">…</span>;
   if (value === null || value === undefined || value === "")
-    return availabilityBadge({ state: availability ?? "nullByDesign", label, fullKey, t });
+    return availabilityBadge({
+      state: availability ?? "nullByDesign",
+      label,
+      fullKey,
+      t,
+    });
   return <span dir="ltr">{value}</span>;
 }
 

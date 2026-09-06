@@ -189,7 +189,10 @@ describe("aggregateStockData quickStats — zero-value semantics (C6)", () => {
   it("renders an em-dash when a zero numerator meets a non-finite denominator", async () => {
     // 0 / Infinity evaluates to 0, which must NOT render as a real 0.00%
     // when the denominator itself is non-finite garbage (CodeRabbit, PR #56).
-    mocks.yahooQuote.mockResolvedValue({ name: "Inf Cap", marketCap: Number.POSITIVE_INFINITY });
+    mocks.yahooQuote.mockResolvedValue({
+      name: "Inf Cap",
+      marketCap: Number.POSITIVE_INFINITY,
+    });
     mocks.yahooFinancial.mockResolvedValue({ freeCashFlow: 0 });
 
     const res = await aggregateStockData("TEST");
@@ -201,7 +204,11 @@ describe("aggregateStockData quickStats — zero-value semantics (C6)", () => {
 
   it("renders an em-dash when equity is non-finite despite a zero debt", async () => {
     mocks.balance.mockResolvedValue([
-      { totalAssets: 0, totalDebt: 0, totalStockholdersEquity: Number.POSITIVE_INFINITY },
+      {
+        totalAssets: 0,
+        totalDebt: 0,
+        totalStockholdersEquity: Number.POSITIVE_INFINITY,
+      },
     ]);
 
     const res = await aggregateStockData("TEST");

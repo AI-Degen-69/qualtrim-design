@@ -1,6 +1,14 @@
 import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { Activity, BarChart3, ChartNoAxesCombined, Clock, ExternalLink, Newspaper, TrendingUp } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  ChartNoAxesCombined,
+  Clock,
+  ExternalLink,
+  Newspaper,
+  TrendingUp,
+} from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import ChartModal from "@/components/ChartModal";
@@ -103,7 +111,10 @@ function IndexEstimateTable({
             <div className="truncate text-muted-foreground font-medium">
               {translatePeriod(row.period)}
             </div>
-            <div className="text-right font-mono font-bold tabular-nums" dir="ltr">
+            <div
+              className="text-right font-mono font-bold tabular-nums"
+              dir="ltr"
+            >
               <span
                 className={`rounded px-1.5 py-0.5 ${
                   tone === "positive"
@@ -114,10 +125,16 @@ function IndexEstimateTable({
                 {format(row.avg)}
               </span>
             </div>
-            <div className="text-right font-mono tabular-nums text-muted-foreground/90 font-medium" dir="ltr">
+            <div
+              className="text-right font-mono tabular-nums text-muted-foreground/90 font-medium"
+              dir="ltr"
+            >
               {format(row.low)}
             </div>
-            <div className="text-right font-mono tabular-nums text-muted-foreground/90 font-medium" dir="ltr">
+            <div
+              className="text-right font-mono tabular-nums text-muted-foreground/90 font-medium"
+              dir="ltr"
+            >
               {format(row.high)}
             </div>
           </div>
@@ -453,21 +470,40 @@ export default function Index() {
   );
 
   const sma50Delta = useMemo(() => {
-    if (!quoteData?.price || !quoteData?.priceAvg50 || quoteData.priceAvg50 <= 0) return null;
-    return ((quoteData.price - quoteData.priceAvg50) / quoteData.priceAvg50) * 100;
+    if (
+      !quoteData?.price ||
+      !quoteData?.priceAvg50 ||
+      quoteData.priceAvg50 <= 0
+    )
+      return null;
+    return (
+      ((quoteData.price - quoteData.priceAvg50) / quoteData.priceAvg50) * 100
+    );
   }, [quoteData?.price, quoteData?.priceAvg50]);
 
   const sma200Delta = useMemo(() => {
-    if (!quoteData?.price || !quoteData?.priceAvg200 || quoteData.priceAvg200 <= 0) return null;
-    return ((quoteData.price - quoteData.priceAvg200) / quoteData.priceAvg200) * 100;
+    if (
+      !quoteData?.price ||
+      !quoteData?.priceAvg200 ||
+      quoteData.priceAvg200 <= 0
+    )
+      return null;
+    return (
+      ((quoteData.price - quoteData.priceAvg200) / quoteData.priceAvg200) * 100
+    );
   }, [quoteData?.price, quoteData?.priceAvg200]);
 
   const year52Stats = useMemo(() => {
-    if (!quoteData?.yearLow || !quoteData?.yearHigh || !quoteData?.price) return null;
+    if (!quoteData?.yearLow || !quoteData?.yearHigh || !quoteData?.price)
+      return null;
     const range = quoteData.yearHigh - quoteData.yearLow;
     if (range <= 0) return null;
-    const pctOfRange = Math.max(0, Math.min(100, ((quoteData.price - quoteData.yearLow) / range) * 100));
-    const distFromHigh = ((quoteData.price - quoteData.yearHigh) / quoteData.yearHigh) * 100;
+    const pctOfRange = Math.max(
+      0,
+      Math.min(100, ((quoteData.price - quoteData.yearLow) / range) * 100),
+    );
+    const distFromHigh =
+      ((quoteData.price - quoteData.yearHigh) / quoteData.yearHigh) * 100;
     return {
       range,
       pctOfRange,
@@ -553,8 +589,12 @@ export default function Index() {
             <div className="flex items-center gap-3">
               {earningsDate && (
                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] bg-muted/40 border border-border/60 text-xs font-mono text-muted-foreground">
-                  <span className="text-muted-foreground/70">{t("index.earnings")}:</span>
-                  <span className="text-primary font-semibold" dir="ltr">{earningsDate}</span>
+                  <span className="text-muted-foreground/70">
+                    {t("index.earnings")}:
+                  </span>
+                  <span className="text-primary font-semibold" dir="ltr">
+                    {earningsDate}
+                  </span>
                 </div>
               )}
               {quoteData && (
@@ -570,7 +610,10 @@ export default function Index() {
           </div>
 
           {/* Main Hero Grid: Left Identity & Price + Right 6 Metric Tiles */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center" dir="ltr">
+          <div
+            className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center"
+            dir="ltr"
+          >
             {/* Left Column: Asset Identity & Hero Price */}
             <div className="lg:col-span-5 space-y-5">
               <div className="flex items-center gap-4">
@@ -602,9 +645,20 @@ export default function Index() {
                     )}
                   </div>
                   <div className="text-sm text-muted-foreground truncate mt-0.5">
-                    {((overviewData?.companyName && overviewData.companyName.toUpperCase() !== ticker ? overviewData.companyName : undefined) ?? quoteData?.name ?? ticker)}
+                    {(overviewData?.companyName &&
+                    overviewData.companyName.toUpperCase() !== ticker
+                      ? overviewData.companyName
+                      : undefined) ??
+                      quoteData?.name ??
+                      ticker}
                     {overviewData?.sector && (
-                      <> · <span className="text-foreground/80 font-medium">{overviewData.sector}</span></>
+                      <>
+                        {" "}
+                        ·{" "}
+                        <span className="text-foreground/80 font-medium">
+                          {overviewData.sector}
+                        </span>
+                      </>
                     )}
                   </div>
                 </div>
@@ -629,7 +683,9 @@ export default function Index() {
                     {quoteData.change !== undefined && (
                       <span
                         className={`text-base sm:text-lg font-mono font-semibold tabular-nums ${
-                          quoteData.change >= 0 ? "text-chart-positive" : "text-chart-negative"
+                          quoteData.change >= 0
+                            ? "text-chart-positive"
+                            : "text-chart-negative"
                         }`}
                         dir="ltr"
                       >
@@ -657,7 +713,10 @@ export default function Index() {
                   <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground truncate">
                     {t("landing.spotlight.marketCap")}
                   </div>
-                  <div className="text-base sm:text-lg font-bold font-mono text-foreground tabular-nums" dir="ltr">
+                  <div
+                    className="text-base sm:text-lg font-bold font-mono text-foreground tabular-nums"
+                    dir="ltr"
+                  >
                     {quoteLoading ? "…" : spotlight.marketCap}
                   </div>
                 </div>
@@ -667,7 +726,10 @@ export default function Index() {
                   <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground truncate">
                     {t("landing.spotlight.pe")}
                   </div>
-                  <div className="text-base sm:text-lg font-bold font-mono text-foreground tabular-nums" dir="ltr">
+                  <div
+                    className="text-base sm:text-lg font-bold font-mono text-foreground tabular-nums"
+                    dir="ltr"
+                  >
                     {quoteLoading || stockMetricsLoading ? "…" : spotlight.pe}
                   </div>
                 </div>
@@ -687,7 +749,9 @@ export default function Index() {
                     }`}
                     dir="ltr"
                   >
-                    {!financialsFetched && quoteLoading ? "…" : spotlight.cagr3Y}
+                    {!financialsFetched && quoteLoading
+                      ? "…"
+                      : spotlight.cagr3Y}
                   </div>
                 </div>
 
@@ -696,8 +760,13 @@ export default function Index() {
                   <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground truncate">
                     {t("landing.spotlight.revenue")}
                   </div>
-                  <div className="text-base sm:text-lg font-bold font-mono text-foreground tabular-nums" dir="ltr">
-                    {!financialsFetched && quoteLoading ? "…" : spotlight.revenue}
+                  <div
+                    className="text-base sm:text-lg font-bold font-mono text-foreground tabular-nums"
+                    dir="ltr"
+                  >
+                    {!financialsFetched && quoteLoading
+                      ? "…"
+                      : spotlight.revenue}
                   </div>
                 </div>
 
@@ -706,7 +775,10 @@ export default function Index() {
                   <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground truncate">
                     {t("landing.spotlight.fcf")}
                   </div>
-                  <div className="text-base sm:text-lg font-bold font-mono text-foreground tabular-nums" dir="ltr">
+                  <div
+                    className="text-base sm:text-lg font-bold font-mono text-foreground tabular-nums"
+                    dir="ltr"
+                  >
                     {!financialsFetched && quoteLoading ? "…" : spotlight.fcf}
                   </div>
                 </div>
@@ -716,8 +788,13 @@ export default function Index() {
                   <div className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground truncate">
                     {t("landing.spotlight.grossMargin")}
                   </div>
-                  <div className="text-base sm:text-lg font-bold font-mono text-foreground tabular-nums" dir="ltr">
-                    {stockMetricsLoading && quoteLoading ? "…" : spotlight.grossMargin}
+                  <div
+                    className="text-base sm:text-lg font-bold font-mono text-foreground tabular-nums"
+                    dir="ltr"
+                  >
+                    {stockMetricsLoading && quoteLoading
+                      ? "…"
+                      : spotlight.grossMargin}
                   </div>
                 </div>
               </div>
@@ -894,7 +971,8 @@ export default function Index() {
                 )}
               </div>
               <p className="mt-1.5 text-xs text-muted-foreground/80">
-                Wall Street price corridor, technical moving averages, and forward consensus estimates.
+                Wall Street price corridor, technical moving averages, and
+                forward consensus estimates.
               </p>
             </div>
           </div>
@@ -939,7 +1017,9 @@ export default function Index() {
                     quoteData?.price && (
                       <div className="p-3.5 rounded-lg bg-background/50 border border-border/50 space-y-2.5">
                         <div className="flex items-center justify-between text-xs font-mono">
-                          <span className="text-muted-foreground font-medium">52W Corridor</span>
+                          <span className="text-muted-foreground font-medium">
+                            52W Corridor
+                          </span>
                           {year52Stats && (
                             <span className="text-[11px] font-semibold text-foreground/80 px-1.5 py-0.5 rounded bg-muted/60 border border-border/40">
                               {year52Stats.pctOfRange.toFixed(0)}% of 52W Range
@@ -1000,13 +1080,31 @@ export default function Index() {
                               </div>
                               <div className="flex items-center justify-between text-xs font-mono tabular-nums text-muted-foreground pt-0.5">
                                 <span>
-                                  Low: <strong className="text-foreground font-bold" dir="ltr">${quoteData.yearLow.toFixed(2)}</strong>
+                                  Low:{" "}
+                                  <strong
+                                    className="text-foreground font-bold"
+                                    dir="ltr"
+                                  >
+                                    ${quoteData.yearLow.toFixed(2)}
+                                  </strong>
                                 </span>
-                                <span className="text-center font-bold text-foreground" dir="ltr">
-                                  Current: <span className={textColor}>${quoteData.price.toFixed(2)}</span>
+                                <span
+                                  className="text-center font-bold text-foreground"
+                                  dir="ltr"
+                                >
+                                  Current:{" "}
+                                  <span className={textColor}>
+                                    ${quoteData.price.toFixed(2)}
+                                  </span>
                                 </span>
                                 <span>
-                                  High: <strong className="text-foreground font-bold" dir="ltr">${quoteData.yearHigh.toFixed(2)}</strong>
+                                  High:{" "}
+                                  <strong
+                                    className="text-foreground font-bold"
+                                    dir="ltr"
+                                  >
+                                    ${quoteData.yearHigh.toFixed(2)}
+                                  </strong>
                                 </span>
                               </div>
                             </div>
@@ -1024,15 +1122,21 @@ export default function Index() {
                         {sma50Delta !== null && (
                           <span
                             className={`text-[10px] font-bold ${
-                              sma50Delta >= 0 ? "text-chart-positive" : "text-chart-negative"
+                              sma50Delta >= 0
+                                ? "text-chart-positive"
+                                : "text-chart-negative"
                             }`}
                             dir="ltr"
                           >
-                            {sma50Delta >= 0 ? "+" : ""}{sma50Delta.toFixed(1)}%
+                            {sma50Delta >= 0 ? "+" : ""}
+                            {sma50Delta.toFixed(1)}%
                           </span>
                         )}
                       </div>
-                      <div className="font-mono font-bold text-foreground text-sm sm:text-base tabular-nums" dir="ltr">
+                      <div
+                        className="font-mono font-bold text-foreground text-sm sm:text-base tabular-nums"
+                        dir="ltr"
+                      >
                         <AnimatedNumber
                           value={quoteData?.priceAvg50 ?? null}
                           format={(v) => `$${v.toFixed(2)}`}
@@ -1047,15 +1151,21 @@ export default function Index() {
                         {sma200Delta !== null && (
                           <span
                             className={`text-[10px] font-bold ${
-                              sma200Delta >= 0 ? "text-chart-positive" : "text-chart-negative"
+                              sma200Delta >= 0
+                                ? "text-chart-positive"
+                                : "text-chart-negative"
                             }`}
                             dir="ltr"
                           >
-                            {sma200Delta >= 0 ? "+" : ""}{sma200Delta.toFixed(1)}%
+                            {sma200Delta >= 0 ? "+" : ""}
+                            {sma200Delta.toFixed(1)}%
                           </span>
                         )}
                       </div>
-                      <div className="font-mono font-bold text-foreground text-sm sm:text-base tabular-nums" dir="ltr">
+                      <div
+                        className="font-mono font-bold text-foreground text-sm sm:text-base tabular-nums"
+                        dir="ltr"
+                      >
                         <AnimatedNumber
                           value={quoteData?.priceAvg200 ?? null}
                           format={(v) => `$${v.toFixed(2)}`}

@@ -98,7 +98,11 @@ function discoverSourceFiles(): string[] {
     // Exclude test files
     if (normalized.includes(".spec.")) return false;
     // Exclude the dictionary file itself
-    if (normalized.endsWith("lib/i18n.tsx") || normalized.endsWith("lib/i18n.ts")) return false;
+    if (
+      normalized.endsWith("lib/i18n.tsx") ||
+      normalized.endsWith("lib/i18n.ts")
+    )
+      return false;
     // Exclude node_modules (just in case)
     if (normalized.includes("node_modules")) return false;
     return true;
@@ -212,7 +216,10 @@ describe("resolvePluralKey", () => {
     it("falls back to bare key when _one/_other are missing", () => {
       const dict = { earnings: "always the same" };
       const result = resolvePluralKey("earnings", 1, "en", dict);
-      expect(result).toEqual({ pickedKey: "earnings", value: "always the same" });
+      expect(result).toEqual({
+        pickedKey: "earnings",
+        value: "always the same",
+      });
     });
 
     it("falls back to _other when only _other exists but count is 1", () => {
@@ -230,7 +237,9 @@ describe("resolvePluralKey", () => {
         items_two: "שני פריטים",
         items_other: "{{count}} פריטים",
       };
-      expect(resolvePluralKey("items", 2, "he", dict).pickedKey).toBe("items_two");
+      expect(resolvePluralKey("items", 2, "he", dict).pickedKey).toBe(
+        "items_two",
+      );
     });
 
     it("falls back to _other when _two is absent (he, count === 2)", () => {
@@ -248,7 +257,9 @@ describe("resolvePluralKey", () => {
         items_one: "פריט",
         items_other: "{{count}} פריטים",
       };
-      expect(resolvePluralKey("items", 1, "he", dict).pickedKey).toBe("items_one");
+      expect(resolvePluralKey("items", 1, "he", dict).pickedKey).toBe(
+        "items_one",
+      );
     });
   });
 
@@ -274,14 +285,9 @@ describe("t() pipeline integration — resolvePluralKey → solveTemplate", () =
     dict: Record<string, string>,
     lang: "en" | "he",
   ): string {
-    const count =
-      typeof vars.count === "number" ? vars.count : undefined;
+    const count = typeof vars.count === "number" ? vars.count : undefined;
     const looked = resolvePluralKey(key, count, lang, dict);
-    return solveTemplate(
-      looked.value,
-      vars,
-      (n) => getPluralCategory(lang, n),
-    );
+    return solveTemplate(looked.value, vars, (n) => getPluralCategory(lang, n));
   }
 
   it("resolves _other entry then runs ICU inline within the resolved value", () => {
@@ -291,9 +297,7 @@ describe("t() pipeline integration — resolvePluralKey → solveTemplate", () =
     expect(tProdStyle("items", { count: 3 }, dict, "en")).toBe(
       "I have 3 items",
     );
-    expect(tProdStyle("items", { count: 1 }, dict, "en")).toBe(
-      "I have 1 item",
-    );
+    expect(tProdStyle("items", { count: 1 }, dict, "en")).toBe("I have 1 item");
   });
 
   it("resolves _two for Hebrew and runs ICU inline within it", () => {
@@ -311,12 +315,12 @@ describe("t() pipeline integration — resolvePluralKey → solveTemplate", () =
       agents_other:
         "{{count, plural, one {# agent} other {# agents}}} handled {{tickets, plural, one {# ticket} other {# tickets}}}",
     };
-    expect(
-      tProdStyle("agents", { count: 3, tickets: 1 }, dict, "en"),
-    ).toBe("3 agents handled 1 ticket");
-    expect(
-      tProdStyle("agents", { count: 1, tickets: 42 }, dict, "en"),
-    ).toBe("1 agent handled 42 tickets");
+    expect(tProdStyle("agents", { count: 3, tickets: 1 }, dict, "en")).toBe(
+      "3 agents handled 1 ticket",
+    );
+    expect(tProdStyle("agents", { count: 1, tickets: 42 }, dict, "en")).toBe(
+      "1 agent handled 42 tickets",
+    );
   });
 
   it("legacy {{var}} suffix-only entries round-trip unchanged (backward compat)", () => {
@@ -360,8 +364,12 @@ describe("translateSector", () => {
     });
 
     it("EN label matches the enDict value (parity sanity)", () => {
-      expect(translateSector(enT, "Technology")).toBe(enDict["sector.technology"]);
-      expect(translateSector(enT, "Healthcare")).toBe(enDict["sector.healthcare"]);
+      expect(translateSector(enT, "Technology")).toBe(
+        enDict["sector.technology"],
+      );
+      expect(translateSector(enT, "Healthcare")).toBe(
+        enDict["sector.healthcare"],
+      );
     });
   });
 
@@ -375,18 +383,22 @@ describe("translateSector", () => {
       );
       expect(translateSector(heT, "Financials")).toBe("פיננסים");
       expect(translateSector(heT, "Consumer Cyclical")).toBe("צרכנות מחזורית");
-      expect(translateSector(heT, "Communication Services")).toBe(
-        "תקשורת",
-      );
-      expect(translateSector(heT, "Real Estate")).toBe("נדל\"ן");
+      expect(translateSector(heT, "Communication Services")).toBe("תקשורת");
+      expect(translateSector(heT, "Real Estate")).toBe('נדל"ן');
       expect(translateSector(heT, "Utilities")).toBe("תשתיות");
       expect(translateSector(heT, "Materials")).toBe("חומרי גלם");
     });
 
     it("HE label matches the heDict value (no hardcoded Hebrew in helper)", () => {
-      expect(translateSector(heT, "Technology")).toBe(heDict["sector.technology"]);
-      expect(translateSector(heT, "Healthcare")).toBe(heDict["sector.healthcare"]);
-      expect(translateSector(heT, "Real Estate")).toBe(heDict["sector.realEstate"]);
+      expect(translateSector(heT, "Technology")).toBe(
+        heDict["sector.technology"],
+      );
+      expect(translateSector(heT, "Healthcare")).toBe(
+        heDict["sector.healthcare"],
+      );
+      expect(translateSector(heT, "Real Estate")).toBe(
+        heDict["sector.realEstate"],
+      );
     });
   });
 
@@ -395,8 +407,12 @@ describe("translateSector", () => {
       // A new FMP sector arriving before translators cover it should
       // surface visibly — both in the heatmap row label and in tooltips —
       // rather than rendering as empty / "sector.unknown".
-      expect(translateSector(enT, "Quantum Computing")).toBe("Quantum Computing");
-      expect(translateSector(heT, "Quantum Computing")).toBe("Quantum Computing");
+      expect(translateSector(enT, "Quantum Computing")).toBe(
+        "Quantum Computing",
+      );
+      expect(translateSector(heT, "Quantum Computing")).toBe(
+        "Quantum Computing",
+      );
     });
 
     it("returns empty string for null", () => {
@@ -425,7 +441,9 @@ describe("translateSector", () => {
     });
 
     it("trims around unrecognized sectors before returning raw", () => {
-      expect(translateSector(enT, "  Quantum Computing  ")).toBe("Quantum Computing");
+      expect(translateSector(enT, "  Quantum Computing  ")).toBe(
+        "Quantum Computing",
+      );
     });
   });
 
@@ -434,9 +452,13 @@ describe("translateSector", () => {
     // a `sector.*` entry to one language but forgets the other, the
     // localized column will show "sector.<key>" as a missing-key
     // sentinel while the other renders correctly. Catch it here.
-    const allDictKeys = Object.keys(enDict).filter((k) => k.startsWith("sector."));
+    const allDictKeys = Object.keys(enDict).filter((k) =>
+      k.startsWith("sector."),
+    );
     const enSet = new Set(allDictKeys);
-    const heSet = new Set(Object.keys(heDict).filter((k) => k.startsWith("sector.")));
+    const heSet = new Set(
+      Object.keys(heDict).filter((k) => k.startsWith("sector.")),
+    );
 
     it("has at least one sector key in enDict", () => {
       expect(allDictKeys.length).toBeGreaterThan(0);
@@ -506,9 +528,13 @@ describe("translateCountry", () => {
   });
 
   describe("dictionary parity — every country key exists in BOTH enDict and heDict", () => {
-    const allDictKeys = Object.keys(enDict).filter((k) => k.startsWith("country."));
+    const allDictKeys = Object.keys(enDict).filter((k) =>
+      k.startsWith("country."),
+    );
     const enSet = new Set(allDictKeys);
-    const heSet = new Set(Object.keys(heDict).filter((k) => k.startsWith("country.")));
+    const heSet = new Set(
+      Object.keys(heDict).filter((k) => k.startsWith("country.")),
+    );
 
     it("every country.* key in enDict also exists in heDict", () => {
       const missing = allDictKeys.filter((k) => !heSet.has(k));
@@ -556,7 +582,9 @@ describe("i18n key audit — every t() call key exists in both EN and HE diction
     expect(filesChecked.length).toBeGreaterThan(0);
     console.log(`  Scanned ${sourceFiles.length} source files`);
     console.log(`  Found t() calls in ${filesChecked.length} files`);
-    console.log(`  Extracted ${uniqueKeys.length} unique static keys (dotted notation)`);
+    console.log(
+      `  Extracted ${uniqueKeys.length} unique static keys (dotted notation)`,
+    );
   });
 
   // ── EN dictionary audit ──────────────────────────────────────────────

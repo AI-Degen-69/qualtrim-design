@@ -25,7 +25,10 @@ export type ParsedSymbols =
   | { ok: true; symbols: string[] }
   | { ok: false; status: number; body: { error: string; symbols?: string[] } };
 
-function parseSymbolList(value: unknown): { symbols: string[]; invalid: string[] } {
+function parseSymbolList(value: unknown): {
+  symbols: string[];
+  invalid: string[];
+} {
   const raw =
     typeof value === "string"
       ? value.split(",")
@@ -66,7 +69,11 @@ export function parseSymbolsQuery(value: unknown): ParsedSymbols {
     };
   }
   if (symbols.length === 0) {
-    return { ok: false, status: 400, body: { error: "symbols parameter required" } };
+    return {
+      ok: false,
+      status: 400,
+      body: { error: "symbols parameter required" },
+    };
   }
   if (symbols.length > MAX_SYMBOLS) {
     return {

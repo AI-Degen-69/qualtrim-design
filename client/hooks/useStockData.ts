@@ -59,7 +59,10 @@ async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
 export function useStockQuote(ticker: string) {
   return useQuery({
     queryKey: ["stockQuote", ticker],
-    queryFn: () => fetchJSON<StockQuote | null>(`/api/stock-quote?symbol=${encodeURIComponent(ticker)}`),
+    queryFn: () =>
+      fetchJSON<StockQuote | null>(
+        `/api/stock-quote?symbol=${encodeURIComponent(ticker)}`,
+      ),
     enabled: !!ticker,
     refetchInterval: 60_000,
   });
@@ -117,7 +120,10 @@ export function useIndexQuotes() {
 export function useInsightsTab(tab: InsightsTabId) {
   return useQuery({
     queryKey: ["insightsTab", tab],
-    queryFn: () => fetchJSON<InsightsTabResponse>(`/api/insights-tab?tab=${encodeURIComponent(tab)}`),
+    queryFn: () =>
+      fetchJSON<InsightsTabResponse>(
+        `/api/insights-tab?tab=${encodeURIComponent(tab)}`,
+      ),
     staleTime: 5 * 60_000,
   });
 }
@@ -130,7 +136,10 @@ export function useInsightsTab(tab: InsightsTabId) {
 export function useAllInsightsTabs() {
   return useQuery({
     queryKey: ["insightsTabsAll"],
-    queryFn: () => fetchJSON<Record<InsightsTabId, InsightsTabEntry[]>>(`/api/insights-tabs-all`),
+    queryFn: () =>
+      fetchJSON<Record<InsightsTabId, InsightsTabEntry[]>>(
+        `/api/insights-tabs-all`,
+      ),
     staleTime: 5 * 60_000,
   });
 }
@@ -148,7 +157,7 @@ export function useSmaDistances(symbols: string[], windowSize: number = 200) {
     queryKey: ["smaDistances", key],
     queryFn: () =>
       fetchJSON<SmaDistanceResponse>(
-        `/api/sma-distances?symbols=${encodeURIComponent(symbols.join(","))}&window=${windowSize}`
+        `/api/sma-distances?symbols=${encodeURIComponent(symbols.join(","))}&window=${windowSize}`,
       ),
     enabled: symbols.length > 0,
     staleTime: 5 * 60_000,
@@ -236,7 +245,12 @@ export function useYahooChartDown() {
  */
 export function useFmpBatchQuoteRestricted() {
   const { data } = useProviderHealth();
-  return isProviderStatus(data?.providers, "fmp", "batch-quote", "known_restriction");
+  return isProviderStatus(
+    data?.providers,
+    "fmp",
+    "batch-quote",
+    "known_restriction",
+  );
 }
 
 /**
@@ -250,7 +264,9 @@ export function useFxRates(currencies: FxCurrency[] = ["USD", "ILS", "EUR"]) {
   return useQuery({
     queryKey: ["fxRates", key],
     queryFn: () =>
-      fetchJSON<FxRatesResponse>(`/api/fx-rates?currencies=${encodeURIComponent(currencies.join(","))}`),
+      fetchJSON<FxRatesResponse>(
+        `/api/fx-rates?currencies=${encodeURIComponent(currencies.join(","))}`,
+      ),
     staleTime: 60 * 60_000, // 1h — FX doesn't move intraday
   });
 }
@@ -264,11 +280,13 @@ export function useFxRates(currencies: FxCurrency[] = ["USD", "ILS", "EUR"]) {
 export function useStockProfile(ticker: string) {
   return useQuery({
     queryKey: ["stockProfile", ticker],
-    queryFn: () => fetchJSON<CompanyProfile | null>(`/api/stock-overview?symbol=${encodeURIComponent(ticker)}`),
+    queryFn: () =>
+      fetchJSON<CompanyProfile | null>(
+        `/api/stock-overview?symbol=${encodeURIComponent(ticker)}`,
+      ),
     enabled: !!ticker,
   });
 }
-
 
 /**
  * Fetches financial statements for a stock ticker.
@@ -290,7 +308,10 @@ export function useStockFinancials(
   const enabled = opts?.enabled ?? true;
   return useQuery({
     queryKey: ["stockFinancials", ticker, period],
-    queryFn: () => fetchJSON<FinancialStatements>(`/api/stock-financials?symbol=${encodeURIComponent(ticker)}&period=${period}`),
+    queryFn: () =>
+      fetchJSON<FinancialStatements>(
+        `/api/stock-financials?symbol=${encodeURIComponent(ticker)}&period=${period}`,
+      ),
     enabled: !!ticker && enabled,
   });
 }
@@ -304,7 +325,10 @@ export function useStockFinancials(
 export function useStockMetrics(ticker: string) {
   return useQuery({
     queryKey: ["stockMetrics", ticker],
-    queryFn: () => fetchJSON<StockMetrics>(`/api/stock-metrics?symbol=${encodeURIComponent(ticker)}`),
+    queryFn: () =>
+      fetchJSON<StockMetrics>(
+        `/api/stock-metrics?symbol=${encodeURIComponent(ticker)}`,
+      ),
     enabled: !!ticker,
   });
 }
@@ -353,7 +377,10 @@ export function useStockRevenueSegmentation(
 export function useStockAnalyst(ticker: string) {
   return useQuery({
     queryKey: ["stockAnalyst", ticker],
-    queryFn: () => fetchJSON<AnalystTrends>(`/api/stock-analyst?symbol=${encodeURIComponent(ticker)}`),
+    queryFn: () =>
+      fetchJSON<AnalystTrends>(
+        `/api/stock-analyst?symbol=${encodeURIComponent(ticker)}`,
+      ),
     enabled: !!ticker,
   });
 }
@@ -399,7 +426,10 @@ export function useStockYahooFallbackFinancials(
 export function useStockInsider(ticker: string) {
   return useQuery({
     queryKey: ["stockInsider", ticker],
-    queryFn: () => fetchJSON<InsiderTransaction[]>(`/api/stock-insider?symbol=${encodeURIComponent(ticker)}`),
+    queryFn: () =>
+      fetchJSON<InsiderTransaction[]>(
+        `/api/stock-insider?symbol=${encodeURIComponent(ticker)}`,
+      ),
     enabled: !!ticker,
   });
 }
@@ -413,7 +443,10 @@ export function useStockInsider(ticker: string) {
 export function useStockNews(ticker: string) {
   return useQuery({
     queryKey: ["stockNews", ticker],
-    queryFn: () => fetchJSON<NewsItem[]>(`/api/stock-news?symbol=${encodeURIComponent(ticker)}`),
+    queryFn: () =>
+      fetchJSON<NewsItem[]>(
+        `/api/stock-news?symbol=${encodeURIComponent(ticker)}`,
+      ),
     enabled: !!ticker,
   });
 }
@@ -425,12 +458,20 @@ export function useStockNews(ticker: string) {
  * @param to - The end date of the range
  * @returns The query result containing the earnings events
  */
-export function useTickerEarningsCalendar(ticker: string, from: string, to: string) {
+export function useTickerEarningsCalendar(
+  ticker: string,
+  from: string,
+  to: string,
+) {
   return useQuery({
     queryKey: ["tickerEarningsCalendar", ticker, from, to],
     queryFn: async () => {
-      const events = await fetchJSON<EarningsEvent[]>(`/api/earnings-calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
-      return events.filter((event) => event.symbol.toUpperCase() === ticker.toUpperCase());
+      const events = await fetchJSON<EarningsEvent[]>(
+        `/api/earnings-calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      );
+      return events.filter(
+        (event) => event.symbol.toUpperCase() === ticker.toUpperCase(),
+      );
     },
     enabled: !!ticker && !!from && !!to,
     staleTime: 5 * 60_000,
@@ -441,7 +482,9 @@ export function useEarningsCalendar(from: string, to: string) {
   return useQuery({
     queryKey: ["earningsCalendar", from, to],
     queryFn: () =>
-      fetchJSON<EarningsEvent[]>(`/api/earnings-calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`),
+      fetchJSON<EarningsEvent[]>(
+        `/api/earnings-calendar?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+      ),
     enabled: !!from && !!to,
   });
 }
@@ -455,7 +498,10 @@ export function useEarningsCalendar(from: string, to: string) {
 export function useStockChart(ticker: string) {
   return useQuery({
     queryKey: ["stockChart", ticker],
-    queryFn: () => fetchJSON<ChartSeries | null>(`/api/stock-chart?symbol=${encodeURIComponent(ticker)}`),
+    queryFn: () =>
+      fetchJSON<ChartSeries | null>(
+        `/api/stock-chart?symbol=${encodeURIComponent(ticker)}`,
+      ),
     enabled: !!ticker,
   });
 }
@@ -469,7 +515,10 @@ export function useMultiChart(symbols: string[]) {
   return useQueries({
     queries: symbols.map((sym) => ({
       queryKey: ["stockChart", sym],
-      queryFn: () => fetchJSON<ChartSeries | null>(`/api/stock-chart?symbol=${encodeURIComponent(sym)}`),
+      queryFn: () =>
+        fetchJSON<ChartSeries | null>(
+          `/api/stock-chart?symbol=${encodeURIComponent(sym)}`,
+        ),
       enabled: !!sym,
       staleTime: 60 * 60_000, // 1 hr — chart historical is heavy
     })),
@@ -504,7 +553,10 @@ export function useWatchlistNews(symbols: string[], limit = 30) {
   const results = useQueries({
     queries: bounded.map((sym) => ({
       queryKey: ["stockNews", sym],
-      queryFn: () => fetchJSON<NewsItem[]>(`/api/stock-news?symbol=${encodeURIComponent(sym)}`),
+      queryFn: () =>
+        fetchJSON<NewsItem[]>(
+          `/api/stock-news?symbol=${encodeURIComponent(sym)}`,
+        ),
       enabled: !!sym,
       staleTime: 5 * 60_000,
     })),
@@ -517,11 +569,11 @@ export function useWatchlistNews(symbols: string[], limit = 30) {
             ...n,
             symbol: bounded[i],
             providerPublishTime: n.providerPublishTime ?? 0,
-          }))
+          })),
         )
         .sort((a, b) => b.providerPublishTime - a.providerPublishTime)
         .slice(0, limit),
-    [results, bounded, limit]
+    [results, bounded, limit],
   );
   return useMemo(
     () => ({
@@ -534,7 +586,7 @@ export function useWatchlistNews(symbols: string[], limit = 30) {
         count: results[i]?.data?.length ?? 0,
       })),
     }),
-    [unified, results, bounded]
+    [unified, results, bounded],
   );
 }
 
@@ -621,7 +673,10 @@ export function useStockData(ticker: string) {
             : null,
           ratios: metrics
             ? {
-                peTtm: profile?.peRatio ?? metrics.ratios?.priceEarningsRatioTTM ?? undefined,
+                peTtm:
+                  profile?.peRatio ??
+                  metrics.ratios?.priceEarningsRatioTTM ??
+                  undefined,
                 peNtm: undefined,
                 priceToBook:
                   metrics.ratios?.priceToBookRatioTTM ??
@@ -633,7 +688,8 @@ export function useStockData(ticker: string) {
                   undefined,
                 evToEbitda: metrics.metrics?.evToEBITDATTM ?? undefined,
                 dividendYield: metrics.metrics?.dividendYieldTTM ?? undefined,
-                pegRatio: metrics.ratios?.priceToEarningsGrowthRatioTTM ?? undefined,
+                pegRatio:
+                  metrics.ratios?.priceToEarningsGrowthRatioTTM ?? undefined,
                 // Profile.beta is the canonical source (already on /stock-overview).
                 beta: profile?.beta ?? undefined,
               }
@@ -710,13 +766,17 @@ export function useSectorHeatmap(
  */
 export function useValidateSymbols(candidates: string[]) {
   const normalized = useMemo(
-    () => Array.from(new Set(candidates.map((s) => s.toUpperCase().trim()).filter(Boolean))),
+    () =>
+      Array.from(
+        new Set(candidates.map((s) => s.toUpperCase().trim()).filter(Boolean)),
+      ),
     [candidates],
   );
   const validation = useQuery({
     queryKey: ["validateStockProfiles", [...normalized].sort().join(",")],
     queryFn: async ({ signal }) => {
-      const profiles: Array<{ symbol: string; profile: ApiCompanyProfile }> = [];
+      const profiles: Array<{ symbol: string; profile: ApiCompanyProfile }> =
+        [];
       const invalid: string[] = [];
       const unavailable: string[] = [];
       const batchSize = 8;
@@ -745,7 +805,8 @@ export function useValidateSymbols(candidates: string[]) {
               if (!response.ok) {
                 throw new Error(`Request failed (${response.status})`);
               }
-              const profile = (await response.json()) as ApiCompanyProfile | null;
+              const profile =
+                (await response.json()) as ApiCompanyProfile | null;
               return { sym, profile, unavailable: false };
             } catch (error) {
               if (signal.aborted) throw error;
@@ -759,7 +820,11 @@ export function useValidateSymbols(candidates: string[]) {
         // Do not cache partial results if the query was superseded while the
         // current batch was in flight.
         throwIfAborted();
-        for (const { sym, profile, unavailable: requestUnavailable } of settled) {
+        for (const {
+          sym,
+          profile,
+          unavailable: requestUnavailable,
+        } of settled) {
           if (requestUnavailable) {
             unavailable.push(sym);
           } else if (
@@ -780,12 +845,15 @@ export function useValidateSymbols(candidates: string[]) {
     staleTime: 5 * 60_000,
   });
 
-  return useMemo(() => ({
-    valid: validation.data?.profiles ?? [],
-    invalid: validation.data?.invalid ?? [],
-    unavailable: validation.data?.unavailable ?? [],
-    isValidating: validation.isPending || validation.isFetching,
-  }), [validation.data, validation.isPending, validation.isFetching]);
+  return useMemo(
+    () => ({
+      valid: validation.data?.profiles ?? [],
+      invalid: validation.data?.invalid ?? [],
+      unavailable: validation.data?.unavailable ?? [],
+      isValidating: validation.isPending || validation.isFetching,
+    }),
+    [validation.data, validation.isPending, validation.isFetching],
+  );
 }
 
 export type { IndexQuotesResponse };
@@ -825,7 +893,7 @@ export function useScreenerSearch(query: string, limit: number = 10) {
     queryKey: ["screenerSearch", query, limit],
     queryFn: () =>
       fetchJSON<{ results: ScreenerSearchResult[] }>(
-        `/api/screener/search?q=${encodeURIComponent(query)}&limit=${limit}`
+        `/api/screener/search?q=${encodeURIComponent(query)}&limit=${limit}`,
       ),
     enabled: query.length >= 1,
     staleTime: 5 * 60_000,
@@ -844,24 +912,31 @@ export function useScreenerFilter(
     sort_dir?: "asc" | "desc";
   },
   limit: number = 50,
-  offset: number = 0
+  offset: number = 0,
 ) {
   const queryParams = new URLSearchParams({
     limit: limit.toString(),
     offset: offset.toString(),
   });
   if (filters.q?.trim()) queryParams.set("q", filters.q.trim());
-  if (filters.sector?.length) queryParams.set("sector", filters.sector.join(","));
-  if (filters.industry?.length) queryParams.set("industry", filters.industry.join(","));
-  if (filters.country?.length) queryParams.set("country", filters.country.join(","));
-  if (filters.asset_type?.length) queryParams.set("asset_type", filters.asset_type.join(","));
+  if (filters.sector?.length)
+    queryParams.set("sector", filters.sector.join(","));
+  if (filters.industry?.length)
+    queryParams.set("industry", filters.industry.join(","));
+  if (filters.country?.length)
+    queryParams.set("country", filters.country.join(","));
+  if (filters.asset_type?.length)
+    queryParams.set("asset_type", filters.asset_type.join(","));
   if (filters.exclude_dots) queryParams.set("exclude_dots", "1");
   if (filters.sort_by) queryParams.set("sort_by", filters.sort_by);
   if (filters.sort_dir) queryParams.set("sort_dir", filters.sort_dir);
 
   return useQuery({
     queryKey: ["screenerFilter", queryParams.toString()],
-    queryFn: () => fetchJSON<ScreenerFilterResponse>(`/api/screener/filter?${queryParams.toString()}`),
+    queryFn: () =>
+      fetchJSON<ScreenerFilterResponse>(
+        `/api/screener/filter?${queryParams.toString()}`,
+      ),
     staleTime: 5 * 60_000,
   });
 }
@@ -869,7 +944,10 @@ export function useScreenerFilter(
 export function useScreenerAsset(ticker: string) {
   return useQuery({
     queryKey: ["screenerAsset", ticker],
-    queryFn: () => fetchJSON<ScreenerAsset>(`/api/screener/asset/${encodeURIComponent(ticker)}`),
+    queryFn: () =>
+      fetchJSON<ScreenerAsset>(
+        `/api/screener/asset/${encodeURIComponent(ticker)}`,
+      ),
     enabled: !!ticker,
     staleTime: 60 * 60_000, // Assets rarely change metadata
   });
@@ -888,4 +966,3 @@ export function useScreenerFacets() {
     staleTime: 24 * 60 * 60_000, // Facets don't change within a session
   });
 }
-

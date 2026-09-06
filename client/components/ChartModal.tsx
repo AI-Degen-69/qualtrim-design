@@ -1,5 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { X, Download, TrendingUp, TrendingDown, Lock, Table as TableIcon, Activity, BarChart3 } from "lucide-react";
+import {
+  X,
+  Download,
+  TrendingUp,
+  TrendingDown,
+  Lock,
+  Table as TableIcon,
+  Activity,
+  BarChart3,
+} from "lucide-react";
 import TickerLogo from "@/components/TickerLogo";
 import { useI18n } from "@/lib/i18n";
 import {
@@ -116,7 +125,11 @@ function previousQuarterLabel(label: string): string {
   return `Q${quarter} ${year}`;
 }
 
-function formatMetricValue(value: number, unit: string, maxDecimals: number = 2) {
+function formatMetricValue(
+  value: number,
+  unit: string,
+  maxDecimals: number = 2,
+) {
   let prefix = "";
   let suffix = "";
   if (unit === "B" || unit === "M") {
@@ -128,12 +141,12 @@ function formatMetricValue(value: number, unit: string, maxDecimals: number = 2)
   } else {
     suffix = unit || "";
   }
-  
+
   const formattedNum = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 0,
     maximumFractionDigits: maxDecimals,
   }).format(value);
-  
+
   return `${prefix}${formattedNum}${suffix}`;
 }
 
@@ -192,19 +205,21 @@ export default function ChartModal({
     period: "quarter",
     enabled: isOpen && granularity === "quarter" && !hasSegmentData,
   });
-  const quarterlySource = quarterlyStatements?.sources?.income ?? quarterlyStatements?.sources?.balance ?? quarterlyStatements?.sources?.cash ?? null;
+  const quarterlySource =
+    quarterlyStatements?.sources?.income ??
+    quarterlyStatements?.sources?.balance ??
+    quarterlyStatements?.sources?.cash ??
+    null;
 
   // Quarterly segment rows (FMP `revenue-product-segmentation?period=quarter`),
   // fetched only when the modal is open, segment mode is active, and the
   // user switched the granularity toggle to quarterly. Each row is one 10-Q
   // filing's product breakdown.
-  const {
-    data: quarterlySegmentation,
-    isLoading: quarterlySegLoading,
-  } = useStockRevenueSegmentation(ticker, {
-    period: "quarter",
-    enabled: isOpen && granularity === "quarter" && hasSegmentData,
-  });
+  const { data: quarterlySegmentation, isLoading: quarterlySegLoading } =
+    useStockRevenueSegmentation(ticker, {
+      period: "quarter",
+      enabled: isOpen && granularity === "quarter" && hasSegmentData,
+    });
   const quarterlySegmentRows = quarterlySegmentation?.rows ?? [];
   const segmentQuarterlyUnavailable =
     hasSegmentData &&
@@ -241,7 +256,10 @@ export default function ChartModal({
       sliced = metric.data.slice(-expectedCount);
     }
 
-    if (sliced.length < expectedCount && (granularity === "quarter" || sliced.length > 0)) {
+    if (
+      sliced.length < expectedCount &&
+      (granularity === "quarter" || sliced.length > 0)
+    ) {
       const missingCount = expectedCount - sliced.length;
       const lockedPeriods = [];
       let lastDateStr = sliced[0]?.date ?? currentQuarterLabel();
@@ -302,8 +320,11 @@ export default function ChartModal({
         methodology: "quarter",
       } as const;
     }
-    const rows = [...(statements[meta.statement] as unknown as ReadonlyArray<Record<string, unknown>>)]
-      .sort((a, b) => String(a.date ?? "").localeCompare(String(b.date ?? "")));
+    const rows = [
+      ...(statements[meta.statement] as unknown as ReadonlyArray<
+        Record<string, unknown>
+      >),
+    ].sort((a, b) => String(a.date ?? "").localeCompare(String(b.date ?? "")));
     const period = detectPeriodGranularity(rows);
     return {
       yoy: computeYoYFromRows(rows, meta.key),
@@ -312,7 +333,7 @@ export default function ChartModal({
     } as const;
   }, [granularity, quarterlyStatements, metric, quarterlyUpdatedAt]);
 
-  // Generate table data from the filtered chart data to keep them in sync, 
+  // Generate table data from the filtered chart data to keep them in sync,
   // but reversed (newest first) and with a YoY column computed from the full series.
   const tableData = useMemo(() => {
     let fullSeries: any[] = [];
@@ -331,11 +352,15 @@ export default function ChartModal({
       const idx = fullSeries.findIndex((r) => r.date === row.date);
       let yoy: number | null = null;
       const lookback = granularity === "quarter" ? 4 : 1;
-      
+
       if (idx >= lookback && !row.isLocked) {
         const currentVal = fullSeries[idx]?.value;
         const priorVal = fullSeries[idx - lookback]?.value;
-        if (typeof currentVal === "number" && typeof priorVal === "number" && priorVal !== 0) {
+        if (
+          typeof currentVal === "number" &&
+          typeof priorVal === "number" &&
+          priorVal !== 0
+        ) {
           yoy = ((currentVal - priorVal) / Math.abs(priorVal)) * 100;
         }
       }
@@ -415,7 +440,8 @@ export default function ChartModal({
     return { names, rows };
   }, [segmentSource, granularity]);
 
-  const isSegmentMode = segmentModel.rows.length > 0 && segmentModel.names.length > 0;
+  const isSegmentMode =
+    segmentModel.rows.length > 0 && segmentModel.names.length > 0;
   const segmentColor = (name: string) =>
     SEGMENT_PALETTE[
       Math.max(0, segmentModel.names.indexOf(name)) % SEGMENT_PALETTE.length
@@ -492,34 +518,37 @@ export default function ChartModal({
   const segmentTableRows = useMemo(() => {
     const asc = segmentModel.rows;
     const lookback = granularity === "quarter" ? 4 : 1;
-    return [...asc]
-      .reverse()
-      // Explicit return type: spreading a `Record<string, …>` into a fresh
-      // object literal makes TS drop the index signature, so `row.date` /
-      // `row.total` would otherwise fail below. Pin the type at the map.
-      .map<Record<string, number | string | null> & { yoy: number | null }>(
-        (point, i) => {
-          const ascIdx = asc.length - 1 - i;
-          const cur = point.total;
-          const prev =
-            ascIdx >= lookback ? asc[ascIdx - lookback].total : null;
-          let yoy: number | null = null;
-          if (
-            typeof cur === "number" &&
-            typeof prev === "number" &&
-            prev !== 0
-          ) {
-            yoy = ((cur - prev) / Math.abs(prev)) * 100;
-          }
-          return { ...point, yoy };
-        },
-      );
+    return (
+      [...asc]
+        .reverse()
+        // Explicit return type: spreading a `Record<string, …>` into a fresh
+        // object literal makes TS drop the index signature, so `row.date` /
+        // `row.total` would otherwise fail below. Pin the type at the map.
+        .map<Record<string, number | string | null> & { yoy: number | null }>(
+          (point, i) => {
+            const ascIdx = asc.length - 1 - i;
+            const cur = point.total;
+            const prev =
+              ascIdx >= lookback ? asc[ascIdx - lookback].total : null;
+            let yoy: number | null = null;
+            if (
+              typeof cur === "number" &&
+              typeof prev === "number" &&
+              prev !== 0
+            ) {
+              yoy = ((cur - prev) / Math.abs(prev)) * 100;
+            }
+            return { ...point, yoy };
+          },
+        )
+    );
   }, [segmentModel.rows, granularity]);
 
   // Always compute reliable growth metrics regardless of timeframe selection
   const cagrValue = useMemo(() => {
     if (isSegmentMode) return segmentGrowth.cagr3Y;
-    if (liveGrowth.cagr3Y !== null && liveGrowth.cagr3Y !== undefined) return liveGrowth.cagr3Y;
+    if (liveGrowth.cagr3Y !== null && liveGrowth.cagr3Y !== undefined)
+      return liveGrowth.cagr3Y;
     const finite = (metric.data || [])
       .map((d) => d.value)
       .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
@@ -536,7 +565,8 @@ export default function ChartModal({
 
   const yoyValue = useMemo(() => {
     if (isSegmentMode) return segmentGrowth.yoy;
-    if (liveGrowth.yoy !== null && liveGrowth.yoy !== undefined) return liveGrowth.yoy;
+    if (liveGrowth.yoy !== null && liveGrowth.yoy !== undefined)
+      return liveGrowth.yoy;
     const finite = (metric.data || [])
       .map((d) => d.value)
       .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
@@ -597,10 +627,9 @@ export default function ChartModal({
             ].join(","),
           ),
         ].join("\n")
-      : [
-          "Date,Value",
-          ...filteredData.map((d) => `${d.date},${d.value}`),
-        ].join("\n");
+      : ["Date,Value", ...filteredData.map((d) => `${d.date},${d.value}`)].join(
+          "\n",
+        );
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -629,8 +658,11 @@ export default function ChartModal({
   const gridColor = "hsl(250 20% 18%)"; // Subtle horizontal grid
   const axisColor = "hsl(220 20% 85%)"; // High contrast readable tick labels
   const axisLineColor = "hsl(250 20% 28%)"; // Visible axis baseline
-  const chartDomain = calculateChartDomain(filteredData.map((entry) => entry.value));
-  const requestedPeriodCount = granularity === "quarter" ? (timeframe === "1Y" ? 4 : 12) : 0;
+  const chartDomain = calculateChartDomain(
+    filteredData.map((entry) => entry.value),
+  );
+  const requestedPeriodCount =
+    granularity === "quarter" ? (timeframe === "1Y" ? 4 : 12) : 0;
   const quarterlyAvailability = getChartAvailability(
     filteredData.map((entry) => entry.value),
     requestedPeriodCount,
@@ -643,51 +675,58 @@ export default function ChartModal({
       ? "100%"
       : `${Math.round(quarterlyAvailability.fractionUnavailable * 100)}%`;
 
-  const quarterlyMask = granularity === "quarter" && (quarterlyLoading || showQuarterlyMask) ? (
-    <div
-      className="pointer-events-none absolute z-10 flex flex-col items-center justify-center gap-2 overflow-hidden border border-dashed border-border/80 bg-gradient-to-r from-card/95 via-card/85 to-card/25 px-6 text-center backdrop-blur-[2px] rounded-lg"
-      style={{
-        top: "20px",
-        bottom: "55px",
-        left: "75px",
-        width:
-          quarterlyLoading || quarterlyAvailability.availableCount === 0
-            ? "calc(100% - 100px)"
-            : `calc((100% - 100px) * ${quarterlyAvailability.fractionUnavailable})`,
-      }}
-      role="status"
-      aria-live="polite"
-      aria-label={
-        quarterlyLoading
-          ? "Loading quarterly data"
-          : quarterlyAvailability.availableCount === 0
-            ? "Quarterly data unavailable"
-            : "Some quarterly history is unavailable"
-      }
-    >
-      <div className="rounded-full border border-border/80 bg-card/90 p-2.5 shadow-md shadow-black/40">
-        {quarterlyLoading ? (
-          <span className="block h-4 w-4 animate-pulse rounded-full bg-muted-foreground/50" aria-hidden="true" />
-        ) : (
-          <Lock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-        )}
+  const quarterlyMask =
+    granularity === "quarter" && (quarterlyLoading || showQuarterlyMask) ? (
+      <div
+        className="pointer-events-none absolute z-10 flex flex-col items-center justify-center gap-2 overflow-hidden border border-dashed border-border/80 bg-gradient-to-r from-card/95 via-card/85 to-card/25 px-6 text-center backdrop-blur-[2px] rounded-lg"
+        style={{
+          top: "20px",
+          bottom: "55px",
+          left: "75px",
+          width:
+            quarterlyLoading || quarterlyAvailability.availableCount === 0
+              ? "calc(100% - 100px)"
+              : `calc((100% - 100px) * ${quarterlyAvailability.fractionUnavailable})`,
+        }}
+        role="status"
+        aria-live="polite"
+        aria-label={
+          quarterlyLoading
+            ? "Loading quarterly data"
+            : quarterlyAvailability.availableCount === 0
+              ? "Quarterly data unavailable"
+              : "Some quarterly history is unavailable"
+        }
+      >
+        <div className="rounded-full border border-border/80 bg-card/90 p-2.5 shadow-md shadow-black/40">
+          {quarterlyLoading ? (
+            <span
+              className="block h-4 w-4 animate-pulse rounded-full bg-muted-foreground/50"
+              aria-hidden="true"
+            />
+          ) : (
+            <Lock
+              className="h-4 w-4 text-muted-foreground"
+              aria-hidden="true"
+            />
+          )}
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/80">
+          {quarterlyLoading
+            ? "Loading"
+            : quarterlyAvailability.availableCount === 0
+              ? "Unavailable"
+              : "Pro history"}
+        </span>
+        <span className="max-w-[13rem] text-xs leading-relaxed text-muted-foreground/80">
+          {quarterlyLoading
+            ? "Fetching quarterly statements..."
+            : quarterlyAvailability.availableCount === 0
+              ? "No quarterly statements were returned for this symbol."
+              : "Earlier quarterly periods are not available."}
+        </span>
       </div>
-      <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground/80">
-        {quarterlyLoading
-          ? "Loading"
-          : quarterlyAvailability.availableCount === 0
-            ? "Unavailable"
-            : "Pro history"}
-      </span>
-      <span className="max-w-[13rem] text-xs leading-relaxed text-muted-foreground/80">
-        {quarterlyLoading
-          ? "Fetching quarterly statements..."
-          : quarterlyAvailability.availableCount === 0
-            ? "No quarterly statements were returned for this symbol."
-            : "Earlier quarterly periods are not available."}
-      </span>
-    </div>
-  ) : null;
+    ) : null;
 
   const renderChart = () => {
     const commonProps = {
@@ -701,7 +740,12 @@ export default function ChartModal({
         if (data.isLocked) {
           return (
             <div className="bg-card/95 backdrop-blur-md border border-border/80 p-3 rounded-panel text-xs text-foreground shadow-xl text-center rtl:text-right">
-              <p className="text-muted-foreground mb-1.5 font-mono text-[11px]" dir="ltr">{label}</p>
+              <p
+                className="text-muted-foreground mb-1.5 font-mono text-[11px]"
+                dir="ltr"
+              >
+                {label}
+              </p>
               <div className="flex items-center justify-center gap-1.5 text-muted-foreground font-semibold text-xs">
                 <Lock className="w-3.5 h-3.5" />
                 <span>Pro</span>
@@ -713,12 +757,24 @@ export default function ChartModal({
 
         return (
           <div className="bg-card/95 backdrop-blur-md border border-border/80 p-3 rounded-panel text-xs text-foreground shadow-xl text-left rtl:text-right min-w-[130px]">
-            <p className="text-muted-foreground mb-1.5 font-mono text-[11px] pb-1 border-b border-border/40" dir="ltr">
+            <p
+              className="text-muted-foreground mb-1.5 font-mono text-[11px] pb-1 border-b border-border/40"
+              dir="ltr"
+            >
               {label}
             </p>
             <p className="font-bold text-base flex items-baseline gap-1.5 font-mono tabular-nums text-foreground">
-              <span className="font-sans text-xs font-normal text-muted-foreground">{t(metric.name)}:</span>
-              <span dir="ltr" className={data.value >= 0 ? "text-chart-positive" : "text-chart-negative"}>
+              <span className="font-sans text-xs font-normal text-muted-foreground">
+                {t(metric.name)}:
+              </span>
+              <span
+                dir="ltr"
+                className={
+                  data.value >= 0
+                    ? "text-chart-positive"
+                    : "text-chart-negative"
+                }
+              >
                 {formatMetricValue(data.value, metric.unit, 2)}
               </span>
             </p>
@@ -736,9 +792,16 @@ export default function ChartModal({
       value?: unknown;
     }) => {
       const { x, y, width, value } = props;
-      const numX = typeof x === "number" ? x : typeof x === "string" ? parseFloat(x) : NaN;
-      const numY = typeof y === "number" ? y : typeof y === "string" ? parseFloat(y) : NaN;
-      const numW = typeof width === "number" ? width : typeof width === "string" ? parseFloat(width) : NaN;
+      const numX =
+        typeof x === "number" ? x : typeof x === "string" ? parseFloat(x) : NaN;
+      const numY =
+        typeof y === "number" ? y : typeof y === "string" ? parseFloat(y) : NaN;
+      const numW =
+        typeof width === "number"
+          ? width
+          : typeof width === "string"
+            ? parseFloat(width)
+            : NaN;
       if (
         typeof value !== "number" ||
         !Number.isFinite(value) ||
@@ -778,8 +841,10 @@ export default function ChartModal({
       value?: unknown;
     }) => {
       const { x, y, value } = props;
-      const numX = typeof x === "number" ? x : typeof x === "string" ? parseFloat(x) : NaN;
-      const numY = typeof y === "number" ? y : typeof y === "string" ? parseFloat(y) : NaN;
+      const numX =
+        typeof x === "number" ? x : typeof x === "string" ? parseFloat(x) : NaN;
+      const numY =
+        typeof y === "number" ? y : typeof y === "string" ? parseFloat(y) : NaN;
       if (
         typeof value !== "number" ||
         !Number.isFinite(value) ||
@@ -835,7 +900,10 @@ export default function ChartModal({
         const total = visibleTotal(point);
         return (
           <div className="bg-card/95 backdrop-blur-md border border-border/80 p-3.5 rounded-panel text-xs text-foreground shadow-xl text-left rtl:text-right min-w-[12rem]">
-            <p className="text-muted-foreground mb-2 font-mono text-[11px] pb-1 border-b border-border/40" dir="ltr">
+            <p
+              className="text-muted-foreground mb-2 font-mono text-[11px] pb-1 border-b border-border/40"
+              dir="ltr"
+            >
               {label}
             </p>
             <div className="space-y-1">
@@ -856,7 +924,10 @@ export default function ChartModal({
                       />
                       <span className="truncate max-w-[100px]">{name}</span>
                     </span>
-                    <span className="font-mono tabular-nums font-semibold text-foreground" dir="ltr">
+                    <span
+                      className="font-mono tabular-nums font-semibold text-foreground"
+                      dir="ltr"
+                    >
                       {formatMetricValue(value, "B", 2)}
                     </span>
                   </div>
@@ -865,7 +936,9 @@ export default function ChartModal({
             </div>
             {total > 0 && (
               <div className="flex items-center justify-between gap-4 mt-2 pt-2 border-t border-border/50">
-                <span className="font-semibold text-foreground/80">{t("chart.total")}</span>
+                <span className="font-semibold text-foreground/80">
+                  {t("chart.total")}
+                </span>
                 <span
                   className="font-mono tabular-nums font-bold text-foreground"
                   dir="ltr"
@@ -949,20 +1022,35 @@ export default function ChartModal({
               data={segmentWindow}
               margin={{ top: 20, right: 25, left: 10, bottom: 25 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} strokeOpacity={0.7} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={gridColor}
+                vertical={false}
+                strokeOpacity={0.7}
+              />
               <XAxis
                 height={30}
                 dataKey="date"
                 stroke={axisLineColor}
                 tickLine={{ stroke: axisLineColor, strokeWidth: 1 }}
-                tick={{ fontSize: 12, fill: axisColor, fontWeight: 600, fontFamily: "JetBrains Mono, monospace" }}
+                tick={{
+                  fontSize: 12,
+                  fill: axisColor,
+                  fontWeight: 600,
+                  fontFamily: "JetBrains Mono, monospace",
+                }}
                 tickMargin={10}
               />
               <YAxis
                 width={65}
                 stroke={axisLineColor}
                 tickLine={{ stroke: axisLineColor, strokeWidth: 1 }}
-                tick={{ fontSize: 12, fill: axisColor, fontWeight: 600, fontFamily: "JetBrains Mono, monospace" }}
+                tick={{
+                  fontSize: 12,
+                  fill: axisColor,
+                  fontWeight: 600,
+                  fontFamily: "JetBrains Mono, monospace",
+                }}
                 tickMargin={10}
                 domain={[0, maxTotal * 1.15]}
                 tickCount={5}
@@ -995,7 +1083,11 @@ export default function ChartModal({
     }
 
     // Single-series rendering (Line Chart vs Bar)
-    if (chartView === "line" || metric.type === "area" || metric.type === "line") {
+    if (
+      chartView === "line" ||
+      metric.type === "area" ||
+      metric.type === "line"
+    ) {
       return (
         <div className="relative h-[340px] sm:h-[380px] w-full">
           <ResponsiveContainer width="100%" height="100%">
@@ -1009,31 +1101,57 @@ export default function ChartModal({
                   y2="1"
                 >
                   <stop offset="0%" stopColor={chartColor} stopOpacity={0.35} />
-                  <stop offset="100%" stopColor={chartColor} stopOpacity={0.0} />
+                  <stop
+                    offset="100%"
+                    stopColor={chartColor}
+                    stopOpacity={0.0}
+                  />
                 </linearGradient>
                 <GlowFilter />
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} strokeOpacity={0.7} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={gridColor}
+                vertical={false}
+                strokeOpacity={0.7}
+              />
               <XAxis
                 height={30}
                 dataKey="date"
                 stroke={axisLineColor}
                 tickLine={{ stroke: axisLineColor, strokeWidth: 1 }}
-                tick={{ fontSize: 12, fill: axisColor, fontWeight: 600, fontFamily: "JetBrains Mono, monospace" }}
+                tick={{
+                  fontSize: 12,
+                  fill: axisColor,
+                  fontWeight: 600,
+                  fontFamily: "JetBrains Mono, monospace",
+                }}
                 tickMargin={10}
               />
               <YAxis
                 width={65}
                 stroke={axisLineColor}
                 tickLine={{ stroke: axisLineColor, strokeWidth: 1 }}
-                tick={{ fontSize: 12, fill: axisColor, fontWeight: 600, fontFamily: "JetBrains Mono, monospace" }}
+                tick={{
+                  fontSize: 12,
+                  fill: axisColor,
+                  fontWeight: 600,
+                  fontFamily: "JetBrains Mono, monospace",
+                }}
                 tickMargin={10}
                 domain={chartDomain}
                 allowDataOverflow={false}
                 tickCount={6}
                 tickFormatter={(val) => formatMetricValue(val, metric.unit, 0)}
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ stroke: "hsl(250 20% 30%)", strokeWidth: 1, strokeDasharray: "3 3" }} />
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{
+                  stroke: "hsl(250 20% 30%)",
+                  strokeWidth: 1,
+                  strokeDasharray: "3 3",
+                }}
+              />
               <Area
                 type="monotone"
                 dataKey="value"
@@ -1042,16 +1160,23 @@ export default function ChartModal({
                 filter={`url(#${glowId})`}
                 fill={`url(#colorValue-area-${metric.name})`}
                 fillOpacity={1}
-                dot={{ r: 5, stroke: chartColor, strokeWidth: 2.5, fill: "#0c0b14" }}
-                activeDot={{ r: 7.5, stroke: chartColor, strokeWidth: 3, fill: "#ffffff" }}
+                dot={{
+                  r: 5,
+                  stroke: chartColor,
+                  strokeWidth: 2.5,
+                  fill: "#0c0b14",
+                }}
+                activeDot={{
+                  r: 7.5,
+                  stroke: chartColor,
+                  strokeWidth: 3,
+                  fill: "#ffffff",
+                }}
                 isAnimationActive={true}
                 animationDuration={800}
                 animationEasing="ease-out"
               >
-                <LabelList
-                  dataKey="value"
-                  content={renderAreaValueLabel}
-                />
+                <LabelList dataKey="value" content={renderAreaValueLabel} />
               </Area>
               <ReferenceLine
                 y={0}
@@ -1080,8 +1205,16 @@ export default function ChartModal({
                 x2="0"
                 y2="1"
               >
-                <stop offset="0%" stopColor="hsl(155 75% 55%)" stopOpacity={0.95} />
-                <stop offset="100%" stopColor="hsl(155 55% 35%)" stopOpacity={0.4} />
+                <stop
+                  offset="0%"
+                  stopColor="hsl(155 75% 55%)"
+                  stopOpacity={0.95}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="hsl(155 55% 35%)"
+                  stopOpacity={0.4}
+                />
               </linearGradient>
               <linearGradient
                 id={`colorValue-negative-${metric.name}`}
@@ -1090,8 +1223,16 @@ export default function ChartModal({
                 x2="0"
                 y2="1"
               >
-                <stop offset="0%" stopColor="hsl(6 55% 35%)" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="hsl(6 80% 60%)" stopOpacity={0.95} />
+                <stop
+                  offset="0%"
+                  stopColor="hsl(6 55% 35%)"
+                  stopOpacity={0.4}
+                />
+                <stop
+                  offset="100%"
+                  stopColor="hsl(6 80% 60%)"
+                  stopOpacity={0.95}
+                />
               </linearGradient>
               <linearGradient
                 id={`colorValue-neutral-${metric.name}`}
@@ -1104,27 +1245,45 @@ export default function ChartModal({
                 <stop offset="100%" stopColor={chartColor} stopOpacity={0.4} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} vertical={false} strokeOpacity={0.7} />
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke={gridColor}
+              vertical={false}
+              strokeOpacity={0.7}
+            />
             <XAxis
               height={30}
               dataKey="date"
               stroke={axisLineColor}
               tickLine={{ stroke: axisLineColor, strokeWidth: 1 }}
-              tick={{ fontSize: 12, fill: axisColor, fontWeight: 600, fontFamily: "JetBrains Mono, monospace" }}
+              tick={{
+                fontSize: 12,
+                fill: axisColor,
+                fontWeight: 600,
+                fontFamily: "JetBrains Mono, monospace",
+              }}
               tickMargin={10}
             />
             <YAxis
               width={65}
               stroke={axisLineColor}
               tickLine={{ stroke: axisLineColor, strokeWidth: 1 }}
-              tick={{ fontSize: 12, fill: axisColor, fontWeight: 600, fontFamily: "JetBrains Mono, monospace" }}
+              tick={{
+                fontSize: 12,
+                fill: axisColor,
+                fontWeight: 600,
+                fontFamily: "JetBrains Mono, monospace",
+              }}
               tickMargin={10}
               domain={chartDomain}
               allowDataOverflow={false}
               tickCount={6}
               tickFormatter={(val) => formatMetricValue(val, metric.unit, 0)}
             />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(250 20% 16% / 0.35)" }} />
+            <Tooltip
+              content={<CustomTooltip />}
+              cursor={{ fill: "hsl(250 20% 16% / 0.35)" }}
+            />
             <Bar
               dataKey="value"
               strokeWidth={1}
@@ -1141,10 +1300,7 @@ export default function ChartModal({
                   stroke={barStroke(entry.value)}
                 />
               ))}
-              <LabelList
-                dataKey="value"
-                content={renderBarValueLabel}
-              />
+              <LabelList dataKey="value" content={renderBarValueLabel} />
             </Bar>
             <ReferenceLine
               y={0}
@@ -1161,11 +1317,11 @@ export default function ChartModal({
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-background/80 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-card rounded-panel border border-border shadow-[0_20px_60px_-15px_rgba(0,0,0,0.85)] w-[96vw] max-w-5xl max-h-[90vh] flex flex-row overflow-hidden relative my-auto"
         onClick={(e) => e.stopPropagation()}
       >
@@ -1176,7 +1332,9 @@ export default function ChartModal({
             <div className="flex items-center gap-3">
               <TickerLogo ticker={ticker} size="md" />
               <h2 className="text-lg sm:text-xl font-bold text-foreground flex items-center gap-2.5">
-                <span className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-muted/60 border border-border/60 text-foreground">{ticker}</span>
+                <span className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-muted/60 border border-border/60 text-foreground">
+                  {ticker}
+                </span>
                 <span className="text-muted-foreground/40 font-light">/</span>
                 <span className="tracking-tight">
                   {isSegmentMode
@@ -1286,9 +1444,9 @@ export default function ChartModal({
                 onClick={() => setShowTable(!showTable)}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-1.5 border rounded-md transition-all text-xs font-semibold",
-                  showTable 
-                    ? "bg-primary/15 text-primary border-primary/40 shadow-[0_0_10px_-3px_hsl(var(--primary)/0.3)]" 
-                    : "bg-muted/30 border-border/60 hover:border-border text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                  showTable
+                    ? "bg-primary/15 text-primary border-primary/40 shadow-[0_0_10px_-3px_hsl(var(--primary)/0.3)]"
+                    : "bg-muted/30 border-border/60 hover:border-border text-muted-foreground hover:text-foreground hover:bg-muted/60",
                 )}
               >
                 <TableIcon className="w-3.5 h-3.5" />
@@ -1306,11 +1464,14 @@ export default function ChartModal({
 
           {/* Chart */}
           <div className="p-4 sm:p-6 shrink-0">
-            {granularity === "quarter" && quarterlySource === null && quarterlyStatements && (
-              <div className="mb-3 rounded-lg border border-chart-amber/30 bg-chart-amber/5 px-3 py-2 text-xs text-chart-amber">
-                Quarterly statements are unavailable from both providers for this symbol.
-              </div>
-            )}
+            {granularity === "quarter" &&
+              quarterlySource === null &&
+              quarterlyStatements && (
+                <div className="mb-3 rounded-lg border border-chart-amber/30 bg-chart-amber/5 px-3 py-2 text-xs text-chart-amber">
+                  Quarterly statements are unavailable from both providers for
+                  this symbol.
+                </div>
+              )}
             {segmentQuarterlyUnavailable && (
               <div className="mb-3 rounded-lg border border-chart-amber/30 bg-chart-amber/5 px-3 py-2 text-xs text-chart-amber">
                 {t("chart.segmentQuarterlyUnavailable")}
@@ -1480,13 +1641,12 @@ export default function ChartModal({
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5 font-mono">
-                      {hasValue && (
-                        isPositive ? (
+                      {hasValue &&
+                        (isPositive ? (
                           <TrendingUp className="w-4 h-4 text-chart-positive shrink-0" />
                         ) : (
                           <TrendingDown className="w-4 h-4 text-chart-negative shrink-0" />
-                        )
-                      )}
+                        ))}
                       <span
                         className={`text-xl sm:text-2xl font-extrabold font-mono tabular-nums tracking-tight ${valueColor}`}
                         dir="ltr"
@@ -1512,11 +1672,14 @@ export default function ChartModal({
                 <TableIcon className="w-4 h-4" />
                 Table View
               </div>
-              <button onClick={() => setShowTable(false)} className="h-7 w-7 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors">
+              <button
+                onClick={() => setShowTable(false)}
+                className="h-7 w-7 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
-            
+
             <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
               {isSegmentMode ? (
                 <div className="rounded-lg border border-border/60 overflow-x-auto bg-card/50 shadow-sm">
@@ -1563,11 +1726,7 @@ export default function ChartModal({
                                 dir="ltr"
                               >
                                 {hasValue
-                                  ? formatMetricValue(
-                                      value as number,
-                                      "B",
-                                      2,
-                                    )
+                                  ? formatMetricValue(value as number, "B", 2)
                                   : "—"}
                               </td>
                             );
@@ -1576,11 +1735,7 @@ export default function ChartModal({
                             className="py-2.5 px-3 text-right font-mono tabular-nums font-bold whitespace-nowrap text-foreground"
                             dir="ltr"
                           >
-                            {formatMetricValue(
-                              visibleTotal(row) || 0,
-                              "B",
-                              2,
-                            )}
+                            {formatMetricValue(visibleTotal(row) || 0, "B", 2)}
                           </td>
                         </tr>
                       ))}
@@ -1588,58 +1743,101 @@ export default function ChartModal({
                   </table>
                 </div>
               ) : (
-              <div className="rounded-lg border border-border/60 overflow-hidden bg-card/50 shadow-sm">
-                <table className="w-full text-xs text-left rtl:text-right border-collapse">
-                  <thead className="sticky top-0 bg-muted/90 backdrop-blur-md z-10 border-b border-border/60">
-                    <tr>
-                      <th className="py-2.5 px-3 text-muted-foreground font-semibold uppercase tracking-wider w-1/3">{t("chart.period") || "Period"}</th>
-                      <th className="py-2.5 px-3 text-muted-foreground font-semibold uppercase tracking-wider text-right w-1/3">{t("chart.value") || "Value"}</th>
-                      <th className="py-2.5 px-3 text-muted-foreground font-semibold uppercase tracking-wider text-right w-1/3">{t("chart.yoy") || "YoY Growth"}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/30 font-mono">
-                    {tableData.map((row, i) => {
-                      if (row.isLocked) {
+                <div className="rounded-lg border border-border/60 overflow-hidden bg-card/50 shadow-sm">
+                  <table className="w-full text-xs text-left rtl:text-right border-collapse">
+                    <thead className="sticky top-0 bg-muted/90 backdrop-blur-md z-10 border-b border-border/60">
+                      <tr>
+                        <th className="py-2.5 px-3 text-muted-foreground font-semibold uppercase tracking-wider w-1/3">
+                          {t("chart.period") || "Period"}
+                        </th>
+                        <th className="py-2.5 px-3 text-muted-foreground font-semibold uppercase tracking-wider text-right w-1/3">
+                          {t("chart.value") || "Value"}
+                        </th>
+                        <th className="py-2.5 px-3 text-muted-foreground font-semibold uppercase tracking-wider text-right w-1/3">
+                          {t("chart.yoy") || "YoY Growth"}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/30 font-mono">
+                      {tableData.map((row, i) => {
+                        if (row.isLocked) {
+                          return (
+                            <tr
+                              key={`locked-${i}`}
+                              className="hover:bg-muted/30 transition-colors group"
+                            >
+                              <td
+                                className="py-2.5 px-3 font-mono text-muted-foreground/60"
+                                dir="ltr"
+                              >
+                                {row.date}
+                              </td>
+                              <td
+                                className="py-2.5 px-3 text-right"
+                                colSpan={2}
+                              >
+                                <div className="flex items-center justify-end gap-1.5 text-muted-foreground/50">
+                                  <Lock className="w-3 h-3" />
+                                  <span className="text-[10px] font-semibold tracking-wide uppercase">
+                                    Pro
+                                  </span>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        const hasValue = typeof row.value === "number";
+                        const hasYoY = typeof row.yoy === "number";
+                        const isPositive = hasYoY && row.yoy! > 0;
+                        const isNegative = hasYoY && row.yoy! < 0;
+
                         return (
-                          <tr key={`locked-${i}`} className="hover:bg-muted/30 transition-colors group">
-                            <td className="py-2.5 px-3 font-mono text-muted-foreground/60" dir="ltr">{row.date}</td>
-                            <td className="py-2.5 px-3 text-right" colSpan={2}>
-                              <div className="flex items-center justify-end gap-1.5 text-muted-foreground/50">
-                                <Lock className="w-3 h-3" />
-                                <span className="text-[10px] font-semibold tracking-wide uppercase">Pro</span>
-                              </div>
+                          <tr
+                            key={row.date}
+                            className="hover:bg-muted/40 transition-colors"
+                          >
+                            <td
+                              className="py-2.5 px-3 font-semibold text-foreground whitespace-nowrap"
+                              dir="ltr"
+                            >
+                              {row.date}
+                            </td>
+                            <td
+                              className="py-2.5 px-3 text-right font-mono tabular-nums text-foreground whitespace-nowrap"
+                              dir="ltr"
+                            >
+                              {hasValue
+                                ? formatMetricValue(row.value, metric.unit, 2)
+                                : "—"}
+                            </td>
+                            <td
+                              className="py-2.5 px-3 text-right font-mono tabular-nums whitespace-nowrap"
+                              dir="ltr"
+                            >
+                              {hasYoY ? (
+                                <div
+                                  className={`flex items-center justify-end gap-1 font-semibold ${isPositive ? "text-chart-positive" : isNegative ? "text-chart-negative" : "text-muted-foreground"}`}
+                                >
+                                  {isPositive ? (
+                                    <TrendingUp className="w-3 h-3" />
+                                  ) : isNegative ? (
+                                    <TrendingDown className="w-3 h-3" />
+                                  ) : null}
+                                  <span>{Math.abs(row.yoy!).toFixed(2)}%</span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground/50">
+                                  —
+                                </span>
+                              )}
                             </td>
                           </tr>
                         );
-                      }
-
-                      const hasValue = typeof row.value === "number";
-                      const hasYoY = typeof row.yoy === "number";
-                      const isPositive = hasYoY && row.yoy! > 0;
-                      const isNegative = hasYoY && row.yoy! < 0;
-
-                      return (
-                        <tr key={row.date} className="hover:bg-muted/40 transition-colors">
-                          <td className="py-2.5 px-3 font-semibold text-foreground whitespace-nowrap" dir="ltr">{row.date}</td>
-                          <td className="py-2.5 px-3 text-right font-mono tabular-nums text-foreground whitespace-nowrap" dir="ltr">
-                            {hasValue ? formatMetricValue(row.value, metric.unit, 2) : "—"}
-                          </td>
-                          <td className="py-2.5 px-3 text-right font-mono tabular-nums whitespace-nowrap" dir="ltr">
-                            {hasYoY ? (
-                              <div className={`flex items-center justify-end gap-1 font-semibold ${isPositive ? 'text-chart-positive' : isNegative ? 'text-chart-negative' : 'text-muted-foreground'}`}>
-                                {isPositive ? <TrendingUp className="w-3 h-3" /> : isNegative ? <TrendingDown className="w-3 h-3" /> : null}
-                                <span>{Math.abs(row.yoy!).toFixed(2)}%</span>
-                              </div>
-                            ) : (
-                              <span className="text-muted-foreground/50">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           </div>

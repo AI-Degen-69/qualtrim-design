@@ -13,13 +13,19 @@ describe("classifyProviderResult", () => {
   });
 
   it("treats 200 with an upstream error body as degraded (FMP/AV rate-limit or bad key)", () => {
-    expect(classifyProviderResult(200, "You have exceeded the daily limit")).toBe("degraded");
-    expect(classifyProviderResult(200, "Thank you for using Alpha Vantage!")).toBe("degraded");
+    expect(
+      classifyProviderResult(200, "You have exceeded the daily limit"),
+    ).toBe("degraded");
+    expect(
+      classifyProviderResult(200, "Thank you for using Alpha Vantage!"),
+    ).toBe("degraded");
   });
 
   it("classifies 402 as known_restriction (plan gating, e.g. FMP batch-quote)", () => {
     expect(classifyProviderResult(402, null)).toBe("known_restriction");
-    expect(classifyProviderResult(402, "Restricted Endpoint")).toBe("known_restriction");
+    expect(classifyProviderResult(402, "Restricted Endpoint")).toBe(
+      "known_restriction",
+    );
   });
 
   it("classifies 403 as degraded — ambiguous between plan gating and a broken key", () => {
@@ -40,25 +46,40 @@ describe("classifyProviderResult", () => {
 
 describe("providerStatusFromProbe (incl. the timeout branch)", () => {
   it("maps a null probe — timeout / network failure — to down with a network-error detail", () => {
-    expect(providerStatusFromProbe(null)).toEqual({ status: "down", detail: "network error" });
+    expect(providerStatusFromProbe(null)).toEqual({
+      status: "down",
+      detail: "network error",
+    });
   });
 
   it("derives detail from the upstream error body when present (200 + error body)", () => {
     expect(
-      providerStatusFromProbe({ status: 200, errorMessage: "You have exceeded the daily limit" }),
-    ).toEqual({ status: "degraded", detail: "You have exceeded the daily limit" });
+      providerStatusFromProbe({
+        status: 200,
+        errorMessage: "You have exceeded the daily limit",
+      }),
+    ).toEqual({
+      status: "degraded",
+      detail: "You have exceeded the daily limit",
+    });
   });
 
   it("omits detail for a clean 200", () => {
-    expect(providerStatusFromProbe({ status: 200, errorMessage: null })).toEqual({ status: "ok" });
+    expect(
+      providerStatusFromProbe({ status: 200, errorMessage: null }),
+    ).toEqual({ status: "ok" });
   });
 
   it("formats an http_<status> detail for non-200 statuses without an error body", () => {
-    expect(providerStatusFromProbe({ status: 402, errorMessage: null })).toEqual({
+    expect(
+      providerStatusFromProbe({ status: 402, errorMessage: null }),
+    ).toEqual({
       status: "known_restriction",
       detail: "http_402",
     });
-    expect(providerStatusFromProbe({ status: 500, errorMessage: null })).toEqual({
+    expect(
+      providerStatusFromProbe({ status: 500, errorMessage: null }),
+    ).toEqual({
       status: "down",
       detail: "http_500",
     });
@@ -67,16 +88,28 @@ describe("providerStatusFromProbe (incl. the timeout branch)", () => {
 
 describe("PROVIDER_STATUS_RANK", () => {
   it("orders severity so worst status wins in the collapse", () => {
-    expect(PROVIDER_STATUS_RANK.down).toBeGreaterThan(PROVIDER_STATUS_RANK.degraded);
-    expect(PROVIDER_STATUS_RANK.degraded).toBeGreaterThan(PROVIDER_STATUS_RANK.not_configured);
-    expect(PROVIDER_STATUS_RANK.not_configured).toBeGreaterThan(PROVIDER_STATUS_RANK.known_restriction);
-    expect(PROVIDER_STATUS_RANK.known_restriction).toBeGreaterThan(PROVIDER_STATUS_RANK.ok);
+    expect(PROVIDER_STATUS_RANK.down).toBeGreaterThan(
+      PROVIDER_STATUS_RANK.degraded,
+    );
+    expect(PROVIDER_STATUS_RANK.degraded).toBeGreaterThan(
+      PROVIDER_STATUS_RANK.not_configured,
+    );
+    expect(PROVIDER_STATUS_RANK.not_configured).toBeGreaterThan(
+      PROVIDER_STATUS_RANK.known_restriction,
+    );
+    expect(PROVIDER_STATUS_RANK.known_restriction).toBeGreaterThan(
+      PROVIDER_STATUS_RANK.ok,
+    );
   });
 });
 
 describe("perProviderStatus (multi-feature aggregation)", () => {
-  const entry = (provider: string, feature: string, status: string): ProviderHealthEntry =>
-    ({ provider, feature, status, latencyMs: 10 } as ProviderHealthEntry);
+  const entry = (
+    provider: string,
+    feature: string,
+    status: string,
+  ): ProviderHealthEntry =>
+    ({ provider, feature, status, latencyMs: 10 }) as ProviderHealthEntry;
 
   it("returns an empty map when there are no entries", () => {
     expect([...perProviderStatus([]).entries()]).toEqual([]);
@@ -116,7 +149,9 @@ describe("perProviderStatus (multi-feature aggregation)", () => {
       [["ok", "ok"], undefined],
     ];
     for (const [statuses, expected] of cases) {
-      const map = perProviderStatus(statuses.map((s, i) => entry("fmp", `feature-${i}`, s)));
+      const map = perProviderStatus(
+        statuses.map((s, i) => entry("fmp", `feature-${i}`, s)),
+      );
       expect(map.get("fmp")).toBe(expected as string | undefined);
     }
   });

@@ -13,14 +13,18 @@ interface SkeletonProps {
 /**
  * Renders an animated placeholder block for loading states.
  */
-export function Skeleton({ className, rounded = "rounded-md", style }: SkeletonProps) {
+export function Skeleton({
+  className,
+  rounded = "rounded-md",
+  style,
+}: SkeletonProps) {
   return (
     <div
       className={cn(
         "relative overflow-hidden bg-muted/60",
         rounded,
         "before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-muted-foreground/10 before:to-transparent",
-        className
+        className,
       )}
       style={style}
       aria-hidden="true"

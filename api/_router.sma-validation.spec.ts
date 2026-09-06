@@ -92,7 +92,9 @@ describe("api/_router.js handleSmaDistances validation ↔ Express contract", ()
         ? String.fromCharCode(65 + n)
         : String.fromCharCode(65 + Math.floor(n / 26) - 1) +
           String.fromCharCode(65 + (n % 26));
-    const many = Array.from({ length: 51 }, (_, i) => `T${suffix(i)}`).join(",");
+    const many = Array.from({ length: 51 }, (_, i) => `T${suffix(i)}`).join(
+      ",",
+    );
     const { res, statusCalls, getJson } = makeRes();
     await handleSmaDistances(makeReq({ symbols: many }), res);
     expect(statusCalls).toEqual([400]);
@@ -126,7 +128,11 @@ describe("api/_router.js handleSmaDistances validation ↔ Express contract", ()
     const { res, statusCalls, getJson } = makeRes();
     await handleSmaDistances(makeReq({ symbols: "AAPL", window: "abc" }), res);
     expect(statusCalls).toEqual([]);
-    expect(Number.isFinite(Number(historical.mock.calls[0]?.[1]?.period1?.getTime()))).toBe(true);
+    expect(
+      Number.isFinite(
+        Number(historical.mock.calls[0]?.[1]?.period1?.getTime()),
+      ),
+    ).toBe(true);
     const row = (getJson() as { rows: Array<{ sampleSize: number }> }).rows[0];
     expect(row.sampleSize).toBe(200);
   });

@@ -125,9 +125,7 @@ export function useWatchlists() {
 
   const active = useMemo(
     () =>
-      snap.lists.find((l) => l.id === snap.activeId) ??
-      snap.lists[0] ??
-      null,
+      snap.lists.find((l) => l.id === snap.activeId) ?? snap.lists[0] ?? null,
     [snap.lists, snap.activeId],
   );
 
@@ -153,7 +151,9 @@ export function useWatchlists() {
 
 // ── Provider + Context ───────────────────────────────────────────────────
 
-const WatchlistsContext = createContext<ReturnType<typeof useWatchlists> | null>(null);
+const WatchlistsContext = createContext<ReturnType<
+  typeof useWatchlists
+> | null>(null);
 
 /**
  * Mount once inside `AppLayout` (or as close to the React root as
@@ -171,11 +171,7 @@ export function WatchlistsProvider({ children }: { children: ReactNode }) {
   // `createElement` instead of JSX so this file can stay as `.ts` (the
   // pre-existing extension) without renaming. Same resulting tree at
   // runtime; just fewer glob edits.
-  return createElement(
-    WatchlistsContext.Provider,
-    { value: wl },
-    children,
-  );
+  return createElement(WatchlistsContext.Provider, { value: wl }, children);
 }
 
 /**

@@ -22,7 +22,10 @@ interface TickerLogoProps {
   ariaLabel?: string;
 }
 
-const sizeMap: Record<LogoSize, { box: string; text: string; rounded: string }> = {
+const sizeMap: Record<
+  LogoSize,
+  { box: string; text: string; rounded: string }
+> = {
   xs: { box: "w-6 h-6", text: "text-[8px]", rounded: "rounded" },
   sm: { box: "w-8 h-8", text: "text-xs", rounded: "rounded" },
   md: { box: "w-12 h-12", text: "text-sm", rounded: "rounded-md" },
@@ -154,7 +157,14 @@ export default function TickerLogo({
     const next: Tier = lang === "he" ? "sector" : "initials";
     setTier(next);
     setCachedTier(upper, toCachedTier(next, profile.data?.companyName));
-  }, [tier, profile.isLoading, profile.data?.companyName, profile.data, lang, upper]);
+  }, [
+    tier,
+    profile.isLoading,
+    profile.data?.companyName,
+    profile.data,
+    lang,
+    upper,
+  ]);
 
   // ── onError handlers ────────────────────────────────────────────────
   // Tier-1 onError: ticker CDN returned 404 (or network failure).
@@ -240,10 +250,14 @@ export default function TickerLogo({
   //   - ticker / name_pending / name → render the matching Logo.dev URL.
   //   - sector → render the Hebrew letter + color.
   //   - initials → render the ticker letters.
-  const showTickerImg = (tier === "ticker") && !!tickerUrl;
+  const showTickerImg = tier === "ticker" && !!tickerUrl;
   const showNameImg = (tier === "name" || tier === "name_pending") && !!nameUrl;
   const showSectorGlyph = tier === "sector" && !!sectorEntry;
-  const showInitials = tier === "initials" || (showTickerImg === false && showNameImg === false && showSectorGlyph === false);
+  const showInitials =
+    tier === "initials" ||
+    (showTickerImg === false &&
+      showNameImg === false &&
+      showSectorGlyph === false);
 
   // The initials layer stays mounted permanently and just swaps opacity, so
   // tier-1 onError doesn't flash an empty tile while we wait for the next image.
@@ -256,7 +270,11 @@ export default function TickerLogo({
         box,
         text,
         rounded,
-        variant === "bare" ? "bg-transparent" : showSectorGlyph ? sectorSurface : surface,
+        variant === "bare"
+          ? "bg-transparent"
+          : showSectorGlyph
+            ? sectorSurface
+            : surface,
         className,
       )}
       role="img"

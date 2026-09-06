@@ -37,7 +37,9 @@ describe("isProviderStatus", () => {
 
   it("requires all three fields to match", () => {
     expect(isProviderStatus(probes, "yahoo", "quote", "ok")).toBe(false);
-    expect(isProviderStatus(probes, "fmp", "quote", "known_restriction")).toBe(false);
+    expect(isProviderStatus(probes, "fmp", "quote", "known_restriction")).toBe(
+      false,
+    );
   });
 
   it("returns false for missing or empty probe lists", () => {

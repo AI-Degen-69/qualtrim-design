@@ -15,7 +15,11 @@ import { useFmpBatchQuoteRestricted, useYahooDown } from "@/hooks/useStockData";
  * Shares the `providerHealth` query key with `ProviderHealthIndicator` /
  * `useYahooDown`, so React Query dedupes the fetch — zero extra requests.
  */
-export default function BatchQuoteFallbackHint({ className = "" }: { className?: string }) {
+export default function BatchQuoteFallbackHint({
+  className = "",
+}: {
+  className?: string;
+}) {
   const { t } = useI18n();
   const restricted = useFmpBatchQuoteRestricted();
   const yahooDown = useYahooDown();

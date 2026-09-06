@@ -11,22 +11,29 @@ describe("EarningsCalendar", () => {
       defaultOptions: { queries: { retry: false } },
     });
 
-  const renderWithContext = (ui: React.ReactElement, client = createQueryClient()) =>
+  const renderWithContext = (
+    ui: React.ReactElement,
+    client = createQueryClient(),
+  ) =>
     renderToString(
       <QueryClientProvider client={client}>
         <I18nProvider>
           <MemoryRouter>{ui}</MemoryRouter>
         </I18nProvider>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
   it("renders header, data provenance banner, and grid events in fallback mode", () => {
     const html = renderWithContext(
-      <EarningsCalendar from="2025-02-24" to="2025-02-28" />
+      <EarningsCalendar from="2025-02-24" to="2025-02-28" />,
     );
 
-    expect(html).toContain("Upcoming Earnings Calendar &amp; Wall St. Consensus");
-    expect(html).toContain("Financial Modeling Prep (FMP) &amp; Yahoo Finance Consensus");
+    expect(html).toContain(
+      "Upcoming Earnings Calendar &amp; Wall St. Consensus",
+    );
+    expect(html).toContain(
+      "Financial Modeling Prep (FMP) &amp; Yahoo Finance Consensus",
+    );
     expect(html).toContain("NVDA");
     expect(html).toContain("SNOW");
   });
@@ -37,7 +44,7 @@ describe("EarningsCalendar", () => {
         from="2025-02-24"
         to="2025-02-28"
         initialViewMode="calendar"
-      />
+      />,
     );
 
     expect(html).toContain("Pre-Market");
@@ -70,16 +77,15 @@ describe("EarningsCalendar", () => {
       },
     ];
 
-    queryClient.setQueryData(["earningsCalendar", "2025-02-24", "2025-02-28"], mockApiData);
+    queryClient.setQueryData(
+      ["earningsCalendar", "2025-02-24", "2025-02-28"],
+      mockApiData,
+    );
 
     // Large Cap filter should render AMZN and exclude SMALLCO
     const htmlLarge = renderWithContext(
-      <EarningsCalendar
-        from="2025-02-24"
-        to="2025-02-28"
-        marketCap="large"
-      />,
-      queryClient
+      <EarningsCalendar from="2025-02-24" to="2025-02-28" marketCap="large" />,
+      queryClient,
     );
 
     expect(htmlLarge).toContain("AMZN");
@@ -87,12 +93,8 @@ describe("EarningsCalendar", () => {
 
     // Small Cap filter should render SMALLCO and exclude AMZN
     const htmlSmall = renderWithContext(
-      <EarningsCalendar
-        from="2025-02-24"
-        to="2025-02-28"
-        marketCap="small"
-      />,
-      queryClient
+      <EarningsCalendar from="2025-02-24" to="2025-02-28" marketCap="small" />,
+      queryClient,
     );
 
     expect(htmlSmall).toContain("SMALLCO");
@@ -111,16 +113,15 @@ describe("EarningsCalendar", () => {
         time: "amc",
       },
     ];
-    queryClient.setQueryData(["earningsCalendar", "2025-02-24", "2025-02-28"], mondayOnly);
+    queryClient.setQueryData(
+      ["earningsCalendar", "2025-02-24", "2025-02-28"],
+      mondayOnly,
+    );
 
     // Selecting Friday should result in empty list for Friday
     const htmlEmpty = renderWithContext(
-      <EarningsCalendar
-        from="2025-02-24"
-        to="2025-02-28"
-        initialDay="Fri"
-      />,
-      queryClient
+      <EarningsCalendar from="2025-02-24" to="2025-02-28" initialDay="Fri" />,
+      queryClient,
     );
 
     expect(htmlEmpty).toContain("No earnings events this week");
@@ -129,7 +130,7 @@ describe("EarningsCalendar", () => {
 
   it("renders upcoming fallback mock events with estimates only and without premature BEAT badges", () => {
     const html = renderWithContext(
-      <EarningsCalendar from="2026-08-24" to="2026-08-28" />
+      <EarningsCalendar from="2026-08-24" to="2026-08-28" />,
     );
 
     // NVDA should be rendered with EPS and Rev estimates

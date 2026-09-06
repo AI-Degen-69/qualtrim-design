@@ -34,7 +34,8 @@ export function mergeBatchQuoteResponses(
   );
   if (successful.length === 0) {
     const firstFailure = responses.find(
-      (response): response is PromiseRejectedResult => response.status === "rejected",
+      (response): response is PromiseRejectedResult =>
+        response.status === "rejected",
     );
     throw firstFailure?.reason ?? new Error("All quote batches failed");
   }

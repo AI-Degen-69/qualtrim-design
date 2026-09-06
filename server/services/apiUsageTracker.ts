@@ -51,7 +51,11 @@ export interface BucketSnap {
 /** Async read/write interface — both adapters satisfy this contract. */
 export interface UsageStore {
   load(provider: TrackedProvider, dayISO: string): Promise<BucketSnap>;
-  save(provider: TrackedProvider, dayISO: string, snap: BucketSnap): Promise<void>;
+  save(
+    provider: TrackedProvider,
+    dayISO: string,
+    snap: BucketSnap,
+  ): Promise<void>;
   /**
    * Removes any persisted bucket whose day-key is strictly older than
    * `cutoffDayISO` (lexicographic `YYYY-MM-DD` comparison — works because
@@ -62,7 +66,9 @@ export interface UsageStore {
    * Throws synchronously ONLY on a malformed `cutoffDayISO` so the bug
    * surfaces at the call site rather than silently no-op'ing.
    */
-  pruneOlderThan(cutoffDayISO: string): Promise<{ scannedCount: number; prunedCount: number }>;
+  pruneOlderThan(
+    cutoffDayISO: string,
+  ): Promise<{ scannedCount: number; prunedCount: number }>;
 }
 
 /**
@@ -78,9 +84,18 @@ export class LocalMemoryStore implements UsageStore {
   }
   async load(p: TrackedProvider, dayISO: string): Promise<BucketSnap> {
     const found = this.map.get(LocalMemoryStore.key(p, dayISO));
-    return found ? { timestamps: found.timestamps.slice(), lastRateLimitAt: found.lastRateLimitAt } : { timestamps: [], lastRateLimitAt: null };
+    return found
+      ? {
+          timestamps: found.timestamps.slice(),
+          lastRateLimitAt: found.lastRateLimitAt,
+        }
+      : { timestamps: [], lastRateLimitAt: null };
   }
-  async save(p: TrackedProvider, dayISO: string, snap: BucketSnap): Promise<void> {
+  async save(
+    p: TrackedProvider,
+    dayISO: string,
+    snap: BucketSnap,
+  ): Promise<void> {
     this.map.set(LocalMemoryStore.key(p, dayISO), {
       timestamps: snap.timestamps.slice(),
       lastRateLimitAt: snap.lastRateLimitAt,
@@ -89,15 +104,21 @@ export class LocalMemoryStore implements UsageStore {
   /** Diagnostic peek — for tests only. */
   __peek(p: TrackedProvider, dayISO: string): BucketSnap | null {
     const v = this.map.get(LocalMemoryStore.key(p, dayISO));
-    return v ? { timestamps: v.timestamps.slice(), lastRateLimitAt: v.lastRateLimitAt } : null;
+    return v
+      ? { timestamps: v.timestamps.slice(), lastRateLimitAt: v.lastRateLimitAt }
+      : null;
   }
   /** Test seam — clears all keys. */
   __clear(): void {
     this.map.clear();
   }
-  async pruneOlderThan(cutoffDayISO: string): Promise<{ scannedCount: number; prunedCount: number }> {
+  async pruneOlderThan(
+    cutoffDayISO: string,
+  ): Promise<{ scannedCount: number; prunedCount: number }> {
     if (!isValidDayISO(cutoffDayISO)) {
-      throw new Error(`pruneOlderThan: cutoffDayISO must be YYYY-MM-DD, got ${cutoffDayISO}`);
+      throw new Error(
+        `pruneOlderThan: cutoffDayISO must be YYYY-MM-DD, got ${cutoffDayISO}`,
+      );
     }
     let scannedCount = 0;
     let prunedCount = 0;
@@ -151,7 +172,10 @@ export class VercelKvStore implements UsageStore {
     return `vantage:usage:${p}:${dayISO}`;
   }
 
-  private async exec<T = unknown>(cmd: string, ...args: (string | number)[]): Promise<[unknown, T | null]> {
+  private async exec<T = unknown>(
+    cmd: string,
+    ...args: (string | number)[]
+  ): Promise<[unknown, T | null]> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     try {
@@ -164,7 +188,8 @@ export class VercelKvStore implements UsageStore {
         body: JSON.stringify([cmd, ...args]),
         signal: controller.signal,
       });
-      if (!r.ok) throw new Error(`KV ${cmd} failed: ${r.status} ${r.statusText}`);
+      if (!r.ok)
+        throw new Error(`KV ${cmd} failed: ${r.status} ${r.statusText}`);
       // Upstash REST returns a single `{ result: ... }` object for a
       // one-command POST (or `{ error: "..." }` on failure) — NOT the
       // `[err, value]` tuple. Parse the real shape so GET hits actually
@@ -181,26 +206,43 @@ export class VercelKvStore implements UsageStore {
 
   async load(p: TrackedProvider, dayISO: string): Promise<BucketSnap> {
     try {
-      const [err, value] = await this.exec<string | null>("GET", this.keyFor(p, dayISO));
-      if (err || value === null) return { timestamps: [], lastRateLimitAt: null };
+      const [err, value] = await this.exec<string | null>(
+        "GET",
+        this.keyFor(p, dayISO),
+      );
+      if (err || value === null)
+        return { timestamps: [], lastRateLimitAt: null };
       const parsed = JSON.parse(value) as Partial<BucketSnap>;
       return {
         timestamps: Array.isArray(parsed.timestamps)
           ? parsed.timestamps.filter((n): n is number => typeof n === "number")
           : [],
-        lastRateLimitAt: typeof parsed.lastRateLimitAt === "number" ? parsed.lastRateLimitAt : null,
+        lastRateLimitAt:
+          typeof parsed.lastRateLimitAt === "number"
+            ? parsed.lastRateLimitAt
+            : null,
       };
     } catch (e) {
-      console.warn("[usageStore] KV load failed (returning empty):", e instanceof Error ? e.message : e);
+      console.warn(
+        "[usageStore] KV load failed (returning empty):",
+        e instanceof Error ? e.message : e,
+      );
       return { timestamps: [], lastRateLimitAt: null };
     }
   }
 
-  async save(p: TrackedProvider, dayISO: string, snap: BucketSnap): Promise<void> {
+  async save(
+    p: TrackedProvider,
+    dayISO: string,
+    snap: BucketSnap,
+  ): Promise<void> {
     try {
       await this.exec("SET", this.keyFor(p, dayISO), JSON.stringify(snap));
     } catch (e) {
-      console.warn("[usageStore] KV save failed:", e instanceof Error ? e.message : e);
+      console.warn(
+        "[usageStore] KV save failed:",
+        e instanceof Error ? e.message : e,
+      );
     }
   }
 
@@ -211,9 +253,13 @@ export class VercelKvStore implements UsageStore {
    * rounds as a runaway-safety so a misbehaving KV doesn't hang the
    * hydration chain forever.
    */
-  async pruneOlderThan(cutoffDayISO: string): Promise<{ scannedCount: number; prunedCount: number }> {
+  async pruneOlderThan(
+    cutoffDayISO: string,
+  ): Promise<{ scannedCount: number; prunedCount: number }> {
     if (!isValidDayISO(cutoffDayISO)) {
-      throw new Error(`pruneOlderThan: cutoffDayISO must be YYYY-MM-DD, got ${cutoffDayISO}`);
+      throw new Error(
+        `pruneOlderThan: cutoffDayISO must be YYYY-MM-DD, got ${cutoffDayISO}`,
+      );
     }
     let scannedCount = 0;
     const toDelete: string[] = [];
@@ -225,11 +271,18 @@ export class VercelKvStore implements UsageStore {
       do {
         iterations++;
         if (iterations > MAX_ITERATIONS) {
-          console.warn("[usageStore] SCAN cursor did not converge; aborting prune");
+          console.warn(
+            "[usageStore] SCAN cursor did not converge; aborting prune",
+          );
           break;
         }
         const [, batch] = await this.exec<[string, string[]]>(
-          "SCAN", cursor, "MATCH", "vantage:usage:*", "COUNT", 100,
+          "SCAN",
+          cursor,
+          "MATCH",
+          "vantage:usage:*",
+          "COUNT",
+          100,
         );
         if (!batch) break;
         cursor = batch[0] ?? "0";
@@ -283,7 +336,10 @@ function createDefaultStore(): UsageStore {
     try {
       return new VercelKvStore();
     } catch (e) {
-      console.warn("[usageStore] Falling back to LocalMemoryStore:", e instanceof Error ? e.message : e);
+      console.warn(
+        "[usageStore] Falling back to LocalMemoryStore:",
+        e instanceof Error ? e.message : e,
+      );
       return new LocalMemoryStore();
     }
   }
@@ -333,7 +389,11 @@ interface ProviderConfig {
 
 const PROVIDER_CONFIG: Record<TrackedProvider, ProviderConfig> = {
   fmp: { limit: 250, windowMs: 24 * 60 * 60 * 1000, limitHint: "documented" },
-  alphavantage: { limit: 25, windowMs: 24 * 60 * 60 * 1000, limitHint: "documented" },
+  alphavantage: {
+    limit: 25,
+    windowMs: 24 * 60 * 60 * 1000,
+    limitHint: "documented",
+  },
   // Yahoo: estimate, never push to it. Mark as heuristic so the pill
   // doesn't read as a hard cap.
   yahoo: { limit: 200, windowMs: 60 * 60 * 1000, limitHint: "heuristic" },
@@ -366,7 +426,11 @@ function todayISO(now: number = Date.now()): string {
   return new Date(now).toISOString().slice(0, 10);
 }
 
-function pruneTimestamps(snap: BucketSnap, windowMs: number, now: number): void {
+function pruneTimestamps(
+  snap: BucketSnap,
+  windowMs: number,
+  now: number,
+): void {
   const cut = now - windowMs;
   const kept = snap.timestamps.filter((t) => t >= cut);
   if (kept.length !== snap.timestamps.length) snap.timestamps = kept;
@@ -383,12 +447,23 @@ let hydrationPromise: Promise<void> = (async () => {
         // Don't clobber an already-populated mirror (a recordCall may
         // have landed concurrently with hydration).
         const cur = mirrors[p];
-        if (cur && cur.day === today && (cur.timestamps.length > 0 || cur.lastRateLimitAt !== null)) {
+        if (
+          cur &&
+          cur.day === today &&
+          (cur.timestamps.length > 0 || cur.lastRateLimitAt !== null)
+        ) {
           return;
         }
-        mirrors[p] = { day: today, timestamps: snap.timestamps.slice(), lastRateLimitAt: snap.lastRateLimitAt };
+        mirrors[p] = {
+          day: today,
+          timestamps: snap.timestamps.slice(),
+          lastRateLimitAt: snap.lastRateLimitAt,
+        };
       } catch (e) {
-        console.warn(`[apiUsageTracker] hydrate ${p} failed:`, e instanceof Error ? e.message : e);
+        console.warn(
+          `[apiUsageTracker] hydrate ${p} failed:`,
+          e instanceof Error ? e.message : e,
+        );
         mirrors[p] = { day: today, timestamps: [], lastRateLimitAt: null };
       }
     }),
@@ -408,7 +483,7 @@ let hydrationPromise: Promise<void> = (async () => {
 // alone. Solution: prune buckets older than 30 days at cold start,
 // guarded so the SCAN runs at most once per 6h per process.
 
-const PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000;     // 6 hours
+const PRUNE_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
 const PRUNE_RETENTION_DAYS = 30;
 
 /** Snapshot of the most recent retention sweep. */
@@ -443,7 +518,9 @@ async function pruneOldBucketsIfDue(now: number = Date.now()): Promise<void> {
   if (now - lastPruneAttemptAt < PRUNE_INTERVAL_MS) return;
   lastPruneAttemptAt = now;
 
-  const cutoff = new Date(now - PRUNE_RETENTION_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const cutoff = new Date(now - PRUNE_RETENTION_DAYS * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
   const store = _backing;
   try {
     const { scannedCount, prunedCount } = await store.pruneOlderThan(cutoff);
@@ -480,17 +557,25 @@ function scheduleFlush(provider: TrackedProvider): void {
     try {
       const stored = await usageStore.load(provider, m.day);
       const cfg = PROVIDER_CONFIG[provider];
-      const merged = Array.from(new Set([...stored.timestamps, ...m.timestamps]));
+      const merged = Array.from(
+        new Set([...stored.timestamps, ...m.timestamps]),
+      );
       const refNow = merged.length > 0 ? Math.max(...merged) : Date.now();
       const pruned = merged.filter((t) => t >= refNow - cfg.windowMs);
       // Keep the most recent rate-limit timestamp.
       const lastRateLimitAt =
         stored.lastRateLimitAt !== null && m.lastRateLimitAt !== null
           ? Math.max(stored.lastRateLimitAt, m.lastRateLimitAt)
-          : stored.lastRateLimitAt ?? m.lastRateLimitAt;
-      await usageStore.save(provider, m.day, { timestamps: pruned, lastRateLimitAt });
+          : (stored.lastRateLimitAt ?? m.lastRateLimitAt);
+      await usageStore.save(provider, m.day, {
+        timestamps: pruned,
+        lastRateLimitAt,
+      });
     } catch (e) {
-      console.warn(`[apiUsageTracker] flush ${provider} failed:`, e instanceof Error ? e.message : e);
+      console.warn(
+        `[apiUsageTracker] flush ${provider} failed:`,
+        e instanceof Error ? e.message : e,
+      );
     }
   })();
 }
@@ -551,7 +636,7 @@ function lazyHydrateFromStore(provider: TrackedProvider, day: string): void {
       const lastRateLimit =
         snap.lastRateLimitAt !== null && cur.lastRateLimitAt !== null
           ? Math.max(snap.lastRateLimitAt, cur.lastRateLimitAt)
-          : snap.lastRateLimitAt ?? cur.lastRateLimitAt;
+          : (snap.lastRateLimitAt ?? cur.lastRateLimitAt);
       cur.timestamps = merged;
       if (lastRateLimit !== null) cur.lastRateLimitAt = lastRateLimit;
     } catch (e) {
@@ -610,7 +695,8 @@ function buildEntry(provider: TrackedProvider, now: number) {
   const remaining = Math.max(0, cfg.limit - used);
   const usedPct = Math.min(100, (used / cfg.limit) * 100);
   const oldestInWindow = snap.timestamps[0] ?? null;
-  const resetsAtMs = oldestInWindow !== null ? oldestInWindow + cfg.windowMs : null;
+  const resetsAtMs =
+    oldestInWindow !== null ? oldestInWindow + cfg.windowMs : null;
   return {
     provider,
     label: PROVIDER_LABELS[provider],
@@ -621,9 +707,15 @@ function buildEntry(provider: TrackedProvider, now: number) {
     windowMs: cfg.windowMs,
     windowLabel: cfg.windowMs === 24 * 60 * 60 * 1000 ? "24h" : "1h",
     resetsAt: resetsAtMs ? new Date(resetsAtMs).toISOString() : null,
-    secondsToReset: resetsAtMs ? Math.max(0, Math.floor((resetsAtMs - now) / 1000)) : null,
-    isRateLimited: snap.lastRateLimitAt !== null && now - snap.lastRateLimitAt < cfg.windowMs,
-    lastRateLimitAt: snap.lastRateLimitAt ? new Date(snap.lastRateLimitAt).toISOString() : null,
+    secondsToReset: resetsAtMs
+      ? Math.max(0, Math.floor((resetsAtMs - now) / 1000))
+      : null,
+    isRateLimited:
+      snap.lastRateLimitAt !== null &&
+      now - snap.lastRateLimitAt < cfg.windowMs,
+    lastRateLimitAt: snap.lastRateLimitAt
+      ? new Date(snap.lastRateLimitAt).toISOString()
+      : null,
     limitHint: cfg.limitHint,
   };
 }
@@ -689,7 +781,13 @@ export const __test__ = {
   /** Diagnostic: read a provider's mirror without triggering hydration. */
   peekMirror(provider: TrackedProvider): Mirror | null {
     const m = mirrors[provider];
-    return m ? { day: m.day, timestamps: m.timestamps.slice(), lastRateLimitAt: m.lastRateLimitAt } : null;
+    return m
+      ? {
+          day: m.day,
+          timestamps: m.timestamps.slice(),
+          lastRateLimitAt: m.lastRateLimitAt,
+        }
+      : null;
   },
   /** Replace the active backing store for tests. */
   setStoreForTests(s: UsageStore): void {

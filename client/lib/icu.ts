@@ -228,12 +228,7 @@ function extractCases(text: string): IcuCase[] {
       let j = i - 1;
       while (j >= 0 && text[j] === " ") j--;
       const catEnd = j + 1;
-      while (
-        j >= 0 &&
-        text[j] !== " " &&
-        text[j] !== "{" &&
-        text[j] !== "}"
-      ) {
+      while (j >= 0 && text[j] !== " " && text[j] !== "{" && text[j] !== "}") {
         j--;
       }
       const cat = text.substring(j + 1, catEnd);

@@ -79,8 +79,8 @@ describe("ValuationSensitivityMatrix component", () => {
           discountRate={9.0}
           sharesOutstanding={15.2}
           valuationMode="cashFlow"
-        />
-      )
+        />,
+      ),
     );
 
     expect(html).toContain("2D Valuation Sensitivity Matrix");
@@ -94,7 +94,7 @@ describe("ValuationSensitivityMatrix component", () => {
 
   it("renders tab button for Sensitivity Matrix in DCFWidget", () => {
     const html = renderToString(
-      withContext(<DCFWidget ticker="AAPL" currentPrice={231.42} />)
+      withContext(<DCFWidget ticker="AAPL" currentPrice={231.42} />),
     );
 
     expect(html).toContain("Sensitivity Matrix");

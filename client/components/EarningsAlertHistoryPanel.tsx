@@ -52,11 +52,17 @@ export function EarningsAlertHistoryButton() {
           className="z-50 w-80 max-h-[480px] overflow-auto rounded-lg border border-slate-700 bg-slate-900/95 backdrop-blur shadow-2xl"
         >
           <div className="p-3 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900/95 backdrop-blur">
-            <h3 className="font-bold text-sm">{t("earningsAlerts.historyTitle")}</h3>
+            <h3 className="font-bold text-sm">
+              {t("earningsAlerts.historyTitle")}
+            </h3>
             <span className="text-xs text-slate-500">
               {todayEntries.length === 1
-                ? t("earningsAlerts.historyCount_one", { count: todayEntries.length })
-                : t("earningsAlerts.historyCount_other", { count: todayEntries.length })}
+                ? t("earningsAlerts.historyCount_one", {
+                    count: todayEntries.length,
+                  })
+                : t("earningsAlerts.historyCount_other", {
+                    count: todayEntries.length,
+                  })}
             </span>
           </div>
           {todayEntries.length === 0 ? (
@@ -84,8 +90,8 @@ export function EarningsAlertHistoryButton() {
                         h.action === "opened"
                           ? "bg-emerald-500/15 text-emerald-300"
                           : h.action === "snoozed"
-                          ? "bg-amber-500/15 text-amber-300"
-                          : "bg-slate-700 text-slate-300"
+                            ? "bg-amber-500/15 text-amber-300"
+                            : "bg-slate-700 text-slate-300"
                       }`}
                     >
                       {t(`earningsAlerts.historyAction.${h.action}`)}

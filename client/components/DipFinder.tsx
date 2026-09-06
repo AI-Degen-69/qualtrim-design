@@ -49,19 +49,22 @@ export default function DipFinder() {
         liveRow?.distancePct !== undefined && liveRow.distancePct !== null
           ? liveRow.distancePct
           : null;
-      const isLive = liveDistance !== null && (liveRow?.sampleSize ?? 0) >= Math.min(windowSize, 200);
+      const isLive =
+        liveDistance !== null &&
+        (liveRow?.sampleSize ?? 0) >= Math.min(windowSize, 200);
       const isPartial = liveDistance !== null && !isLive;
       const state: "live" | "partial" | "mock" = yahooChartDown
         ? "mock"
         : isLive
-        ? "live"
-        : isPartial
-        ? "partial"
-        : "mock";
+          ? "live"
+          : isPartial
+            ? "partial"
+            : "mock";
       return {
         symbol: w.symbol,
         name: w.name,
-        distance: isLive || isPartial ? (liveDistance as number) : w.sma200Distance,
+        distance:
+          isLive || isPartial ? (liveDistance as number) : w.sma200Distance,
         state,
       };
     });
@@ -69,17 +72,20 @@ export default function DipFinder() {
 
   const sortedTickers = useMemo(
     () => [...rows].sort((a, b) => a.distance - b.distance),
-    [rows]
+    [rows],
   );
-  const maxDistance = Math.max(...sortedTickers.map((r) => Math.abs(r.distance)), 1);
+  const maxDistance = Math.max(
+    ...sortedTickers.map((r) => Math.abs(r.distance)),
+    1,
+  );
 
   const allLive = rows.length > 0 && rows.every((r) => r.state === "live");
   const anyLive = rows.some((r) => r.state === "live");
   const badgeKind: "live" | "partial" | "mock" = allLive
     ? "live"
     : anyLive
-    ? "partial"
-    : "mock";
+      ? "partial"
+      : "mock";
 
   return (
     <div className="bg-card border border-border rounded-xl p-6">
@@ -87,8 +93,20 @@ export default function DipFinder() {
         <div className="flex items-center gap-3">
           <h3 className="text-xl font-bold">{t("dipFinder.title")}</h3>
           <DataStatusBadge
-            status={badgeKind === "live" ? "live" : badgeKind === "partial" ? "estimate" : "mock"}
-            source={badgeKind === "live" ? "Yahoo chart history" : badgeKind === "partial" ? "Partial sample" : "Local demo series"}
+            status={
+              badgeKind === "live"
+                ? "live"
+                : badgeKind === "partial"
+                  ? "estimate"
+                  : "mock"
+            }
+            source={
+              badgeKind === "live"
+                ? "Yahoo chart history"
+                : badgeKind === "partial"
+                  ? "Partial sample"
+                  : "Local demo series"
+            }
             compact
           />
         </div>
@@ -114,8 +132,12 @@ export default function DipFinder() {
         <div className="flex-1 flex items-center gap-2">
           <div className="flex-1 flex justify-between relative px-1">
             <span className="text-red-400/50">-{Math.round(maxDistance)}%</span>
-            <span className="absolute left-1/2 -translate-x-1/2 text-slate-400">0%</span>
-            <span className="text-green-400/50">+{Math.round(maxDistance)}%</span>
+            <span className="absolute left-1/2 -translate-x-1/2 text-slate-400">
+              0%
+            </span>
+            <span className="text-green-400/50">
+              +{Math.round(maxDistance)}%
+            </span>
           </div>
           <div className="w-20 shrink-0" />
         </div>
@@ -123,14 +145,17 @@ export default function DipFinder() {
 
       <div className="space-y-4">
         {sortedTickers.map((row) => {
-          const width = Math.max(5, (Math.abs(row.distance) / maxDistance) * 100);
+          const width = Math.max(
+            5,
+            (Math.abs(row.distance) / maxDistance) * 100,
+          );
           const isNegative = row.distance < 0;
           const dot =
             row.state === "live"
               ? "bg-emerald-500"
               : row.state === "partial"
-              ? "bg-amber-500"
-              : "bg-yellow-500";
+                ? "bg-amber-500"
+                : "bg-yellow-500";
           return (
             <div
               key={row.symbol}

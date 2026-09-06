@@ -63,16 +63,19 @@ function apiRateLimit(req: Request, res: Response, next: NextFunction): void {
     }
   }
 
-  const state = !current || current.resetAt <= now
-    ? { count: 0, resetAt: now + API_RATE_WINDOW_MS }
-    : current;
+  const state =
+    !current || current.resetAt <= now
+      ? { count: 0, resetAt: now + API_RATE_WINDOW_MS }
+      : current;
 
   state.count += 1;
   apiRateState.set(key, state);
 
   if (state.count > API_RATE_LIMIT) {
     res.setHeader("Retry-After", Math.ceil((state.resetAt - now) / 1000));
-    res.status(429).json({ error: "Too many API requests; please retry shortly" });
+    res
+      .status(429)
+      .json({ error: "Too many API requests; please retry shortly" });
     return;
   }
 
@@ -83,7 +86,7 @@ export function createServer() {
   const app = express();
 
   // Initialize background database sync (fire and forget)
-  initFinanceDatabase().catch(err => {
+  initFinanceDatabase().catch((err) => {
     console.error("[FinanceDatabase] Failed to initialize:", err);
   });
 
@@ -91,7 +94,10 @@ export function createServer() {
   // prevents a directly reachable instance from accepting a spoofed
   // X-Forwarded-For header as the rate-limit identity.
   const proxyHops = Number.parseInt(process.env.TRUST_PROXY_HOPS ?? "0", 10);
-  app.set("trust proxy", Number.isFinite(proxyHops) && proxyHops > 0 ? proxyHops : false);
+  app.set(
+    "trust proxy",
+    Number.isFinite(proxyHops) && proxyHops > 0 ? proxyHops : false,
+  );
 
   // The API is consumed by the same-origin SPA. Cross-origin access is opt-in
   // for local integrations/deployments rather than being open by default.
@@ -131,7 +137,10 @@ export function createServer() {
   app.get("/api/fx-rates", handleFxRates);
   app.get("/api/provider-health", handleProviderHealth);
   app.get("/api/sector-heatmap", handleSectorHeatmap);
-  app.get("/api/stock-yahoo-fallback-financials", handleStockYahooFallbackFinancials);
+  app.get(
+    "/api/stock-yahoo-fallback-financials",
+    handleStockYahooFallbackFinancials,
+  );
 
   // Screener routes
   app.get("/api/screener/search", handleScreenerSearch);

@@ -34,7 +34,7 @@ export function computeDcfFairValue(
   growthPercent: number,
   discountPercent: number,
   exitMultiple: number,
-  sharesCount: number
+  sharesCount: number,
 ): number {
   if (sharesCount <= 0 || baseValue <= 0) return 0;
   const g = growthPercent / 100;
@@ -60,12 +60,17 @@ export function computeDcfFairValue(
  */
 export function getValuationCellTheme(
   fairVal: number,
-  currPrice: number
+  currPrice: number,
 ): {
   bgClass: string;
   textClass: string;
   badgeClass: string;
-  verdict: "deepDiscount" | "undervalued" | "fair" | "overvalued" | "deepOvervalued";
+  verdict:
+    | "deepDiscount"
+    | "undervalued"
+    | "fair"
+    | "overvalued"
+    | "deepOvervalued";
 } {
   if (currPrice <= 0 || fairVal <= 0) {
     return {
@@ -80,23 +85,28 @@ export function getValuationCellTheme(
 
   if (diffPercent >= 30) {
     return {
-      bgClass: "bg-chart-positive/20 hover:bg-chart-positive/30 border-chart-positive/40 text-chart-positive",
+      bgClass:
+        "bg-chart-positive/20 hover:bg-chart-positive/30 border-chart-positive/40 text-chart-positive",
       textClass: "text-chart-positive font-semibold",
-      badgeClass: "bg-chart-positive/20 text-chart-positive border border-chart-positive/30",
+      badgeClass:
+        "bg-chart-positive/20 text-chart-positive border border-chart-positive/30",
       verdict: "deepDiscount",
     };
   }
   if (diffPercent >= 10) {
     return {
-      bgClass: "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400",
+      bgClass:
+        "bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-400",
       textClass: "text-emerald-400 font-medium",
-      badgeClass: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+      badgeClass:
+        "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
       verdict: "undervalued",
     };
   }
   if (diffPercent >= -10) {
     return {
-      bgClass: "bg-secondary/30 hover:bg-secondary/50 border-border/60 text-foreground",
+      bgClass:
+        "bg-secondary/30 hover:bg-secondary/50 border-border/60 text-foreground",
       textClass: "text-foreground font-medium",
       badgeClass: "bg-secondary text-muted-foreground border border-border",
       verdict: "fair",
@@ -104,16 +114,20 @@ export function getValuationCellTheme(
   }
   if (diffPercent >= -25) {
     return {
-      bgClass: "bg-chart-amber/10 hover:bg-chart-amber/20 border-chart-amber/30 text-chart-amber",
+      bgClass:
+        "bg-chart-amber/10 hover:bg-chart-amber/20 border-chart-amber/30 text-chart-amber",
       textClass: "text-chart-amber font-medium",
-      badgeClass: "bg-chart-amber/10 text-chart-amber border border-chart-amber/20",
+      badgeClass:
+        "bg-chart-amber/10 text-chart-amber border border-chart-amber/20",
       verdict: "overvalued",
     };
   }
   return {
-    bgClass: "bg-chart-negative/15 hover:bg-chart-negative/25 border-chart-negative/40 text-chart-negative",
+    bgClass:
+      "bg-chart-negative/15 hover:bg-chart-negative/25 border-chart-negative/40 text-chart-negative",
     textClass: "text-chart-negative font-semibold",
-    badgeClass: "bg-chart-negative/20 text-chart-negative border border-chart-negative/30",
+    badgeClass:
+      "bg-chart-negative/20 text-chart-negative border border-chart-negative/30",
     verdict: "deepOvervalued",
   };
 }
@@ -137,7 +151,9 @@ export default function ValuationSensitivityMatrix({
   // Generate 5 discrete WACC/Discount rows centered around the current discountRate
   const discountSteps = useMemo(() => {
     const rounded = Math.round(discountRate);
-    const steps = [-2, -1, 0, 1, 2].map((offset) => Math.max(4, rounded + offset));
+    const steps = [-2, -1, 0, 1, 2].map((offset) =>
+      Math.max(4, rounded + offset),
+    );
     return Array.from(new Set(steps)).slice(0, 5);
   }, [discountRate]);
 
@@ -145,11 +161,15 @@ export default function ValuationSensitivityMatrix({
   const colSteps = useMemo(() => {
     if (dimension === "growth") {
       const rounded = Math.round(growthRate);
-      const steps = [-4, -2, 0, 2, 4].map((offset) => Math.max(-20, rounded + offset));
+      const steps = [-4, -2, 0, 2, 4].map((offset) =>
+        Math.max(-20, rounded + offset),
+      );
       return Array.from(new Set(steps)).slice(0, 5);
     } else {
       const rounded = Math.round(multiple);
-      const steps = [-6, -3, 0, 3, 6].map((offset) => Math.max(5, rounded + offset));
+      const steps = [-6, -3, 0, 3, 6].map((offset) =>
+        Math.max(5, rounded + offset),
+      );
       return Array.from(new Set(steps)).slice(0, 5);
     }
   }, [dimension, growthRate, multiple]);
@@ -161,7 +181,8 @@ export default function ValuationSensitivityMatrix({
         const g = dimension === "growth" ? colVal : growthRate;
         const m = dimension === "multiple" ? colVal : multiple;
         const fv = computeDcfFairValue(activeBase, g, dRate, m, shares);
-        const diff = currentPrice > 0 ? ((fv - currentPrice) / currentPrice) * 100 : 0;
+        const diff =
+          currentPrice > 0 ? ((fv - currentPrice) / currentPrice) * 100 : 0;
         const isCurrent =
           dRate === Math.round(discountRate) &&
           colVal === Math.round(dimension === "growth" ? growthRate : multiple);
@@ -280,7 +301,9 @@ export default function ValuationSensitivityMatrix({
         <div className="flex items-center gap-1 text-[11px] bg-background/80 px-2 py-0.5 rounded border border-border">
           <Crosshair className="w-3 h-3 text-primary motion-safe:animate-pulse" />
           <span>{t("dcf.marketPrice") || "Market Price"}:</span>
-          <strong className="text-foreground">${currentPrice.toFixed(2)}</strong>
+          <strong className="text-foreground">
+            ${currentPrice.toFixed(2)}
+          </strong>
         </div>
       </div>
 
@@ -297,13 +320,16 @@ export default function ValuationSensitivityMatrix({
               <th className="p-2 text-left font-semibold text-muted-foreground border-b border-border/80 w-24">
                 <span className="flex items-center gap-1">
                   <span>WACC</span>
-                  <span className="text-[10px] text-muted-foreground/70">\</span>
+                  <span className="text-[10px] text-muted-foreground/70">
+                    \
+                  </span>
                   <span>{dimension === "growth" ? "Growth" : "Exit P/E"}</span>
                 </span>
               </th>
               {colSteps.map((colVal) => {
                 const isSelectedCol =
-                  colVal === Math.round(dimension === "growth" ? growthRate : multiple);
+                  colVal ===
+                  Math.round(dimension === "growth" ? growthRate : multiple);
                 return (
                   <th
                     key={colVal}
@@ -323,7 +349,10 @@ export default function ValuationSensitivityMatrix({
             {matrix.map((row) => {
               const isSelectedRow = row.dRate === Math.round(discountRate);
               return (
-                <tr key={row.dRate} className="border-b border-border/40 last:border-0">
+                <tr
+                  key={row.dRate}
+                  className="border-b border-border/40 last:border-0"
+                >
                   {/* Row Header (WACC / Discount Rate) */}
                   <th
                     scope="row"
@@ -338,7 +367,10 @@ export default function ValuationSensitivityMatrix({
 
                   {/* Matrix Cells */}
                   {row.cells.map((cell) => {
-                    const theme = getValuationCellTheme(cell.fairValue, currentPrice);
+                    const theme = getValuationCellTheme(
+                      cell.fairValue,
+                      currentPrice,
+                    );
                     const formattedFairValue = `$${cell.fairValue.toFixed(2)}`;
                     const formattedDiff = `${Math.abs(cell.diffPercent).toFixed(1)}%`;
 
@@ -374,15 +406,23 @@ export default function ValuationSensitivityMatrix({
                             </span>
                           )}
 
-                          <span className={`font-mono text-xs ${theme.textClass}`}>
+                          <span
+                            className={`font-mono text-xs ${theme.textClass}`}
+                          >
                             {formattedFairValue}
                           </span>
                           <span
                             className={`text-[10px] font-mono px-1 rounded ${
-                              cell.diffPercent >= 0 ? "text-chart-positive" : "text-chart-negative"
+                              cell.diffPercent >= 0
+                                ? "text-chart-positive"
+                                : "text-chart-negative"
                             }`}
                           >
-                            {cell.diffPercent > 0 ? `+${formattedDiff}` : cell.diffPercent < 0 ? `-${formattedDiff}` : "0.0%"}
+                            {cell.diffPercent > 0
+                              ? `+${formattedDiff}`
+                              : cell.diffPercent < 0
+                                ? `-${formattedDiff}`
+                                : "0.0%"}
                           </span>
                         </button>
                       </td>
@@ -399,10 +439,14 @@ export default function ValuationSensitivityMatrix({
       <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground pt-3 border-t border-border/60">
         <span className="flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-primary" />
-          <span>{t("dcf.sensitivityClickHint") || "Click any cell to apply that valuation scenario to the sandbox."}</span>
+          <span>
+            {t("dcf.sensitivityClickHint") ||
+              "Click any cell to apply that valuation scenario to the sandbox."}
+          </span>
         </span>
         <span className="font-mono text-[10px]">
-          {valuationMode === "cashFlow" ? "FCF Base" : "Net Income Base"}: ${activeBase.toFixed(1)}B
+          {valuationMode === "cashFlow" ? "FCF Base" : "Net Income Base"}: $
+          {activeBase.toFixed(1)}B
         </span>
       </div>
     </div>

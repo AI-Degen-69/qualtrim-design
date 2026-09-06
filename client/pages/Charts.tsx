@@ -2,7 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useI18n } from "@/lib/i18n";
 import DCFWidget from "@/components/DCFWidget";
-import { SectionCardSkeleton, HeaderPriceSkeleton } from "@/components/Skeleton";
+import {
+  SectionCardSkeleton,
+  HeaderPriceSkeleton,
+} from "@/components/Skeleton";
 import TickerLogo from "@/components/TickerLogo";
 import {
   useStockQuote,
@@ -12,11 +15,26 @@ import {
   useYahooChartDown,
   useScreenerSearch,
 } from "@/hooks/useStockData";
-import { TrendingUp, TrendingDown, BarChart3, Calendar, Search, X } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  Calendar,
+  Search,
+  X,
+} from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import DataStatusBadge from "@/components/DataStatusBadge";
 
-const POPULAR_TICKERS = ["AAPL", "NVDA", "MSFT", "TSLA", "AMZN", "GOOGL", "META"];
+const POPULAR_TICKERS = [
+  "AAPL",
+  "NVDA",
+  "MSFT",
+  "TSLA",
+  "AMZN",
+  "GOOGL",
+  "META",
+];
 
 /**
  * Displays a discounted cash flow valuation chart for the selected stock ticker.
@@ -49,7 +67,10 @@ export function Charts() {
   // Close search dropdown on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setIsSearchOpen(false);
       }
     }
@@ -66,7 +87,8 @@ export function Charts() {
   // DCF math depends on the live quote — never feed a hardcoded number.
   const { data: quoteData, isLoading: quoteLoading } = useStockQuote(ticker);
   // Profile gives us a friendly company name and market cap for the page header.
-  const { data: profileData, isLoading: profileLoading } = useStockProfile(ticker);
+  const { data: profileData, isLoading: profileLoading } =
+    useStockProfile(ticker);
   // Financial statements provide actual Free Cash Flow and Net Income.
   const { data: financialsData } = useStockFinancials(ticker);
   // Valuation metrics provide P/E and other TTM ratios.
@@ -83,51 +105,65 @@ export function Charts() {
   const yearHigh = quoteData?.yearHigh ?? null;
 
   const dayMidpoint =
-    dayLow !== null && dayHigh !== null && dayHigh > dayLow ? (dayLow + dayHigh) / 2 : null;
+    dayLow !== null && dayHigh !== null && dayHigh > dayLow
+      ? (dayLow + dayHigh) / 2
+      : null;
   const midpointGap =
-    currentPrice !== undefined && dayMidpoint !== null ? currentPrice - dayMidpoint : null;
+    currentPrice !== undefined && dayMidpoint !== null
+      ? currentPrice - dayMidpoint
+      : null;
   const midpointCaption =
     midpointGap === null
       ? null
       : midpointGap >= 0
         ? t("charts.aboveMidpoint", { amount: midpointGap.toFixed(2) })
-        : t("charts.belowMidpoint", { amount: Math.abs(midpointGap).toFixed(2) });
+        : t("charts.belowMidpoint", {
+            amount: Math.abs(midpointGap).toFixed(2),
+          });
 
   const yearMidpoint =
-    yearLow !== null && yearHigh !== null && yearHigh > yearLow ? (yearLow + yearHigh) / 2 : null;
+    yearLow !== null && yearHigh !== null && yearHigh > yearLow
+      ? (yearLow + yearHigh) / 2
+      : null;
   const yearMidpointGap =
-    currentPrice !== undefined && yearMidpoint !== null ? currentPrice - yearMidpoint : null;
+    currentPrice !== undefined && yearMidpoint !== null
+      ? currentPrice - yearMidpoint
+      : null;
   const yearMidpointCaption =
     yearMidpointGap === null
       ? null
       : yearMidpointGap >= 0
         ? t("charts.aboveMidpoint", { amount: yearMidpointGap.toFixed(2) })
-        : t("charts.belowMidpoint", { amount: Math.abs(yearMidpointGap).toFixed(2) });
+        : t("charts.belowMidpoint", {
+            amount: Math.abs(yearMidpointGap).toFixed(2),
+          });
 
   return (
     <div className="w-full bg-background dark min-h-screen p-8">
       <div className="max-w-5xl mx-auto space-y-8">
         <PageHeader
           eyebrow={t("nav.charts")}
-          title={profileLoading ? "…" : profileData?.companyName ?? ticker}
+          title={profileLoading ? "…" : (profileData?.companyName ?? ticker)}
           titleLeadingAdornment={<TickerLogo ticker={ticker} size="md" />}
           titleAdornment={
-            <span className="px-2 py-0.5 rounded bg-muted border border-border text-foreground text-xs font-mono font-bold" dir="ltr">
+            <span
+              className="px-2 py-0.5 rounded bg-muted border border-border text-foreground text-xs font-mono font-bold"
+              dir="ltr"
+            >
               {ticker}
             </span>
           }
           description={
-            [
-              profileData?.exchange,
-              profileData?.sector,
-            ]
+            [profileData?.exchange, profileData?.sector]
               .filter(Boolean)
               .join(" · ") || undefined
           }
           status={currentPrice != null ? "live" : undefined}
           source={currentPrice != null ? "Yahoo Finance" : undefined}
           actions={
-            yahooChartDown ? <DataStatusBadge status="mock" source="Chart fallback" /> : undefined
+            yahooChartDown ? (
+              <DataStatusBadge status="mock" source="Chart fallback" />
+            ) : undefined
           }
         />
 
@@ -148,7 +184,12 @@ export function Charts() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && searchQuery.trim()) {
                     const trimmed = searchQuery.trim();
-                    if (debouncedQuery !== trimmed || searchLoading || searchError) return;
+                    if (
+                      debouncedQuery !== trimmed ||
+                      searchLoading ||
+                      searchError
+                    )
+                      return;
                     handleSelectTicker(searchResults[0]?.symbol ?? trimmed);
                   }
                 }}
@@ -180,7 +221,9 @@ export function Charts() {
                   </div>
                 ) : searchResults.length === 0 ? (
                   <div className="p-3 text-xs text-muted-foreground text-center">
-                    {t("charts.noMatchingStocks", { query: debouncedQuery.toUpperCase() })}
+                    {t("charts.noMatchingStocks", {
+                      query: debouncedQuery.toUpperCase(),
+                    })}
                   </div>
                 ) : (
                   searchResults.map((item) => (
@@ -190,8 +233,12 @@ export function Charts() {
                       className="w-full px-3 py-2 text-left hover:bg-muted/60 flex items-center justify-between border-b border-border/40 last:border-0 transition-colors"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-xs text-foreground">{item.symbol}</span>
-                        <span className="text-xs text-muted-foreground line-clamp-1">{item.name}</span>
+                        <span className="font-mono font-bold text-xs text-foreground">
+                          {item.symbol}
+                        </span>
+                        <span className="text-xs text-muted-foreground line-clamp-1">
+                          {item.name}
+                        </span>
                       </div>
                       {item.exchange && (
                         <span className="text-[10px] font-mono text-muted-foreground px-1 rounded bg-muted">
@@ -246,7 +293,10 @@ export function Charts() {
                     {t("common.price")}
                   </span>
                   <div className="my-2 flex items-baseline gap-2">
-                    <span className="text-4xl font-bold font-mono tracking-tight tabular-nums text-foreground" dir="ltr">
+                    <span
+                      className="text-4xl font-bold font-mono tracking-tight tabular-nums text-foreground"
+                      dir="ltr"
+                    >
                       ${currentPrice.toFixed(2)}
                     </span>
                   </div>
@@ -269,7 +319,9 @@ export function Charts() {
                 <div className="min-h-[1.25rem] mt-2 flex items-center">
                   <span className="text-[11px] text-muted-foreground font-mono">
                     {quoteData?.volume
-                      ? t("charts.vol", { amount: (quoteData.volume / 1e6).toFixed(1) })
+                      ? t("charts.vol", {
+                          amount: (quoteData.volume / 1e6).toFixed(1),
+                        })
                       : ""}
                   </span>
                 </div>
@@ -282,13 +334,25 @@ export function Charts() {
                     <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground">
                       {t("charts.dayRange")}
                     </span>
-                    {dayLow !== null && dayHigh !== null && dayHigh > dayLow && (
-                      <span className="text-[11px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted/50 border border-border/50" dir="ltr">
-                        {t("charts.inRange", {
-                          percent: Math.min(100, Math.max(0, ((currentPrice - dayLow) / (dayHigh - dayLow)) * 100)).toFixed(0),
-                        })}
-                      </span>
-                    )}
+                    {dayLow !== null &&
+                      dayHigh !== null &&
+                      dayHigh > dayLow && (
+                        <span
+                          className="text-[11px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted/50 border border-border/50"
+                          dir="ltr"
+                        >
+                          {t("charts.inRange", {
+                            percent: Math.min(
+                              100,
+                              Math.max(
+                                0,
+                                ((currentPrice - dayLow) / (dayHigh - dayLow)) *
+                                  100,
+                              ),
+                            ).toFixed(0),
+                          })}
+                        </span>
+                      )}
                   </div>
                   {dayLow !== null && dayHigh !== null ? (
                     <DualRange
@@ -302,7 +366,10 @@ export function Charts() {
                 </div>
                 <div className="min-h-[1.25rem] mt-2 flex items-center">
                   {midpointCaption && (
-                    <p className="text-[11px] text-muted-foreground font-mono" dir="ltr">
+                    <p
+                      className="text-[11px] text-muted-foreground font-mono"
+                      dir="ltr"
+                    >
                       {midpointCaption}
                     </p>
                   )}
@@ -316,13 +383,26 @@ export function Charts() {
                     <span className="text-xs uppercase font-medium tracking-wider text-muted-foreground">
                       {t("charts.weekRange")}
                     </span>
-                    {yearLow !== null && yearHigh !== null && yearHigh > yearLow && (
-                      <span className="text-[11px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted/50 border border-border/50" dir="ltr">
-                        {t("charts.inRange", {
-                          percent: Math.min(100, Math.max(0, ((currentPrice - yearLow) / (yearHigh - yearLow)) * 100)).toFixed(0),
-                        })}
-                      </span>
-                    )}
+                    {yearLow !== null &&
+                      yearHigh !== null &&
+                      yearHigh > yearLow && (
+                        <span
+                          className="text-[11px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted/50 border border-border/50"
+                          dir="ltr"
+                        >
+                          {t("charts.inRange", {
+                            percent: Math.min(
+                              100,
+                              Math.max(
+                                0,
+                                ((currentPrice - yearLow) /
+                                  (yearHigh - yearLow)) *
+                                  100,
+                              ),
+                            ).toFixed(0),
+                          })}
+                        </span>
+                      )}
                   </div>
                   {yearLow !== null && yearHigh !== null ? (
                     <DualRange
@@ -336,7 +416,10 @@ export function Charts() {
                 </div>
                 <div className="min-h-[1.25rem] mt-2 flex items-center">
                   {yearMidpointCaption && (
-                    <p className="text-[11px] text-muted-foreground font-mono" dir="ltr">
+                    <p
+                      className="text-[11px] text-muted-foreground font-mono"
+                      dir="ltr"
+                    >
                       {yearMidpointCaption}
                     </p>
                   )}
@@ -349,68 +432,79 @@ export function Charts() {
         {/* DCF widget */}
         {quoteLoading || currentPrice == null ? (
           <SectionCardSkeleton height={420} />
-        ) : (() => {
-          const mktCap = profileData?.marketCap ?? null;
-          const isFinitePositiveMktCap = mktCap != null && Number.isFinite(mktCap) && mktCap > 0;
-          const derivedShares =
-            isFinitePositiveMktCap && currentPrice > 0
-              ? (mktCap / currentPrice) / 1e9
-              : 15.2;
+        ) : (
+          (() => {
+            const mktCap = profileData?.marketCap ?? null;
+            const isFinitePositiveMktCap =
+              mktCap != null && Number.isFinite(mktCap) && mktCap > 0;
+            const derivedShares =
+              isFinitePositiveMktCap && currentPrice > 0
+                ? mktCap / currentPrice / 1e9
+                : 15.2;
 
-          const sortedCash = financialsData?.cash
-            ? financialsData.cash
-                .slice()
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            : [];
-          const sortedIncome = financialsData?.income
-            ? financialsData.income
-                .slice()
-                .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-            : [];
+            const sortedCash = financialsData?.cash
+              ? financialsData.cash
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      new Date(b.date).getTime() - new Date(a.date).getTime(),
+                  )
+              : [];
+            const sortedIncome = financialsData?.income
+              ? financialsData.income
+                  .slice()
+                  .sort(
+                    (a, b) =>
+                      new Date(b.date).getTime() - new Date(a.date).getTime(),
+                  )
+              : [];
 
-          const latestCash = sortedCash[0];
-          const latestIncome = sortedIncome[0];
+            const latestCash = sortedCash[0];
+            const latestIncome = sortedIncome[0];
 
-          const rawFcf = latestCash?.freeCashFlow;
-          const derivedFcf =
-            rawFcf != null && Number.isFinite(rawFcf) && rawFcf > 0
-              ? rawFcf / 1e9
-              : isFinitePositiveMktCap
-              ? Math.max(1, (mktCap / 1e9) / 25)
-              : 108.8;
+            const rawFcf = latestCash?.freeCashFlow;
+            const derivedFcf =
+              rawFcf != null && Number.isFinite(rawFcf) && rawFcf > 0
+                ? rawFcf / 1e9
+                : isFinitePositiveMktCap
+                  ? Math.max(1, mktCap / 1e9 / 25)
+                  : 108.8;
 
-          const rawNetIncome = latestIncome?.netIncome;
-          const derivedEarnings =
-            rawNetIncome != null && Number.isFinite(rawNetIncome) && rawNetIncome > 0
-              ? rawNetIncome / 1e9
-              : isFinitePositiveMktCap
-              ? Math.max(1, (mktCap / 1e9) / (profileData?.peRatio || 25))
-              : 100.9;
+            const rawNetIncome = latestIncome?.netIncome;
+            const derivedEarnings =
+              rawNetIncome != null &&
+              Number.isFinite(rawNetIncome) &&
+              rawNetIncome > 0
+                ? rawNetIncome / 1e9
+                : isFinitePositiveMktCap
+                  ? Math.max(1, mktCap / 1e9 / (profileData?.peRatio || 25))
+                  : 100.9;
 
-          const stockPe = profileData?.peRatio ?? metricsData?.metrics?.peRatioTTM ?? 25;
-          const initialMultiple = stockPe > 0 && stockPe < 150 ? Math.round(stockPe) : 25;
+            const stockPe =
+              profileData?.peRatio ?? metricsData?.metrics?.peRatioTTM ?? 25;
+            const initialMultiple =
+              stockPe > 0 && stockPe < 150 ? Math.round(stockPe) : 25;
 
-          return (
-            <DCFWidget
-              key={ticker}
-              ticker={ticker}
-              companyName={profileData?.companyName}
-              currentPrice={currentPrice}
-              sharesOutstanding={derivedShares}
-              initialFcf={derivedFcf}
-              initialEarnings={derivedEarnings}
-              initialMultiple={initialMultiple}
-            />
-          );
-        })()}
+            return (
+              <DCFWidget
+                key={ticker}
+                ticker={ticker}
+                companyName={profileData?.companyName}
+                currentPrice={currentPrice}
+                sharesOutstanding={derivedShares}
+                initialFcf={derivedFcf}
+                initialEarnings={derivedEarnings}
+                initialMultiple={initialMultiple}
+              />
+            );
+          })()
+        )}
 
         {/* Footer hint card */}
         {!quoteLoading && currentPrice && (
           <div className="bg-card/50 border border-border rounded-xl p-4 text-xs text-muted-foreground flex items-center gap-3">
             <Calendar className="w-4 h-4 shrink-0" />
-            <span>
-              {t("charts.dcfGuidance")}
-            </span>
+            <span>{t("charts.dcfGuidance")}</span>
             <span className="ml-auto inline-flex items-center gap-1 text-muted-foreground">
               <TrendingUp className="w-3 h-3 text-chart-positive" />
               <TrendingDown className="w-3 h-3 text-chart-negative" />
@@ -439,7 +533,9 @@ function DualRange({
 }) {
   const { t } = useI18n();
   const pct =
-    high > low ? Math.min(100, Math.max(0, ((current - low) / (high - low)) * 100)) : 50;
+    high > low
+      ? Math.min(100, Math.max(0, ((current - low) / (high - low)) * 100))
+      : 50;
 
   return (
     <div className="space-y-2" dir="ltr">
@@ -472,19 +568,24 @@ function DualRange({
           <span className="text-[10px] text-muted-foreground uppercase font-sans">
             {t("charts.low")}
           </span>
-          <span className="font-semibold" dir="ltr">${low.toFixed(2)}</span>
+          <span className="font-semibold" dir="ltr">
+            ${low.toFixed(2)}
+          </span>
         </div>
         <div className="flex items-center gap-1 text-muted-foreground text-[10px]">
-          <span>{t("charts.mid", { amount: ((low + high) / 2).toFixed(2) })}</span>
+          <span>
+            {t("charts.mid", { amount: ((low + high) / 2).toFixed(2) })}
+          </span>
         </div>
         <div className="flex items-center gap-1 text-chart-positive">
           <span className="text-[10px] text-muted-foreground uppercase font-sans">
             {t("charts.high")}
           </span>
-          <span className="font-semibold" dir="ltr">${high.toFixed(2)}</span>
+          <span className="font-semibold" dir="ltr">
+            ${high.toFixed(2)}
+          </span>
         </div>
       </div>
     </div>
   );
 }
-

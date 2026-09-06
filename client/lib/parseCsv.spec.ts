@@ -10,36 +10,72 @@ describe("parseTickers", () => {
     // Runtime safety net for callers passing raw form values where
     // `undefined`/`null` would otherwise throw — the typeof guard
     // inside `parseTickers` returns an empty result without throwing.
-    expect(parseTickers(undefined as unknown as string)).toEqual({ valid: [], invalid: [], total: 0 });
-    expect(parseTickers(null as unknown as string)).toEqual({ valid: [], invalid: [], total: 0 });
+    expect(parseTickers(undefined as unknown as string)).toEqual({
+      valid: [],
+      invalid: [],
+      total: 0,
+    });
+    expect(parseTickers(null as unknown as string)).toEqual({
+      valid: [],
+      invalid: [],
+      total: 0,
+    });
   });
 
   it("parses comma-separated", () => {
-    expect(parseTickers("AAPL, MSFT, GOOGL").valid).toEqual(["AAPL", "MSFT", "GOOGL"]);
+    expect(parseTickers("AAPL, MSFT, GOOGL").valid).toEqual([
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+    ]);
   });
 
   it("parses newline-separated", () => {
-    expect(parseTickers("AAPL\nMSFT\nGOOGL").valid).toEqual(["AAPL", "MSFT", "GOOGL"]);
+    expect(parseTickers("AAPL\nMSFT\nGOOGL").valid).toEqual([
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+    ]);
   });
 
   it("parses tab-separated", () => {
-    expect(parseTickers("AAPL\tMSFT\tGOOGL").valid).toEqual(["AAPL", "MSFT", "GOOGL"]);
+    expect(parseTickers("AAPL\tMSFT\tGOOGL").valid).toEqual([
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+    ]);
   });
 
   it("parses semicolon-separated", () => {
-    expect(parseTickers("AAPL; MSFT; GOOGL").valid).toEqual(["AAPL", "MSFT", "GOOGL"]);
+    expect(parseTickers("AAPL; MSFT; GOOGL").valid).toEqual([
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+    ]);
   });
 
   it("parses whitespace-separated without commas", () => {
-    expect(parseTickers("AAPL MSFT GOOGL").valid).toEqual(["AAPL", "MSFT", "GOOGL"]);
+    expect(parseTickers("AAPL MSFT GOOGL").valid).toEqual([
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+    ]);
   });
 
   it("strips surrounding quotes", () => {
-    expect(parseTickers('"AAPL", "MSFT", "GOOGL"').valid).toEqual(["AAPL", "MSFT", "GOOGL"]);
+    expect(parseTickers('"AAPL", "MSFT", "GOOGL"').valid).toEqual([
+      "AAPL",
+      "MSFT",
+      "GOOGL",
+    ]);
   });
 
   it("uppercases everything", () => {
-    expect(parseTickers("aapl, msft, goog").valid).toEqual(["AAPL", "MSFT", "GOOG"]);
+    expect(parseTickers("aapl, msft, goog").valid).toEqual([
+      "AAPL",
+      "MSFT",
+      "GOOG",
+    ]);
   });
 
   it("dedupes case-insensitive duplicates", () => {
@@ -81,9 +117,7 @@ describe("parseTickers", () => {
   });
 
   it("includes whitespace-suffixed mixed comma+newline cases", () => {
-    const out = parseTickers(
-      "  AAPL  ,  MSFT\n\n  GOOGL \n  META  ",
-    );
+    const out = parseTickers("  AAPL  ,  MSFT\n\n  GOOGL \n  META  ");
     expect(out.valid).toEqual(["AAPL", "MSFT", "GOOGL", "META"]);
   });
 

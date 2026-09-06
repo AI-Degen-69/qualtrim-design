@@ -55,7 +55,8 @@ function makeT(lang: "en" | "he" = "en") {
     if (vars?.count !== undefined) {
       const cat = pluralRule(vars.count as number);
       const suffixed = `${key}_${cat}`;
-      if (dict[suffixed] !== undefined) return interpolate(dict[suffixed], vars);
+      if (dict[suffixed] !== undefined)
+        return interpolate(dict[suffixed], vars);
       const other = `${key}_other`;
       if (dict[other] !== undefined) return interpolate(dict[other], vars);
     }
@@ -99,67 +100,109 @@ describe("formatTimeAgo", () => {
       expect(formatTimeAgo(now(59), makeT(), { now: NOW_MS })).toBe("just now");
     });
     it("falls into minutes bucket at the 60-second boundary", () => {
-      expect(formatTimeAgo(now(TIME_AGO_BUCKETS.justNowMax), makeT(), { now: NOW_MS })).toBe("1 minute ago");
+      expect(
+        formatTimeAgo(now(TIME_AGO_BUCKETS.justNowMax), makeT(), {
+          now: NOW_MS,
+        }),
+      ).toBe("1 minute ago");
     });
   });
 
   describe("minutes bucket", () => {
     it("1 minute → singular", () => {
-      expect(formatTimeAgo(now(60), makeT(), { now: NOW_MS })).toBe("1 minute ago");
+      expect(formatTimeAgo(now(60), makeT(), { now: NOW_MS })).toBe(
+        "1 minute ago",
+      );
     });
     it("30 minutes → plural", () => {
-      expect(formatTimeAgo(now(60 * 30), makeT(), { now: NOW_MS })).toBe("30 minutes ago");
+      expect(formatTimeAgo(now(60 * 30), makeT(), { now: NOW_MS })).toBe(
+        "30 minutes ago",
+      );
     });
     it("59 minutes → still plural", () => {
-      expect(formatTimeAgo(now(TIME_AGO_BUCKETS.hourMin - 60), makeT(), { now: NOW_MS })).toBe("59 minutes ago");
+      expect(
+        formatTimeAgo(now(TIME_AGO_BUCKETS.hourMin - 60), makeT(), {
+          now: NOW_MS,
+        }),
+      ).toBe("59 minutes ago");
     });
   });
 
   describe("hours / days / weeks / months / years buckets", () => {
     it("1 hour", () => {
-      expect(formatTimeAgo(now(TIME_AGO_BUCKETS.hourMin), makeT(), { now: NOW_MS })).toBe("1 hour ago");
+      expect(
+        formatTimeAgo(now(TIME_AGO_BUCKETS.hourMin), makeT(), { now: NOW_MS }),
+      ).toBe("1 hour ago");
     });
     it("5 hours", () => {
-      expect(formatTimeAgo(now(5 * 60 * 60), makeT(), { now: NOW_MS })).toBe("5 hours ago");
+      expect(formatTimeAgo(now(5 * 60 * 60), makeT(), { now: NOW_MS })).toBe(
+        "5 hours ago",
+      );
     });
     it("1 day", () => {
-      expect(formatTimeAgo(now(TIME_AGO_BUCKETS.dayMin), makeT(), { now: NOW_MS })).toBe("1 day ago");
+      expect(
+        formatTimeAgo(now(TIME_AGO_BUCKETS.dayMin), makeT(), { now: NOW_MS }),
+      ).toBe("1 day ago");
     });
     it("3 days", () => {
-      expect(formatTimeAgo(now(3 * 24 * 60 * 60), makeT(), { now: NOW_MS })).toBe("3 days ago");
+      expect(
+        formatTimeAgo(now(3 * 24 * 60 * 60), makeT(), { now: NOW_MS }),
+      ).toBe("3 days ago");
     });
     it("1 week", () => {
-      expect(formatTimeAgo(now(TIME_AGO_BUCKETS.weekMin), makeT(), { now: NOW_MS })).toBe("1 week ago");
+      expect(
+        formatTimeAgo(now(TIME_AGO_BUCKETS.weekMin), makeT(), { now: NOW_MS }),
+      ).toBe("1 week ago");
     });
     it("3 weeks", () => {
-      expect(formatTimeAgo(now(3 * 7 * 24 * 60 * 60), makeT(), { now: NOW_MS })).toBe("3 weeks ago");
+      expect(
+        formatTimeAgo(now(3 * 7 * 24 * 60 * 60), makeT(), { now: NOW_MS }),
+      ).toBe("3 weeks ago");
     });
     it("~2 months", () => {
-      expect(formatTimeAgo(now(60 * 24 * 60 * 60), makeT(), { now: NOW_MS })).toMatch(/month/);
+      expect(
+        formatTimeAgo(now(60 * 24 * 60 * 60), makeT(), { now: NOW_MS }),
+      ).toMatch(/month/);
     });
     it("1 year", () => {
-      expect(formatTimeAgo(now(TIME_AGO_BUCKETS.yearMin), makeT(), { now: NOW_MS })).toBe("1 year ago");
+      expect(
+        formatTimeAgo(now(TIME_AGO_BUCKETS.yearMin), makeT(), { now: NOW_MS }),
+      ).toBe("1 year ago");
     });
     it("5 years", () => {
-      expect(formatTimeAgo(now(5 * TIME_AGO_BUCKETS.yearMin), makeT(), { now: NOW_MS })).toBe("5 years ago");
+      expect(
+        formatTimeAgo(now(5 * TIME_AGO_BUCKETS.yearMin), makeT(), {
+          now: NOW_MS,
+        }),
+      ).toBe("5 years ago");
     });
   });
 
   describe("Hebrew `_two` form", () => {
     it("uses the עברית _two suffix for exactly 2 minutes", () => {
-      expect(formatTimeAgo(now(2 * 60), makeT("he"), { now: NOW_MS })).toBe("לפני שתי דקות");
+      expect(formatTimeAgo(now(2 * 60), makeT("he"), { now: NOW_MS })).toBe(
+        "לפני שתי דקות",
+      );
     });
     it("uses `_one` for exactly 1 hour", () => {
-      expect(formatTimeAgo(now(TIME_AGO_BUCKETS.hourMin), makeT("he"), { now: NOW_MS })).toBe("לפני שעה");
+      expect(
+        formatTimeAgo(now(TIME_AGO_BUCKETS.hourMin), makeT("he"), {
+          now: NOW_MS,
+        }),
+      ).toBe("לפני שעה");
     });
     it("falls through to `_other` for 5 hours", () => {
-      expect(formatTimeAgo(now(5 * 60 * 60), makeT("he"), { now: NOW_MS })).toBe("5 שעות");
+      expect(
+        formatTimeAgo(now(5 * 60 * 60), makeT("he"), { now: NOW_MS }),
+      ).toBe("5 שעות");
     });
   });
 
   describe("future timestamps", () => {
     it("clamps diff < 0 to 'just now' rather than '-3 minutes'", () => {
-      expect(formatTimeAgo(now(-100), makeT(), { now: NOW_MS })).toBe("just now");
+      expect(formatTimeAgo(now(-100), makeT(), { now: NOW_MS })).toBe(
+        "just now",
+      );
     });
   });
 });

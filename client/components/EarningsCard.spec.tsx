@@ -16,7 +16,7 @@ describe("EarningsCard", () => {
         <I18nProvider>
           <MemoryRouter>{ui}</MemoryRouter>
         </I18nProvider>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
   it("renders ticker symbol, company name, and estimates correctly", () => {

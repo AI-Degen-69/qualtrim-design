@@ -29,9 +29,7 @@ function withI18n(node: React.ReactNode): React.ReactElement {
 describe("PricingModal (placeholder)", () => {
   it("renders nothing when isOpen=false", () => {
     const html = renderToString(
-      withI18n(
-        <PricingModal isOpen={false} onClose={() => {}} />,
-      ),
+      withI18n(<PricingModal isOpen={false} onClose={() => {}} />),
     );
     expect(html).toBe("");
   });
@@ -39,7 +37,11 @@ describe("PricingModal (placeholder)", () => {
   it("renders the modal chrome + body when isOpen=true", () => {
     const html = renderToString(
       withI18n(
-        <PricingModal isOpen={true} onClose={() => {}} context="revenueSegments" />,
+        <PricingModal
+          isOpen={true}
+          onClose={() => {}}
+          context="revenueSegments"
+        />,
       ),
     );
 
@@ -50,8 +52,12 @@ describe("PricingModal (placeholder)", () => {
 
     // Body bullets — three benefit lines so the user gets concrete
     // value instead of just "upgrade now".
-    expect(html).toMatch(/Per-product revenue breakdowns|פילוח הכנסות לפי מוצר/);
-    expect(html).toMatch(/Unbounded historical financials|דוחות כספיים היסטוריים ללא הגבלה/);
+    expect(html).toMatch(
+      /Per-product revenue breakdowns|פילוח הכנסות לפי מוצר/,
+    );
+    expect(html).toMatch(
+      /Unbounded historical financials|דוחות כספיים היסטוריים ללא הגבלה/,
+    );
     expect(html).toMatch(/Custom alerts|התראות מותאמות אישית/);
 
     // Footer placeholder framing.
@@ -80,7 +86,9 @@ describe("PricingModal (placeholder)", () => {
     // generic context — falls back to the catch-all body. (The Pitch
     // stays the same shape; only the lead-in narrative changes.)
     const genericHtml = renderToString(
-      withI18n(<PricingModal isOpen={true} onClose={() => {}} context={null} />),
+      withI18n(
+        <PricingModal isOpen={true} onClose={() => {}} context={null} />,
+      ),
     );
     expect(genericHtml).not.toMatch(/locked chip you just clicked/);
     expect(genericHtml).not.toMatch(/השבב הנעול שלחצת עליו/);
@@ -106,9 +114,7 @@ describe("PricingModal (placeholder)", () => {
     // coverage lives in the end-to-end ChartModal.preview.tsx flow.
     const onClose = vi.fn();
     const html = renderToString(
-      withI18n(
-        <PricingModal isOpen={true} onClose={onClose} />,
-      ),
+      withI18n(<PricingModal isOpen={true} onClose={onClose} />),
     );
     // Footer button count — both CTAs wired through onClose.
     expect(html.match(/type="button"/g)?.length ?? 0).toBeGreaterThanOrEqual(3);

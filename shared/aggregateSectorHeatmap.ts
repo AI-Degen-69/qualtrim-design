@@ -105,7 +105,9 @@ export function aggregateSectorHeatmap(
     for (const m of p.dailyMoves) dateSet.add(m.date);
   }
   if (dateSet.size === 0) return empty();
-  const allDates = Array.from(dateSet).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  const allDates = Array.from(dateSet).sort((a, b) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  );
   const axis = allDates.slice(-targetDays); // oldest → newest
   const axisSet = new Set(axis);
   const axisLast = axis[axis.length - 1];
@@ -126,7 +128,10 @@ export function aggregateSectorHeatmap(
           }
         })();
   const isPartialFor = (date: string): boolean =>
-    todayIso !== null && date === axisLast && date === todayIso && !todayIsWeekend;
+    todayIso !== null &&
+    date === axisLast &&
+    date === todayIso &&
+    !todayIsWeekend;
 
   // Sector aggregation. We average per-ticker daily moves so a sector with
   // 4 of 5 tickers contributing today isn't diluted by a halted name.
@@ -224,7 +229,8 @@ export function aggregateSectorHeatmap(
           isPartial: isPartialFor(date),
         };
       }),
-      weekNet: entry.weekNetCount > 0 ? entry.weekNetSum / entry.weekNetCount : null,
+      weekNet:
+        entry.weekNetCount > 0 ? entry.weekNetSum / entry.weekNetCount : null,
       universeCount: entry.universeCount,
     }))
     // Hottest sector at top; sectors where EVERY day is null sink to the

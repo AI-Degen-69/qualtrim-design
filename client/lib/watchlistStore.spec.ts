@@ -31,7 +31,8 @@ function installInMemoryStorage() {
   // tests fire synthetic events through this map to exercise the bridge.
   const listeners = new Map<string, Set<(e: any) => void>>();
   const stub = {
-    getItem: (k: string) => (backing.has(k) ? (backing.get(k) as string) : null),
+    getItem: (k: string) =>
+      backing.has(k) ? (backing.get(k) as string) : null,
     setItem: (k: string, v: string) => backing.set(k, String(v)),
     removeItem: (k: string) => backing.delete(k),
     clear: () => {
@@ -82,8 +83,14 @@ function installInMemoryStorage() {
 }
 
 function teardownStorage() {
-  Object.defineProperty(globalThis, "window", { value: undefined, configurable: true });
-  Object.defineProperty(globalThis, "localStorage", { value: undefined, configurable: true });
+  Object.defineProperty(globalThis, "window", {
+    value: undefined,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, "localStorage", {
+    value: undefined,
+    configurable: true,
+  });
 }
 
 describe("watchlistStore", () => {
@@ -112,7 +119,10 @@ describe("watchlistStore", () => {
       const stub = installInMemoryStorage();
       const lists = loadWatchlists();
       const newList = unwrap(
-        createWatchlist(lists, "My Tech", [{ symbol: "AAPL" }, { symbol: "MSFT" }]),
+        createWatchlist(lists, "My Tech", [
+          { symbol: "AAPL" },
+          { symbol: "MSFT" },
+        ]),
       );
       saveWatchlists([...lists, newList]);
       expect(stub.getItem("vantage.watchlists")).not.toBeNull();
@@ -135,7 +145,14 @@ describe("watchlistStore", () => {
       anyStorage.setItem(
         "vantage.watchlists",
         JSON.stringify([
-          { id: "user1", name: "User 1", symbols: [], isSystem: false, createdAt: 1, version: 1 },
+          {
+            id: "user1",
+            name: "User 1",
+            symbols: [],
+            isSystem: false,
+            createdAt: 1,
+            version: 1,
+          },
         ]),
       );
       const lists = loadWatchlists();
@@ -177,7 +194,9 @@ describe("watchlistStore", () => {
 
     it("ALLOWS adding symbols to the system list", () => {
       const lists = loadWatchlists();
-      const result = addSymbols(lists, WATCHLIST_SYSTEM_ID, [{ symbol: "PLTR" }]);
+      const result = addSymbols(lists, WATCHLIST_SYSTEM_ID, [
+        { symbol: "PLTR" },
+      ]);
       expect(result.ok).toBe(true);
       if (result.ok) {
         const sys = result.value.find((l) => l.id === WATCHLIST_SYSTEM_ID);
@@ -191,14 +210,18 @@ describe("watchlistStore", () => {
       const reversed = [...sys.symbols].reverse();
       const next = reorderSymbols(lists, WATCHLIST_SYSTEM_ID, reversed);
       const sysNext = next.find((l) => l.id === WATCHLIST_SYSTEM_ID);
-      expect(sysNext?.symbols[0].symbol).toBe(sys.symbols[sys.symbols.length - 1].symbol);
+      expect(sysNext?.symbols[0].symbol).toBe(
+        sys.symbols[sys.symbols.length - 1].symbol,
+      );
     });
   });
 
   describe("createWatchlist", () => {
     it("creates a new user list", () => {
       const lists = loadWatchlists();
-      const value = unwrap(createWatchlist(lists, "My Tech", [{ symbol: "MSFT" }]));
+      const value = unwrap(
+        createWatchlist(lists, "My Tech", [{ symbol: "MSFT" }]),
+      );
       expect(value.isSystem).toBe(false);
       expect(value.name).toBe("My Tech");
       expect(value.symbols).toEqual([{ symbol: "MSFT" }]);
@@ -206,7 +229,9 @@ describe("watchlistStore", () => {
 
     it("trims whitespace in the name", () => {
       const lists = loadWatchlists();
-      expect(unwrap(createWatchlist(lists, "  spaced  ", [])).name).toBe("spaced");
+      expect(unwrap(createWatchlist(lists, "  spaced  ", [])).name).toBe(
+        "spaced",
+      );
     });
 
     it("rejects empty name", () => {
@@ -227,7 +252,9 @@ describe("watchlistStore", () => {
   describe("addSymbols / dedupe", () => {
     it("dedupes uppercase variants", () => {
       const lists = loadWatchlists();
-      const created = unwrap(createWatchlist(lists, "My List", [{ symbol: "aapl" }]));
+      const created = unwrap(
+        createWatchlist(lists, "My List", [{ symbol: "aapl" }]),
+      );
       const updated = unwrap(
         addSymbols([...lists, created], created.id, [
           { symbol: "AAPL" },
@@ -236,7 +263,10 @@ describe("watchlistStore", () => {
         ]),
       );
       const updatedList = updated.find((l) => l.id === created.id)!;
-      expect(updatedList.symbols.map((s) => s.symbol)).toEqual(["AAPL", "MSFT"]);
+      expect(updatedList.symbols.map((s) => s.symbol)).toEqual([
+        "AAPL",
+        "MSFT",
+      ]);
     });
 
     it("rejects invalid ticker formats", () => {
@@ -263,7 +293,10 @@ describe("watchlistStore", () => {
         ]),
       );
       const updatedList = updated.find((l) => l.id === created.id)!;
-      expect(updatedList.symbols[0]).toMatchObject({ symbol: "AAPL", name: "Apple Inc." });
+      expect(updatedList.symbols[0]).toMatchObject({
+        symbol: "AAPL",
+        name: "Apple Inc.",
+      });
     });
   });
 
@@ -326,7 +359,9 @@ describe("watchlistStore", () => {
       const initial = __watchlistInternal.getSnapshot();
       const created = unwrap(createWatchlist(initial.lists, "Tech", []));
       // Capture before-save listener count for invariant check.
-      const cursor = { seen: null as null | { lists: number; activeId: string } };
+      const cursor = {
+        seen: null as null | { lists: number; activeId: string },
+      };
       const unsub = __watchlistInternal.subscribe(() => {
         const s = __watchlistInternal.getSnapshot();
         cursor.seen = { lists: s.lists.length, activeId: s.activeId };

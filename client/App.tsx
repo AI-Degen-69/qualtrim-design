@@ -171,9 +171,7 @@ export default function App() {
                 <Route
                   path="/"
                   element={
-                    <ErrorBoundary>
-                      {withFallback(<Landing />)}
-                    </ErrorBoundary>
+                    <ErrorBoundary>{withFallback(<Landing />)}</ErrorBoundary>
                   }
                 />
                 <Route

@@ -38,17 +38,26 @@ export type SectorGlyphEntry = {
  * "two energy stocks row" doesn't blend.
  */
 export const HEBREW_SECTOR_GLYPHS: Record<string, SectorGlyphEntry> = {
-  Technology:                  { letter: "ט", color: "bg-blue-600/30 text-blue-200" },
-  "Financial Services":        { letter: "פ", color: "bg-emerald-600/30 text-emerald-200" },
-  Healthcare:                  { letter: "ב", color: "bg-rose-600/30 text-rose-200" },
-  "Consumer Cyclical":         { letter: "צ", color: "bg-amber-600/30 text-amber-200" },
-  "Consumer Defensive":        { letter: "צ", color: "bg-slate-600/30 text-slate-200" },
-  "Communication Services":    { letter: "ת", color: "bg-indigo-600/30 text-indigo-200" },
-  Energy:                      { letter: "א", color: "bg-orange-600/30 text-orange-200" },
-  Industrials:                 { letter: "ת", color: "bg-zinc-600/30 text-zinc-200" },
-  "Real Estate":               { letter: "נ", color: "bg-stone-600/30 text-stone-200" },
-  Utilities:                   { letter: "ש", color: "bg-sky-600/30 text-sky-200" },
-  "Basic Materials":           { letter: "ח", color: "bg-yellow-600/30 text-yellow-200" },
+  Technology: { letter: "ט", color: "bg-blue-600/30 text-blue-200" },
+  "Financial Services": {
+    letter: "פ",
+    color: "bg-emerald-600/30 text-emerald-200",
+  },
+  Healthcare: { letter: "ב", color: "bg-rose-600/30 text-rose-200" },
+  "Consumer Cyclical": { letter: "צ", color: "bg-amber-600/30 text-amber-200" },
+  "Consumer Defensive": {
+    letter: "צ",
+    color: "bg-slate-600/30 text-slate-200",
+  },
+  "Communication Services": {
+    letter: "ת",
+    color: "bg-indigo-600/30 text-indigo-200",
+  },
+  Energy: { letter: "א", color: "bg-orange-600/30 text-orange-200" },
+  Industrials: { letter: "ת", color: "bg-zinc-600/30 text-zinc-200" },
+  "Real Estate": { letter: "נ", color: "bg-stone-600/30 text-stone-200" },
+  Utilities: { letter: "ש", color: "bg-sky-600/30 text-sky-200" },
+  "Basic Materials": { letter: "ח", color: "bg-yellow-600/30 text-yellow-200" },
 };
 
 /**
@@ -60,7 +69,9 @@ export const HEBREW_SECTOR_GLYPHS: Record<string, SectorGlyphEntry> = {
  *   Undefined / empty / unrecognized values return `null`.
  * @returns The `{ letter, color }` pair, or `null` when no glyph maps.
  */
-export function getSectorGlyph(sector: string | null | undefined): SectorGlyphEntry | null {
+export function getSectorGlyph(
+  sector: string | null | undefined,
+): SectorGlyphEntry | null {
   if (!sector) return null;
   return HEBREW_SECTOR_GLYPHS[sector.trim()] ?? null;
 }

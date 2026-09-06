@@ -1,4 +1,4 @@
-import { serializeSectorMeta } from '../../shared/sectorMeta';
+import { serializeSectorMeta } from "../../shared/sectorMeta";
 
 export interface SymbolRecord {
   symbol?: string | null;
@@ -13,7 +13,11 @@ export interface BatchResolutionOptions<T extends SymbolRecord> {
 
 /** Normalize, deduplicate, and sort symbols for provider/cache work. */
 export function canonicalSymbols(symbols: string[]): string[] {
-  return Array.from(new Set(symbols.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean))).sort();
+  return Array.from(
+    new Set(
+      symbols.map((symbol) => symbol.trim().toUpperCase()).filter(Boolean),
+    ),
+  ).sort();
 }
 
 /** Build the active FMP multi-symbol quote URL without exposing it to clients. */
@@ -25,7 +29,10 @@ export function buildFmpBatchUrl(
 ): string {
   const canonical = canonicalSymbols(symbols);
   if (stable) {
-    const query = new URLSearchParams({ apikey: apiKey, symbols: canonical.join(",") });
+    const query = new URLSearchParams({
+      apikey: apiKey,
+      symbols: canonical.join(","),
+    });
     return `${base}/batch-quote?${query.toString()}`;
   }
   const query = new URLSearchParams({ apikey: apiKey });
@@ -42,7 +49,9 @@ export function orderByRequestedSymbols<T extends SymbolRecord>(
     const symbol = record?.symbol?.trim().toUpperCase();
     if (symbol) bySymbol.set(symbol, record as T);
   }
-  return requestedSymbols.map((symbol) => bySymbol.get(symbol.trim().toUpperCase()) ?? null);
+  return requestedSymbols.map(
+    (symbol) => bySymbol.get(symbol.trim().toUpperCase()) ?? null,
+  );
 }
 
 /**
@@ -71,9 +80,11 @@ export async function resolveOrderedBatch<T extends SymbolRecord>({
   const limit = Math.max(1, Math.floor(concurrency));
   for (let start = 0; start < missing.length; start += limit) {
     const group = missing.slice(start, start + limit);
-    const fallbackResults = await Promise.allSettled(group.map((symbol) => fetchSingle(symbol)));
+    const fallbackResults = await Promise.allSettled(
+      group.map((symbol) => fetchSingle(symbol)),
+    );
     fallbackResults.forEach((result) => {
-      const record = result.status === 'fulfilled' ? result.value : null;
+      const record = result.status === "fulfilled" ? result.value : null;
       const symbol = record?.symbol?.trim().toUpperCase();
       if (symbol) bySymbol.set(symbol, record as T);
     });
@@ -96,9 +107,14 @@ export interface HeatmapCacheKeyInput {
  * (or the same mapping in a different insertion order) never share a cached
  * aggregation.
  */
-export function buildSectorHeatmapCacheKey({ days, allowKey, meta, symbols }: HeatmapCacheKeyInput): string {
+export function buildSectorHeatmapCacheKey({
+  days,
+  allowKey,
+  meta,
+  symbols,
+}: HeatmapCacheKeyInput): string {
   const metaKey = serializeSectorMeta(meta);
-  return `sector_heatmap_${days}_${allowKey}_${metaKey || '*'}_${canonicalSymbols(symbols).join(',')}`;
+  return `sector_heatmap_${days}_${allowKey}_${metaKey || "*"}_${canonicalSymbols(symbols).join(",")}`;
 }
 
 export interface HeatmapRowBuildOptions {
@@ -117,7 +133,9 @@ export interface HeatmapRowBuildOptions {
  * a curated tag — extracted so that guarantee is testable with injected
  * callbacks instead of live provider mocks.
  */
-export async function buildHeatmapRows<T extends { symbol: string; sector: string | null }>({
+export async function buildHeatmapRows<
+  T extends { symbol: string; sector: string | null },
+>({
   symbols,
   curated,
   getChart,
@@ -135,8 +153,10 @@ export async function buildHeatmapRows<T extends { symbol: string; sector: strin
           getChart(sym),
           curatedTag ? Promise.resolve(null) : getProfile(sym),
         ]);
-        const chart = chartResult.status === 'fulfilled' ? chartResult.value : null;
-        const profile = profileResult.status === 'fulfilled' ? profileResult.value : null;
+        const chart =
+          chartResult.status === "fulfilled" ? chartResult.value : null;
+        const profile =
+          profileResult.status === "fulfilled" ? profileResult.value : null;
         const providerSector = profile?.sector?.trim() || null;
         return {
           symbol: sym,
@@ -166,9 +186,11 @@ export function createInFlightRegistry(): InFlightRegistry {
 
       const promise: Promise<T> = Promise.resolve().then(operation);
       entries.set(key, promise);
-      promise.finally(() => {
-        if (entries.get(key) === promise) entries.delete(key);
-      }).catch(() => undefined);
+      promise
+        .finally(() => {
+          if (entries.get(key) === promise) entries.delete(key);
+        })
+        .catch(() => undefined);
       return promise;
     },
     clear() {

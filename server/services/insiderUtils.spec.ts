@@ -15,7 +15,9 @@ describe("parseTransactionPrice", () => {
   });
 
   it("parses a price range without inventing an execution price", () => {
-    expect(parseTransactionPrice("Sale at price 284.57 - 285.04 per share.")).toEqual({
+    expect(
+      parseTransactionPrice("Sale at price 284.57 - 285.04 per share."),
+    ).toEqual({
       low: 284.57,
       high: 285.04,
       exact: null,
@@ -23,7 +25,9 @@ describe("parseTransactionPrice", () => {
   });
 
   it("does not treat a zero-price gift as a market price", () => {
-    expect(parseTransactionPrice("Stock Gift at price 0.00 per share.")).toBeNull();
+    expect(
+      parseTransactionPrice("Stock Gift at price 0.00 per share."),
+    ).toBeNull();
   });
 });
 
@@ -52,18 +56,36 @@ describe("classifyTransaction", () => {
 
 describe("resolveTransactionValue", () => {
   it("prefers a provider-reported value", () => {
-    expect(resolveTransactionValue(15551000, 50000, parseTransactionPrice("Sale at price 311.02 per share."))).toEqual({
+    expect(
+      resolveTransactionValue(
+        15551000,
+        50000,
+        parseTransactionPrice("Sale at price 311.02 per share."),
+      ),
+    ).toEqual({
       value: 15551000,
       source: "reported",
     });
   });
 
   it("derives value only from an exact reported price", () => {
-    expect(resolveTransactionValue(null, 100, parseTransactionPrice("Sale at price 25.50 per share."))).toEqual({
+    expect(
+      resolveTransactionValue(
+        null,
+        100,
+        parseTransactionPrice("Sale at price 25.50 per share."),
+      ),
+    ).toEqual({
       value: 2550,
       source: "derived",
     });
-    expect(resolveTransactionValue(null, 100, parseTransactionPrice("Sale at price 25.00 - 26.00 per share."))).toEqual({
+    expect(
+      resolveTransactionValue(
+        null,
+        100,
+        parseTransactionPrice("Sale at price 25.00 - 26.00 per share."),
+      ),
+    ).toEqual({
       value: null,
       source: null,
     });

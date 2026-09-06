@@ -41,7 +41,9 @@ export interface HistoryEntry {
 }
 
 function hasStorage(): boolean {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+  return (
+    typeof window !== "undefined" && typeof window.localStorage !== "undefined"
+  );
 }
 
 /**
@@ -152,7 +154,10 @@ export function loadHistory(): HistoryEntry[] {
 export function saveHistory(entries: HistoryEntry[]): void {
   if (!hasStorage()) return;
   try {
-    window.localStorage.setItem(STORAGE_HISTORY, JSON.stringify(entries.slice(0, HISTORY_CAP)));
+    window.localStorage.setItem(
+      STORAGE_HISTORY,
+      JSON.stringify(entries.slice(0, HISTORY_CAP)),
+    );
   } catch {
     // ignore
   }
@@ -178,7 +183,10 @@ export function appendHistory(
  * Saturday's morning view until the next user action OR the user clears
  * storage explicitly.
  */
-export function pruneOldHistory(entries: HistoryEntry[], todayIso: string): HistoryEntry[] {
+export function pruneOldHistory(
+  entries: HistoryEntry[],
+  todayIso: string,
+): HistoryEntry[] {
   const filtered = entries.filter((e) => e.date >= todayIso);
   return filtered.length === entries.length ? entries : filtered;
 }

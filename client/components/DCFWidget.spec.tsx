@@ -21,7 +21,7 @@ function withContext(node: React.ReactNode): React.ReactElement {
 describe("DCFWidget", () => {
   it("renders sandbox eyebrow, title, sliders, and fair value summary card", () => {
     const html = renderToString(
-      withContext(<DCFWidget ticker="AAPL" currentPrice={231.42} />)
+      withContext(<DCFWidget ticker="AAPL" currentPrice={231.42} />),
     );
 
     expect(html).toContain("INTERACTIVE VALUATION ENGINE");
@@ -42,8 +42,8 @@ describe("DCFWidget", () => {
           currentPrice={231.42}
           initialEarnings={100.9}
           initialValuationMode="earnings"
-        />
-      )
+        />,
+      ),
     );
 
     expect(html).toContain("Base Net Income ($B)");
@@ -61,8 +61,8 @@ describe("DCFWidget", () => {
           initialGrowth={12.0}
           initialMultiple={30.0}
           sharesOutstanding={7.5}
-        />
-      )
+        />,
+      ),
     );
 
     expect(html).toContain("400.00");
@@ -79,8 +79,8 @@ describe("DCFWidget", () => {
           initialGrowth={15.0}
           initialMultiple={22.0}
           initialTargetReturn={-90.0}
-        />
-      )
+        />,
+      ),
     );
 
     expect(htmlMin).not.toContain("Infinity");
@@ -95,8 +95,8 @@ describe("DCFWidget", () => {
           initialGrowth={15.0}
           initialMultiple={22.0}
           initialTargetReturn={500.0}
-        />
-      )
+        />,
+      ),
     );
 
     expect(htmlMax).not.toContain("Infinity");
@@ -114,8 +114,8 @@ describe("DCFWidget", () => {
           ticker="GOOGL"
           currentPrice={180.0}
           initialTargetReturn={-999.0}
-        />
-      )
+        />,
+      ),
     );
     expect(htmlUnder).not.toContain("Infinity");
     expect(htmlUnder).not.toContain("NaN");
@@ -126,8 +126,8 @@ describe("DCFWidget", () => {
           ticker="GOOGL"
           currentPrice={180.0}
           initialTargetReturn={999.0}
-        />
-      )
+        />,
+      ),
     );
     expect(htmlOver).not.toContain("Infinity");
     expect(htmlOver).not.toContain("NaN");

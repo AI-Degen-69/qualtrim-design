@@ -19,9 +19,18 @@ describe("chunkSymbols", () => {
 });
 
 describe("mergeBatchQuoteResponses", () => {
-  const q = (symbol: string) => ({ symbol, name: "", price: 1, change: 0, changesPercentage: 0 });
+  const q = (symbol: string) => ({
+    symbol,
+    name: "",
+    price: 1,
+    change: 0,
+    changesPercentage: 0,
+  });
   const fulfilled = (quotes: BatchQuoteResponse["quotes"]) =>
-    ({ status: "fulfilled", value: { quotes } }) as PromiseFulfilledResult<BatchQuoteResponse>;
+    ({
+      status: "fulfilled",
+      value: { quotes },
+    }) as PromiseFulfilledResult<BatchQuoteResponse>;
   const rejected = (reason: unknown) =>
     ({ status: "rejected", reason }) as PromiseRejectedResult;
 
@@ -52,8 +61,8 @@ describe("mergeBatchQuoteResponses", () => {
   });
 
   it("falls back to a plain error when rejections carry no usable reason", () => {
-    expect(() =>
-      mergeBatchQuoteResponses([rejected(undefined)]),
-    ).toThrow("All quote batches failed");
+    expect(() => mergeBatchQuoteResponses([rejected(undefined)])).toThrow(
+      "All quote batches failed",
+    );
   });
 });

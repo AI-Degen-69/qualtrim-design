@@ -7,7 +7,10 @@ const cache = new NodeCache({ stdTTL: 43200, checkperiod: 600 });
 const FMP_KEY = process.env.FMP_KEY || process.env.VITE_FMP_KEY;
 const BASE_URL = "https://financialmodelingprep.com";
 
-async function fetchFMP(path: string, useCache: boolean = true): Promise<any | null> {
+async function fetchFMP(
+  path: string,
+  useCache: boolean = true,
+): Promise<any | null> {
   if (!FMP_KEY) {
     console.error("[FMP] API key is missing. Set FMP_KEY in .env");
     return null;
@@ -81,27 +84,42 @@ async function fetchFMP(path: string, useCache: boolean = true): Promise<any | n
 /**
  * Fetch annual income statements (5 years).
  */
-export async function getIncomeStatements(ticker: string, period: "annual" | "quarter" = "annual") {
+export async function getIncomeStatements(
+  ticker: string,
+  period: "annual" | "quarter" = "annual",
+) {
   const periodParam = period === "quarter" ? "&period=quarter" : "";
-  const data = await fetchFMP(`stable/income-statement?symbol=${ticker}&limit=5${periodParam}`);
+  const data = await fetchFMP(
+    `stable/income-statement?symbol=${ticker}&limit=5${periodParam}`,
+  );
   return Array.isArray(data) ? data : [];
 }
 
 /**
  * Fetch annual balance sheet statements (5 years).
  */
-export async function getBalanceSheets(ticker: string, period: "annual" | "quarter" = "annual") {
+export async function getBalanceSheets(
+  ticker: string,
+  period: "annual" | "quarter" = "annual",
+) {
   const periodParam = period === "quarter" ? "&period=quarter" : "";
-  const data = await fetchFMP(`stable/balance-sheet-statement?symbol=${ticker}&limit=5${periodParam}`);
+  const data = await fetchFMP(
+    `stable/balance-sheet-statement?symbol=${ticker}&limit=5${periodParam}`,
+  );
   return Array.isArray(data) ? data : [];
 }
 
 /**
  * Fetch annual cash flow statements (5 years).
  */
-export async function getCashFlowStatements(ticker: string, period: "annual" | "quarter" = "annual") {
+export async function getCashFlowStatements(
+  ticker: string,
+  period: "annual" | "quarter" = "annual",
+) {
   const periodParam = period === "quarter" ? "&period=quarter" : "";
-  const data = await fetchFMP(`stable/cash-flow-statement?symbol=${ticker}&limit=5${periodParam}`);
+  const data = await fetchFMP(
+    `stable/cash-flow-statement?symbol=${ticker}&limit=5${periodParam}`,
+  );
   return Array.isArray(data) ? data : [];
 }
 
@@ -117,7 +135,9 @@ export async function getKeyMetrics(ticker: string) {
  * Fetch TTM key metrics.
  */
 export async function getKeyMetricsTTM(ticker: string) {
-  const data = await fetchFMP(`stable/key-metrics-ttm?symbol=${ticker}&limit=1`);
+  const data = await fetchFMP(
+    `stable/key-metrics-ttm?symbol=${ticker}&limit=1`,
+  );
   return Array.isArray(data) && data.length > 0 ? data[0] : {};
 }
 
@@ -125,7 +145,9 @@ export async function getKeyMetricsTTM(ticker: string) {
  * Fetch financial ratios (5 years annual).
  */
 export async function getRatios(ticker: string) {
-  const data = await fetchFMP(`stable/ratios?symbol=${ticker}&limit=5&period=annual`);
+  const data = await fetchFMP(
+    `stable/ratios?symbol=${ticker}&limit=5&period=annual`,
+  );
   return Array.isArray(data) ? data : [];
 }
 
@@ -141,7 +163,9 @@ export async function getRatiosTTM(ticker: string) {
  * Fetch financial scores (includes Piotroski).
  */
 export async function getFinancialScores(ticker: string) {
-  const data = await fetchFMP(`stable/financial-scores?symbol=${ticker}&limit=1`);
+  const data = await fetchFMP(
+    `stable/financial-scores?symbol=${ticker}&limit=1`,
+  );
   return Array.isArray(data) && data.length > 0 ? data[0] : {};
 }
 
@@ -207,8 +231,12 @@ export async function getSectorPE(date?: string) {
  */
 export async function getEarningsCalendar(from?: string, to?: string) {
   const today = new Date();
-  const fromStr = from || new Date(today.getTime() - 7 * 86400000).toISOString().slice(0, 10);
-  const toStr = to || new Date(today.getTime() + 7 * 86400000).toISOString().slice(0, 10);
-  const data = await fetchFMP(`stable/earning-calendar?from=${fromStr}&to=${toStr}`);
+  const fromStr =
+    from || new Date(today.getTime() - 7 * 86400000).toISOString().slice(0, 10);
+  const toStr =
+    to || new Date(today.getTime() + 7 * 86400000).toISOString().slice(0, 10);
+  const data = await fetchFMP(
+    `stable/earning-calendar?from=${fromStr}&to=${toStr}`,
+  );
   return Array.isArray(data) ? data : [];
 }

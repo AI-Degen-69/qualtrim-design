@@ -163,7 +163,10 @@ export default function InsightsCard({
           style={{ filter: `drop-shadow(0 0 5px ${lineColor}70)` }}
         >
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={sparklineData} margin={{ top: 6, right: 2, left: 2, bottom: 2 }}>
+            <AreaChart
+              data={sparklineData}
+              margin={{ top: 6, right: 2, left: 2, bottom: 2 }}
+            >
               <defs>
                 <linearGradient
                   id={`gradient-positive-${metricId}`}
@@ -172,8 +175,16 @@ export default function InsightsCard({
                   x2="0"
                   y2="1"
                 >
-                  <stop offset="0%" stopColor="hsl(155 75% 55%)" stopOpacity={0.45} />
-                  <stop offset="100%" stopColor="hsl(155 55% 35%)" stopOpacity={0.0} />
+                  <stop
+                    offset="0%"
+                    stopColor="hsl(155 75% 55%)"
+                    stopOpacity={0.45}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="hsl(155 55% 35%)"
+                    stopOpacity={0.0}
+                  />
                 </linearGradient>
                 <linearGradient
                   id={`gradient-negative-${metricId}`}
@@ -182,8 +193,16 @@ export default function InsightsCard({
                   x2="0"
                   y2="1"
                 >
-                  <stop offset="0%" stopColor="hsl(6 55% 35%)" stopOpacity={0.0} />
-                  <stop offset="100%" stopColor="hsl(6 80% 60%)" stopOpacity={0.45} />
+                  <stop
+                    offset="0%"
+                    stopColor="hsl(6 55% 35%)"
+                    stopOpacity={0.0}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="hsl(6 80% 60%)"
+                    stopOpacity={0.45}
+                  />
                 </linearGradient>
               </defs>
               <Area

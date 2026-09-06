@@ -14,9 +14,10 @@ export const handleChartHistory: RequestHandler = async (req, res) => {
     }
 
     const validPeriods = ["1d", "5d", "1mo", "3mo", "1y", "5y"] as const;
-    const p = (typeof period === "string" && validPeriods.includes(period as any))
-      ? (period as "1d" | "5d" | "1mo" | "3mo" | "1y" | "5y")
-      : "1y";
+    const p =
+      typeof period === "string" && validPeriods.includes(period as any)
+        ? (period as "1d" | "5d" | "1mo" | "3mo" | "1y" | "5y")
+        : "1y";
 
     const history = await fetchChartHistory(symbol.toUpperCase(), p);
 

@@ -31,7 +31,10 @@ function fakeProbe(status: number, body = ""): Response {
 
 /** Stub a globally healthy FMP/AV (200, empty body) so only the Yahoo probes decide. */
 function stubHealthyFetch() {
-  vi.stubGlobal("fetch", vi.fn(async () => fakeProbe(200, "[]")));
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => fakeProbe(200, "[]")),
+  );
 }
 
 /**
@@ -45,8 +48,14 @@ async function freshService(): Promise<StockService> {
   return mod.stockService;
 }
 
-function entryOf(providers: ProviderHealthEntry[], provider: string, feature: string) {
-  return providers.find((p) => p.provider === provider && p.feature === feature);
+function entryOf(
+  providers: ProviderHealthEntry[],
+  provider: string,
+  feature: string,
+) {
+  return providers.find(
+    (p) => p.provider === provider && p.feature === feature,
+  );
 }
 
 beforeEach(() => {
@@ -72,9 +81,15 @@ describe("stockService.getProviderHealth (full probe run)", () => {
       vi.fn(async (url: string) =>
         url.includes("financialmodelingprep.com")
           ? url.includes("batch-quote")
-            ? fakeProbe(402, JSON.stringify({ "Error Message": "Restricted Endpoint" }))
+            ? fakeProbe(
+                402,
+                JSON.stringify({ "Error Message": "Restricted Endpoint" }),
+              )
             : fakeProbe(200, JSON.stringify([{ price: 200 }]))
-          : fakeProbe(200, JSON.stringify({ "Global Quote": { "05. price": "200" } })),
+          : fakeProbe(
+              200,
+              JSON.stringify({ "Global Quote": { "05. price": "200" } }),
+            ),
       ),
     );
 
@@ -91,7 +106,9 @@ describe("stockService.getProviderHealth (full probe run)", () => {
     expect(entryOf(res.providers, "yahoo", "quote")?.status).toBe("ok");
     expect(entryOf(res.providers, "yahoo", "chart")?.status).toBe("ok");
     expect(entryOf(res.providers, "fmp", "quote")?.status).toBe("ok");
-    expect(entryOf(res.providers, "fmp", "batch-quote")?.status).toBe("known_restriction");
+    expect(entryOf(res.providers, "fmp", "batch-quote")?.status).toBe(
+      "known_restriction",
+    );
     expect(entryOf(res.providers, "alphavantage", "quote")?.status).toBe("ok");
     expect(res.healthy).toBe(true);
   });
@@ -148,7 +165,12 @@ describe("stockService.getProviderHealth (full probe run)", () => {
       "fetch",
       vi.fn(async (url: string) =>
         url.includes("financialmodelingprep.com")
-          ? fakeProbe(200, JSON.stringify({ "Error Message": "You have exceeded the daily limit" }))
+          ? fakeProbe(
+              200,
+              JSON.stringify({
+                "Error Message": "You have exceeded the daily limit",
+              }),
+            )
           : fakeProbe(200, JSON.stringify({})),
       ),
     );
@@ -170,15 +192,23 @@ describe("stockService.getProviderHealth (full probe run)", () => {
       vi.fn(async (url: string) =>
         url.includes("financialmodelingprep.com")
           ? url.includes("batch-quote")
-            ? fakeProbe(402, JSON.stringify({ "Error Message": "Restricted Endpoint" }))
+            ? fakeProbe(
+                402,
+                JSON.stringify({ "Error Message": "Restricted Endpoint" }),
+              )
             : fakeProbe(200, JSON.stringify([{ price: 200 }]))
-          : fakeProbe(200, JSON.stringify({ "Global Quote": { "05. price": "200" } })),
+          : fakeProbe(
+              200,
+              JSON.stringify({ "Global Quote": { "05. price": "200" } }),
+            ),
       ),
     );
 
     const res = await (await freshService()).getProviderHealth();
 
-    expect(entryOf(res.providers, "fmp", "batch-quote")?.status).toBe("known_restriction");
+    expect(entryOf(res.providers, "fmp", "batch-quote")?.status).toBe(
+      "known_restriction",
+    );
     expect(res.healthy).toBe(true);
   });
 
@@ -210,9 +240,15 @@ describe("stockService.getProviderHealth (full probe run)", () => {
 
     const res = await (await freshService()).getProviderHealth();
 
-    expect(entryOf(res.providers, "fmp", "quote")?.status).toBe("not_configured");
-    expect(entryOf(res.providers, "fmp", "batch-quote")?.status).toBe("not_configured");
-    expect(entryOf(res.providers, "alphavantage", "quote")?.status).toBe("not_configured");
+    expect(entryOf(res.providers, "fmp", "quote")?.status).toBe(
+      "not_configured",
+    );
+    expect(entryOf(res.providers, "fmp", "batch-quote")?.status).toBe(
+      "not_configured",
+    );
+    expect(entryOf(res.providers, "alphavantage", "quote")?.status).toBe(
+      "not_configured",
+    );
     expect(entryOf(res.providers, "yahoo", "quote")?.status).toBe("ok");
     expect(res.healthy).toBe(false);
   });

@@ -13,7 +13,9 @@
  */
 
 /** Uppercase symbols, trim sector names, drop blank entries. */
-export function normalizeSectorMeta(meta: Record<string, string>): Record<string, string> {
+export function normalizeSectorMeta(
+  meta: Record<string, string>,
+): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [symbol, sector] of Object.entries(meta)) {
     const sym = symbol.trim().toUpperCase();

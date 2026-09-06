@@ -30,7 +30,9 @@ describe("chart bar styles", () => {
   });
 
   it("splits sparkline values at zero for directional fills", () => {
-    expect(splitSparklineValues([{ value: 4 }, { value: -3 }, { value: 0 }])).toEqual([
+    expect(
+      splitSparklineValues([{ value: 4 }, { value: -3 }, { value: 0 }]),
+    ).toEqual([
       { value: 4, positiveValue: 4, negativeValue: 0 },
       { value: -3, positiveValue: 0, negativeValue: -3 },
       { value: 0, positiveValue: 0, negativeValue: 0 },

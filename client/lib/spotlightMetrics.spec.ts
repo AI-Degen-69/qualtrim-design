@@ -1,6 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { deriveSpotlightMetrics } from "./spotlightMetrics";
-import type { FinancialStatements, StockMetrics, StockQuote, CompanyProfile, YahooFallbackFinancials } from "@shared/api";
+import type {
+  FinancialStatements,
+  StockMetrics,
+  StockQuote,
+  CompanyProfile,
+  YahooFallbackFinancials,
+} from "@shared/api";
 
 describe("deriveSpotlightMetrics", () => {
   it("derives all 6 metrics when full statement and quote data are present", () => {
@@ -18,14 +24,66 @@ describe("deriveSpotlightMetrics", () => {
     };
     const annualFinancials: FinancialStatements = {
       income: [
-        { date: "2021-09-30", calendarYear: "2021", period: "FY", revenue: 365.8e9, grossProfit: 152.8e9, ebitda: 120.2e9, netIncome: 94.6e9, eps: 5.61, symbol: "AAPL", reportedCurrency: "USD" },
-        { date: "2022-09-30", calendarYear: "2022", period: "FY", revenue: 394.3e9, grossProfit: 170.7e9, ebitda: 130.5e9, netIncome: 99.8e9, eps: 6.11, symbol: "AAPL", reportedCurrency: "USD" },
-        { date: "2023-09-30", calendarYear: "2023", period: "FY", revenue: 383.3e9, grossProfit: 169.1e9, ebitda: 125.8e9, netIncome: 96.9e9, eps: 6.13, symbol: "AAPL", reportedCurrency: "USD" },
-        { date: "2024-09-30", calendarYear: "2024", period: "FY", revenue: 391.0e9, grossProfit: 180.7e9, ebitda: 133.1e9, netIncome: 101.5e9, eps: 6.58, symbol: "AAPL", reportedCurrency: "USD" },
+        {
+          date: "2021-09-30",
+          calendarYear: "2021",
+          period: "FY",
+          revenue: 365.8e9,
+          grossProfit: 152.8e9,
+          ebitda: 120.2e9,
+          netIncome: 94.6e9,
+          eps: 5.61,
+          symbol: "AAPL",
+          reportedCurrency: "USD",
+        },
+        {
+          date: "2022-09-30",
+          calendarYear: "2022",
+          period: "FY",
+          revenue: 394.3e9,
+          grossProfit: 170.7e9,
+          ebitda: 130.5e9,
+          netIncome: 99.8e9,
+          eps: 6.11,
+          symbol: "AAPL",
+          reportedCurrency: "USD",
+        },
+        {
+          date: "2023-09-30",
+          calendarYear: "2023",
+          period: "FY",
+          revenue: 383.3e9,
+          grossProfit: 169.1e9,
+          ebitda: 125.8e9,
+          netIncome: 96.9e9,
+          eps: 6.13,
+          symbol: "AAPL",
+          reportedCurrency: "USD",
+        },
+        {
+          date: "2024-09-30",
+          calendarYear: "2024",
+          period: "FY",
+          revenue: 391.0e9,
+          grossProfit: 180.7e9,
+          ebitda: 133.1e9,
+          netIncome: 101.5e9,
+          eps: 6.58,
+          symbol: "AAPL",
+          reportedCurrency: "USD",
+        },
       ],
       balance: [],
       cash: [
-        { date: "2024-09-30", calendarYear: "2024", period: "FY", operatingCashFlow: 118.2e9, freeCashFlow: 108.8e9, symbol: "AAPL", reportedCurrency: "USD" },
+        {
+          date: "2024-09-30",
+          calendarYear: "2024",
+          period: "FY",
+          operatingCashFlow: 118.2e9,
+          freeCashFlow: 108.8e9,
+          symbol: "AAPL",
+          reportedCurrency: "USD",
+        },
       ],
     };
     const metrics: Partial<StockMetrics> = {
@@ -64,7 +122,18 @@ describe("deriveSpotlightMetrics", () => {
   it("calculates gross margin from income statement when ratios are missing", () => {
     const annualFinancials: FinancialStatements = {
       income: [
-        { date: "2024-09-30", calendarYear: "2024", period: "FY", revenue: 100e9, grossProfit: 45e9, ebitda: 30e9, netIncome: 20e9, eps: 2.0, symbol: "TEST", reportedCurrency: "USD" },
+        {
+          date: "2024-09-30",
+          calendarYear: "2024",
+          period: "FY",
+          revenue: 100e9,
+          grossProfit: 45e9,
+          ebitda: 30e9,
+          netIncome: 20e9,
+          eps: 2.0,
+          symbol: "TEST",
+          reportedCurrency: "USD",
+        },
       ],
       balance: [],
       cash: [],

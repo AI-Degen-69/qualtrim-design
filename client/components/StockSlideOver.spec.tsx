@@ -15,7 +15,7 @@ describe("StockSlideOver", () => {
         <MemoryRouter>
           <StockSlideOver ticker="AAPL" isOpen={false} onClose={() => {}} />
         </MemoryRouter>
-      </QueryClientProvider>
+      </QueryClientProvider>,
     );
 
     expect(html).toBe("");
