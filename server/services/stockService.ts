@@ -510,6 +510,120 @@ export function fmpToPercent(value: unknown): number | undefined {
   return Number.isFinite(n) ? n * 100 : undefined;
 }
 
+/**
+ * Yahoo-only StockMetrics snapshot for one ticker. Shared by the on-page
+ * metrics path (`getMetrics` when FMP is absent / failed) and the screener's
+ * Yahoo-primary fan-out, so a screen never burns FMP budget. Falls back to
+ * an empty snapshot (source: null) on any error — never throws.
+ */
+async function fetchYahooMetrics(symbol: string): Promise<StockMetrics> {
+  const extract = (value: unknown): number | undefined => {
+    if (value === undefined || value === null || value === "")
+      return undefined;
+    if (typeof value === "object" && value !== null && "raw" in value) {
+      return extract((value as { raw?: unknown }).raw);
+    }
+    const n = Number(value);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  try {
+    const raw: any = await yahooFinance.quoteSummary(symbol, {
+      modules: [
+        "defaultKeyStatistics",
+        "financialData",
+        "summaryDetail",
+        "price",
+      ],
+    });
+    const dks = raw?.defaultKeyStatistics ?? {};
+    const fd = raw?.financialData ?? {};
+    const sd = raw?.summaryDetail ?? {};
+    const price = raw?.price ?? {};
+    // Yahoo's free cash flow + market cap let us derive the
+    // price-to-cash-flow coverage ratios without FMP's premium
+    // /ratios-ttm endpoint. Falls back to null when a field is missing.
+    const marketCap = extract(price.marketCap) ?? null;
+    const operatingCashFlow = extract(fd.operatingCashflow) ?? null;
+    const freeCashFlow = extract(fd.freeCashflow) ?? null;
+    // A finite number is real data even at a literal 0 (breakeven FCF,
+    // zero-dividend yield) — only non-finite values mean "missing".
+    // Denominator operands additionally reject 0 so a division can
+    // never produce Infinity that leaks through toFixed rendering.
+    const hasValue = (v: number | null): v is number =>
+      v !== null && Number.isFinite(v);
+    const pcf =
+      hasValue(operatingCashFlow) && hasValue(marketCap) && operatingCashFlow !== 0
+        ? marketCap / operatingCashFlow
+        : null;
+    const pfcf =
+      hasValue(freeCashFlow) && hasValue(marketCap) && freeCashFlow !== 0
+        ? marketCap / freeCashFlow
+        : null;
+    const fcfYield =
+      hasValue(freeCashFlow) && hasValue(marketCap) && marketCap !== 0
+        ? (freeCashFlow / marketCap) * 100
+        : null;
+    const metrics: KeyMetricsTTM = {
+      revenuePerShareTTM: extract(fd.revenuePerShare),
+      netIncomePerShareTTM: extract(dks.trailingEps),
+      peRatioTTM: extract(sd.trailingPE),
+      dividendYieldTTM: normalizeYahooPercentage(
+        extract(sd.dividendYield) ?? extract(sd.trailingAnnualDividendYield),
+      ),
+      // EV/Revenue is a different ratio (mapped to evToSalesTTM
+      // below) — it must not masquerade as price-to-sales.
+      priceToSalesRatioTTM: extract(sd.priceToSalesTrailing12Months),
+      priceToBookRatioTTM: extract(dks.priceToBook),
+      evToSalesTTM: extract(dks.enterpriseToRevenue),
+      evToEBITDATTM: extract(dks.enterpriseToEbitda),
+      returnOnEquityTTM: fmpToPercent(extract(fd.returnOnEquity)),
+      returnOnAssetsTTM: fmpToPercent(extract(fd.returnOnAssets)),
+      freeCashFlowYieldTTM: fcfYield ?? undefined,
+    };
+    const ratios: RatiosTTM = {
+      priceEarningsRatioTTM: extract(sd.trailingPE),
+      priceToBookRatioTTM: extract(dks.priceToBook),
+      priceToSalesRatioTTM: extract(sd.priceToSalesTrailing12Months),
+      priceToEarningsGrowthRatioTTM: extract(dks.pegRatio),
+      priceToOperatingCashFlowRatioTTM: pcf ?? undefined,
+      priceToFreeCashFlowRatioTTM: pfcf ?? undefined,
+      netProfitMargin: normalizeYahooPercentage(extract(fd.profitMargins)),
+      operatingProfitMarginTTM: normalizeYahooPercentage(
+        extract(fd.operatingMargins),
+      ),
+      grossProfitMarginTTM: normalizeYahooPercentage(extract(fd.grossMargins)),
+      dividendPayoutRatioTTM: normalizeYahooPercentage(extract(sd.payoutRatio)),
+      currentRatio: extract(fd.currentRatio),
+      quickRatio: extract(fd.quickRatio),
+      debtToEquityRatio: extract(fd.debtToEquity),
+    };
+    const hasValues =
+      Object.values(metrics).some((v) => v !== undefined) ||
+      Object.values(ratios).some((v) => v !== undefined);
+    // Availability: derived metrics that lack an input are calcBroken,
+    // roic is FMP-premium only (Yahoo never supplies it), so it's pro.
+    const availability: Partial<Record<string, AvailabilityState>> = {
+      pcf: pcf === null ? "calcBroken" : "available",
+      pfcf: pfcf === null ? "calcBroken" : "available",
+      fcfYield: fcfYield === null ? "calcBroken" : "available",
+      roic: "pro",
+    };
+    return {
+      metrics: hasValues ? metrics : {},
+      ratios: hasValues ? ratios : {},
+      scores: null,
+      source: hasValues ? "yahoo" : null,
+      availability: hasValues ? availability : undefined,
+    };
+  } catch (error: any) {
+    throttledWarn(
+      `metrics-yahoo:${symbol}`,
+      `[stockService] Yahoo metrics ${symbol} failed: ${error?.message ?? error}`,
+    );
+    return { metrics: {}, ratios: {}, scores: null, source: null };
+  }
+}
+
 function normalizeQuote(raw: any): StockQuote | null {
   if (!raw || typeof raw !== "object") return null;
   const toNum = (v: unknown): number | undefined => {
@@ -1630,111 +1744,7 @@ export const stockService = {
       return Number.isFinite(n) ? n : undefined;
     };
 
-    const getYahooMetrics = async (): Promise<StockMetrics> => {
-      try {
-        const raw: any = await yahooFinance.quoteSummary(symbol, {
-          modules: [
-            "defaultKeyStatistics",
-            "financialData",
-            "summaryDetail",
-            "price",
-          ],
-        });
-        const dks = raw?.defaultKeyStatistics ?? {};
-        const fd = raw?.financialData ?? {};
-        const sd = raw?.summaryDetail ?? {};
-        const price = raw?.price ?? {};
-        // Yahoo's free cash flow + market cap let us derive the
-        // price-to-cash-flow coverage ratios without FMP's premium
-        // /ratios-ttm endpoint. Falls back to null when a field is missing.
-        const marketCap = extract(price.marketCap) ?? null;
-        const operatingCashFlow = extract(fd.operatingCashflow) ?? null;
-        const freeCashFlow = extract(fd.freeCashflow) ?? null;
-        // A finite number is real data even at a literal 0 (breakeven FCF,
-        // zero-dividend yield) — only non-finite values mean "missing".
-        // Denominator operands additionally reject 0 so a division can
-        // never produce Infinity that leaks through toFixed rendering.
-        const hasValue = (v: number | null): v is number =>
-          v !== null && Number.isFinite(v);
-        const pcf =
-          hasValue(operatingCashFlow) &&
-          hasValue(marketCap) &&
-          operatingCashFlow !== 0
-            ? marketCap / operatingCashFlow
-            : null;
-        const pfcf =
-          hasValue(freeCashFlow) && hasValue(marketCap) && freeCashFlow !== 0
-            ? marketCap / freeCashFlow
-            : null;
-        const fcfYield =
-          hasValue(freeCashFlow) && hasValue(marketCap) && marketCap !== 0
-            ? (freeCashFlow / marketCap) * 100
-            : null;
-        const metrics: KeyMetricsTTM = {
-          revenuePerShareTTM: extract(fd.revenuePerShare),
-          netIncomePerShareTTM: extract(dks.trailingEps),
-          peRatioTTM: extract(sd.trailingPE),
-          dividendYieldTTM: normalizeYahooPercentage(
-            extract(sd.dividendYield) ??
-              extract(sd.trailingAnnualDividendYield),
-          ),
-          // EV/Revenue is a different ratio (mapped to evToSalesTTM
-          // below) — it must not masquerade as price-to-sales.
-          priceToSalesRatioTTM: extract(sd.priceToSalesTrailing12Months),
-          priceToBookRatioTTM: extract(dks.priceToBook),
-          evToSalesTTM: extract(dks.enterpriseToRevenue),
-          evToEBITDATTM: extract(dks.enterpriseToEbitda),
-          returnOnEquityTTM: fmpToPercent(extract(fd.returnOnEquity)),
-          returnOnAssetsTTM: fmpToPercent(extract(fd.returnOnAssets)),
-          freeCashFlowYieldTTM: fcfYield ?? undefined,
-        };
-        const ratios: RatiosTTM = {
-          priceEarningsRatioTTM: extract(sd.trailingPE),
-          priceToBookRatioTTM: extract(dks.priceToBook),
-          priceToSalesRatioTTM: extract(sd.priceToSalesTrailing12Months),
-          priceToEarningsGrowthRatioTTM: extract(dks.pegRatio),
-          priceToOperatingCashFlowRatioTTM: pcf ?? undefined,
-          priceToFreeCashFlowRatioTTM: pfcf ?? undefined,
-          netProfitMargin: normalizeYahooPercentage(extract(fd.profitMargins)),
-          operatingProfitMarginTTM: normalizeYahooPercentage(
-            extract(fd.operatingMargins),
-          ),
-          grossProfitMarginTTM: normalizeYahooPercentage(
-            extract(fd.grossMargins),
-          ),
-          dividendPayoutRatioTTM: normalizeYahooPercentage(
-            extract(sd.payoutRatio),
-          ),
-          currentRatio: extract(fd.currentRatio),
-          quickRatio: extract(fd.quickRatio),
-          debtToEquityRatio: extract(fd.debtToEquity),
-        };
-        const hasValues =
-          Object.values(metrics).some((v) => v !== undefined) ||
-          Object.values(ratios).some((v) => v !== undefined);
-        // Availability: derived metrics that lack an input are calcBroken,
-        // roic is FMP-premium only (Yahoo never supplies it), so it's pro.
-        const availability: Partial<Record<string, AvailabilityState>> = {
-          pcf: pcf === null ? "calcBroken" : "available",
-          pfcf: pfcf === null ? "calcBroken" : "available",
-          fcfYield: fcfYield === null ? "calcBroken" : "available",
-          roic: "pro",
-        };
-        return {
-          metrics: hasValues ? metrics : {},
-          ratios: hasValues ? ratios : {},
-          scores: null,
-          source: hasValues ? "yahoo" : null,
-          availability: hasValues ? availability : undefined,
-        };
-      } catch (error: any) {
-        throttledWarn(
-          `metrics-yahoo:${symbol}`,
-          `[stockService] Yahoo metrics ${symbol} failed: ${error?.message ?? error}`,
-        );
-        return { metrics: {}, ratios: {}, scores: null, source: null };
-      }
-    };
+    const getYahooMetrics = () => fetchYahooMetrics(symbol);
 
     if (!hasFmp()) {
       const result = await getYahooMetrics();
@@ -1836,6 +1846,21 @@ export const stockService = {
       source: "fmp",
       availability: fmpAvailability,
     };
+    await kvJsonCache.set(cacheKey, result, 3600);
+    return result;
+  },
+
+  /**
+   * Yahoo-primary metrics for one ticker — the screener's metric fan-out
+   * path. Unlike `getMetrics`, this never touches FMP, so a screen run
+   * cannot burn the daily FMP budget; it shares the `metrics_${symbol}`
+   * KV row cache, so a warm row (from any caller) costs ~0 upstream calls.
+   */
+  async getMetricsYahooPrimary(symbol: string): Promise<StockMetrics> {
+    const cacheKey = `metrics_${symbol}`;
+    const cached = await kvJsonCache.get<StockMetrics>(cacheKey);
+    if (cached) return cached;
+    const result = await fetchYahooMetrics(symbol);
     await kvJsonCache.set(cacheKey, result, 3600);
     return result;
   },

@@ -525,6 +525,229 @@ export async function handleStockMetrics(req, res) {
   }
 }
 
+// ── Screener live fundamental filter (Vercel parity twin) ────────────────────
+// Behavior-identical JS copy of `server/services/screenerMetrics.ts` +
+// `handleScreenerFundamentalFilter` in `server/routes/screener.ts`. The
+// serverless bundler cannot import TS, so the vocabulary + matching live
+// here as plain JS — keep the two in sync when adding a filter.
+//
+// Known limitation vs the Express side: the FinanceDatabase sqlite
+// universe is dev-only (better-sqlite3 does not deploy serverless), so
+// this twin takes an explicit `symbols=` candidate list — the same
+// fan-out + filtering core, minus universe selection. All Yahoo calls
+// auto-record through the `yf` proxy below.
+const SCREENER_METRIC_FILTERS = [
+  { id: "pe", section: "metrics", field: "peRatioTTM", unit: "x", step: 1 },
+  { id: "pb", section: "metrics", field: "priceToBookRatioTTM", unit: "x", step: 0.1 },
+  { id: "peg", section: "ratios", field: "priceToEarningsGrowthRatioTTM", unit: "x", step: 0.1 },
+  { id: "evEbitda", section: "metrics", field: "evToEBITDATTM", unit: "x", step: 1 },
+  { id: "evSales", section: "metrics", field: "evToSalesTTM", unit: "x", step: 1 },
+  { id: "dividendYield", section: "metrics", field: "dividendYieldTTM", unit: "percent", step: 0.5 },
+  { id: "grossMargin", section: "ratios", field: "grossProfitMarginTTM", unit: "percent", step: 1 },
+  { id: "netMargin", section: "ratios", field: "netProfitMargin", unit: "percent", step: 1 },
+  { id: "operatingMargin", section: "ratios", field: "operatingProfitMarginTTM", unit: "percent", step: 1 },
+  { id: "roe", section: "metrics", field: "returnOnEquityTTM", unit: "percent", step: 1 },
+  { id: "roa", section: "metrics", field: "returnOnAssetsTTM", unit: "percent", step: 1 },
+  { id: "currentRatio", section: "ratios", field: "currentRatio", unit: "ratio", step: 0.1 },
+  { id: "debtEquity", section: "ratios", field: "debtToEquityRatio", unit: "ratio", step: 0.1 },
+  { id: "fcfYield", section: "metrics", field: "freeCashFlowYieldTTM", unit: "percent", step: 0.5 },
+];
+
+function parseMetricFilterParam(raw) {
+  if (!raw || typeof raw !== "string") return undefined;
+  const [minStr, maxStr] = raw.split(":");
+  const parse = (s) => {
+    if (s === undefined || String(s).trim() === "") return undefined;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  const min = parse(minStr);
+  const max = parse(maxStr);
+  if (min === undefined && max === undefined) return undefined;
+  return { min, max };
+}
+
+function hasActiveMetricFilters(filters) {
+  return Object.values(filters).some(
+    (r) => r && (r.min !== undefined || r.max !== undefined),
+  );
+}
+
+function matchesMetricFilters(metrics, filters) {
+  for (const def of SCREENER_METRIC_FILTERS) {
+    const range = filters[def.id];
+    if (!range) continue;
+    const { min, max } = range;
+    if (min === undefined && max === undefined) continue;
+    const section = def.section === "metrics" ? metrics.metrics : metrics.ratios;
+    const v = section ? section[def.field] : undefined;
+    if (typeof v !== "number" || !Number.isFinite(v)) return false;
+    if (min !== undefined && v < min) return false;
+    if (max !== undefined && v > max) return false;
+  }
+  return true;
+}
+
+function buildMetricValues(metrics) {
+  const out = {};
+  for (const def of SCREENER_METRIC_FILTERS) {
+    const section = def.section === "metrics" ? metrics.metrics : metrics.ratios;
+    const v = section ? section[def.field] : undefined;
+    out[def.id] = typeof v === "number" && Number.isFinite(v) ? v : undefined;
+  }
+  return out;
+}
+
+async function runConcurrent(items, concurrency, fn) {
+  const out = new Array(items.length);
+  let cursor = 0;
+  const n = Math.max(1, Math.min(concurrency, items.length));
+  const workers = Array.from({ length: n }, async () => {
+    while (cursor < items.length) {
+      const i = cursor++;
+      out[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+/**
+ * Screener live fundamental filter — Yahoo-primary fan-out + numeric
+ * metric filters. Universe selection (`symbols=` — the FinanceDatabase
+ * sqlite is dev-only) happens client-side on Vercel; see the module
+ * comment above for the full parity contract.
+ */
+export async function handleScreenerFundamentalFilter(req, res) {
+  const rawSymbols = String(req.query?.symbols || "");
+  const metricFilters = {};
+  for (const def of SCREENER_METRIC_FILTERS) {
+    const raw = req.query?.[def.id];
+    if (typeof raw === "string") {
+      const range = parseMetricFilterParam(raw);
+      if (range) metricFilters[def.id] = range;
+    }
+  }
+  if (!rawSymbols.trim() || !hasActiveMetricFilters(metricFilters)) {
+    return res.json({
+      total: 0,
+      results: [],
+      scanned: 0,
+      universeTotal: 0,
+      rateLimited: false,
+      source: null,
+    });
+  }
+
+  const candidates = rawSymbols
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean)
+    .slice(0, 200);
+
+  const snapshots = await runConcurrent(candidates, 8, async (symbol) => {
+    let metrics = { metrics: {}, ratios: {}, scores: null, source: null };
+    try {
+      const raw = await yf
+        .quoteSummary(symbol, {
+          modules: [
+            "defaultKeyStatistics",
+            "financialData",
+            "summaryDetail",
+            "price",
+          ],
+        })
+        .catch((e) => {
+          throttledWarn(`qs:screener:${symbol}`, `screener ${symbol}:`, e?.message);
+          return {};
+        });
+      const dks = raw?.defaultKeyStatistics || {};
+      const fd = raw?.financialData || {};
+      const sd = raw?.summaryDetail || {};
+      const price = raw?.price || {};
+      const marketCap = pick(price.marketCap);
+      const freeCashFlow = pick(fd.freeCashflow);
+      const fcfYield =
+        typeof marketCap === "number" &&
+        marketCap !== 0 &&
+        typeof freeCashFlow === "number"
+          ? (freeCashFlow / marketCap) * 100
+          : undefined;
+      const m = {
+        peRatioTTM: pick(sd.trailingPE),
+        priceToBookRatioTTM: pick(dks.priceToBook),
+        evToSalesTTM: pick(dks.enterpriseToRevenue),
+        evToEBITDATTM: pick(dks.enterpriseToEbitda),
+        dividendYieldTTM:
+          pick(sd.dividendYield) != null
+            ? pick(sd.dividendYield) * 100
+            : pick(sd.trailingAnnualDividendYield) != null
+              ? pick(sd.trailingAnnualDividendYield) * 100
+              : undefined,
+        returnOnEquityTTM: normalizePercentage(fd.returnOnEquity),
+        returnOnAssetsTTM: normalizePercentage(fd.returnOnAssets),
+        freeCashFlowYieldTTM: fcfYield,
+      };
+      const r = {
+        priceToEarningsGrowthRatioTTM: pick(dks.pegRatio),
+        netProfitMargin: normalizePercentage(fd.profitMargins),
+        operatingProfitMarginTTM: normalizePercentage(fd.operatingMargins),
+        grossProfitMarginTTM: normalizePercentage(fd.grossMargins),
+        currentRatio: pick(fd.currentRatio),
+        debtToEquityRatio: pick(fd.debtToEquity),
+      };
+      const clean = (o) =>
+        Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
+      metrics = {
+        metrics: clean(m),
+        ratios: clean(r),
+        scores: null,
+        source: Object.keys(m).length + Object.keys(r).length > 0 ? "yahoo" : null,
+      };
+    } catch (e) {
+      throttledWarn(`screener:${symbol}`, `screener ${symbol}:`, e?.message);
+    }
+    return { symbol, metrics };
+  });
+
+  let empty = 0;
+  const matched = [];
+  for (const { symbol, metrics } of snapshots) {
+    const values = buildMetricValues(metrics);
+    const hasAny = Object.values(values).some((v) => v !== undefined);
+    if (!hasAny) {
+      empty++;
+      continue;
+    }
+    if (!matchesMetricFilters(metrics, metricFilters)) continue;
+    matched.push({
+      symbol,
+      name: symbol,
+      asset_type: "Equity",
+      sector: null,
+      industry: null,
+      country: null,
+      exchange: null,
+      market_cap: null,
+      metrics: values,
+      source: metrics.source,
+    });
+  }
+
+  const rateLimited = snapshots.length >= 4 && empty / snapshots.length >= 0.8;
+  const start = Math.max(0, parseInt(req.query?.offset, 10) || 0);
+  const take = Math.max(1, Math.min(parseInt(req.query?.limit, 10) || 50, 100));
+
+  res.json({
+    total: matched.length,
+    results: matched.slice(start, start + take),
+    scanned: candidates.length,
+    universeTotal: candidates.length,
+    rateLimited,
+    source: rateLimited ? null : "yahoo",
+  });
+}
+
 /**
  * Revenue broken down by product segment (FMP `revenue-product-segmentation`).
  * Parity mirror of `handleRevenueSegmentation` in `server/routes/stock-data.ts`
@@ -1963,6 +2186,7 @@ const routes = {
   "/api/fx-rates": handleFxRates,
   "/api/provider-health": handleProviderHealth,
   "/api/stock-yahoo-fallback-financials": handleStockYahooFallbackFinancials,
+  "/api/screener/fundamental-filter": handleScreenerFundamentalFilter,
 };
 
 export async function router(req, res) {
