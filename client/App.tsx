@@ -36,6 +36,7 @@ const I18nDebug = import.meta.env.DEV
 const Insights = lazy(() => import("./pages/Insights"));
 const Charts = lazy(() => import("./pages/Charts"));
 const Screener = lazy(() => import("./pages/Screener"));
+const Compare = lazy(() => import("./pages/Compare"));
 const Watchlists = lazy(() => import("./pages/Watchlists"));
 const Earnings = lazy(() => import("./pages/Earnings"));
 const Portfolios = lazy(() => import("./pages/Portfolios"));
@@ -212,6 +213,12 @@ export default function App() {
                   path="/screener"
                   element={
                     <ErrorBoundary>{withFallback(<Screener />)}</ErrorBoundary>
+                  }
+                />
+                <Route
+                  path="/compare"
+                  element={
+                    <ErrorBoundary>{withFallback(<Compare />)}</ErrorBoundary>
                   }
                 />
                 <Route

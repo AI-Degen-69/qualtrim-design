@@ -29,6 +29,7 @@ const en = {
   "nav.insights": "Insights",
   "nav.screener": "Screener",
   "nav.watchlists": "Watchlists",
+  "nav.compare": "Compare",
   "nav.charts": "Charts",
   "nav.earnings": "Earnings",
   "nav.portfolios": "Portfolios",
@@ -144,6 +145,11 @@ const en = {
   "chart.segmentQuarterlyUnavailable":
     "Quarterly segment data is unavailable for this symbol — showing annual.",
   "chart.segmentNoSelection": "Select at least one segment to display.",
+  // SEC EDGAR XBRL history backfill — older 10-K/10-Q periods appended
+  // beyond the FMP/Yahoo window (see docs/data-providers.md §3.5).
+  "chart.secHistoryNote":
+    "Extended {count} older periods from SEC EDGAR 10-K/10-Q filings — free, no API key.",
+  "chart.secRowTooltip": "Sourced from SEC EDGAR XBRL filings.",
 
   // PricingModal (placeholder). Triggered by the Upgrade CTA beside
   // the locked "Segments 🔒" chip and inside the chart modal banner.
@@ -433,6 +439,40 @@ const en = {
   "metrics.marketCap": "Market Cap",
   "metrics.eps": "EPS",
 
+  // Compare page (multi-ticker side-by-side fundamentals). Row labels,
+  // group titles, and UI chrome for client/pages/Compare.tsx.
+  "compare.title": "Compare Stocks",
+  "compare.description": "{count} metrics side by side across up to 5 tickers",
+  "compare.addPlaceholder": "Add ticker (e.g. AAPL)…",
+  "compare.add": "Add",
+  "compare.remove": "Remove {ticker}",
+  "compare.maxTickers": "up to {count}",
+  "compare.metricColumn": "Metric",
+  "compare.group.revenue": "Revenue & Profitability",
+  "compare.group.balance": "Balance Sheet",
+  "compare.group.cashflow": "Cash Flow",
+  "compare.group.valuation": "Valuation (TTM)",
+  "compare.group.market": "Market",
+  "compare.currencyNote":
+    "Statement figures are in each company's reporting currency; ratios and per-share values need no conversion.",
+  "compare.bundleError":
+    "Couldn't load data for {{symbols}} — showing what we have. Retry to refetch these tickers.",
+  "compare.retry": "Retry",
+  "compare.metric.grossMargin": "Gross Margin",
+  "compare.metric.netMargin": "Net Margin",
+  "compare.metric.totalDebt": "Total Debt",
+  "compare.metric.debtToEquity": "Debt / Equity",
+  "compare.metric.operatingCashFlow": "Operating Cash Flow",
+  "compare.metric.capex": "Capital Expenditure",
+  "compare.metric.fcfMargin": "FCF Margin",
+  "compare.metric.evSales": "EV / Sales",
+  "compare.metric.roe": "ROE (TTM)",
+  "compare.metric.roa": "ROA (TTM)",
+  "compare.metric.currentRatio": "Current Ratio",
+  "compare.metric.quickRatio": "Quick Ratio",
+  "compare.metric.price": "Price",
+  "compare.metric.dayChange": "1D Change",
+
   // Stock fundamentals strip (Index.tsx real-data grid). Translating the
   // group titles + metric labels so the financial block reads in the active
   // language; numeric values stay LTR (dir="ltr" on the value span).
@@ -441,7 +481,40 @@ const en = {
   "fundamentals.group.marginsGrowth": "Margins & Growth",
   "fundamentals.group.balance": "Balance",
   "fundamentals.group.dividend": "Dividend",
+  "fundamentals.loading": "Loading fundamentals…",
   "fundamentals.marketCap": "Market Cap",
+
+  // Stock health scorecard (Index.tsx ticker page). Altman Z + Piotroski
+  // come from FMP financial-scores; profitability/growth are Vantage
+  // composites and are always badged "Derived".
+  "scorecard.title": "Health Scorecard",
+  "scorecard.altman": "Altman Z",
+  "scorecard.altman.explanation":
+    "Bankruptcy-risk model from working capital, retained earnings, EBIT and market value.",
+  "scorecard.piotroski": "Piotroski Score",
+  "scorecard.piotroski.explanation":
+    "9-point fundamentals strength score covering profitability, leverage and efficiency.",
+  "scorecard.profitability": "Profitability",
+  "scorecard.profitability.explanation":
+    "Composite of ROE, ROA and net margin from trailing-twelve-month data.",
+  "scorecard.growth": "Growth",
+  "scorecard.growth.explanation":
+    "Composite of revenue and EPS year-over-year growth over the latest two fiscal years.",
+  "scorecard.zone.safe": "Safe zone",
+  "scorecard.zone.grey": "Grey zone",
+  "scorecard.zone.distress": "Distress zone",
+  "scorecard.band.strong": "Strong",
+  "scorecard.band.moderate": "Moderate",
+  "scorecard.band.weak": "Weak",
+  "scorecard.source.fmp": "FMP",
+  "scorecard.source.fmpTooltip": "Score from FMP financial-scores API.",
+  "scorecard.source.derived": "Derived",
+  "scorecard.source.derivedTooltip":
+    "Vantage composite of data this page already fetches — not a provider score.",
+  "scorecard.source.unavailable": "Unavailable",
+  "scorecard.unavailableTooltip":
+    "Provider scores are unavailable (quota or coverage) — no estimate is shown.",
+  "scorecard.asOf": "as of FY {year}",
   "fundamentals.pe": "P/E (TTM)",
   "fundamentals.priceToSales": "Price to Sales",
   "fundamentals.evToEbitda": "EV to EBITDA",
@@ -1127,6 +1200,7 @@ const he: Record<string, string> = {
   "nav.insights": "תובנות",
   "nav.screener": "סורק",
   "nav.watchlists": "רשימות מעקב",
+  "nav.compare": "השוואה",
   "nav.charts": "גרפים",
   "nav.earnings": "דוחות",
   "nav.portfolios": "תיקים",
@@ -1233,6 +1307,10 @@ const he: Record<string, string> = {
   "chart.segmentQuarterlyUnavailable":
     "נתוני מגזרים רבעוניים אינם זמינים עבור סמל זה — מציג שנתי.",
   "chart.segmentNoSelection": "בחר לפחות מגזר אחד להצגה.",
+  // הרחבת היסטוריה מ-SEC EDGAR (10-K/10-Q) — תקופות ישנות יותר מחלון FMP/Yahoo.
+  "chart.secHistoryNote":
+    "היסטוריה מורחבת ב-{count} תקופות מדיווחי SEC EDGAR (10-K/10-Q) — חינם, ללא מפתח API.",
+  "chart.secRowTooltip": "מקור הנתון: דיווחי SEC EDGAR XBRL.",
   // סה"כ בגרף המגזרים הערוך (הכנסות לפי מגזר).
   "chart.total": 'סה"כ',
 
@@ -1243,7 +1321,40 @@ const he: Record<string, string> = {
   "fundamentals.group.marginsGrowth": "שולי רווח וצמיחה",
   "fundamentals.group.balance": "מאזן",
   "fundamentals.group.dividend": "דיבידנד",
+  "fundamentals.loading": "טוען נתוני יסוד…",
   "fundamentals.marketCap": "שווי שוק",
+
+  // כרטיס ניקוד בריאות המניה (דף המניה Index.tsx). Altman Z ו-Piotroski
+  // מגיעים מ-FMP financial-scores; רווחיות וצמיחה הם מדדים מורכבים של
+  // Vantage ולכן מסומנים תמיד כ"נגזר".
+  "scorecard.title": "כרטיס ניקוד בריאות",
+  "scorecard.altman": "Altman Z",
+  "scorecard.altman.explanation":
+    "מודל סיכון פשיטת רגל המבוסס על הון חוזר, רווחים שמורים, EBIT ושווי שוק.",
+  "scorecard.piotroski": "ניקוד Piotroski",
+  "scorecard.piotroski.explanation":
+    "ניקוד חוסן פונדמנטלי (0–9) הבוחן רווחיות, מינוף ויעילות תפעולית.",
+  "scorecard.profitability": "רווחיות",
+  "scorecard.profitability.explanation":
+    "מדד מורכב של ROE, ROA ושולי רווח נקי מנתוני 12 החודשים האחרונים.",
+  "scorecard.growth": "צמיחה",
+  "scorecard.growth.explanation":
+    "מדד מורכב של צמיחת הכנסות ורווח למניה לעומת השנה הקודמת, על פני שתי שנות הדיווח האחרונות.",
+  "scorecard.zone.safe": "אזור בטוח",
+  "scorecard.zone.grey": "אזור אפור",
+  "scorecard.zone.distress": "אזור מצוקה",
+  "scorecard.band.strong": "חזק",
+  "scorecard.band.moderate": "בינוני",
+  "scorecard.band.weak": "חלש",
+  "scorecard.source.fmp": "FMP",
+  "scorecard.source.fmpTooltip": "הניקוד מ-API ה-financial-scores של FMP.",
+  "scorecard.source.derived": "נגזר",
+  "scorecard.source.derivedTooltip":
+    "מדד מורכב של Vantage המבוסס על נתונים שהעמוד כבר מביא — אינו ניקוד ספק.",
+  "scorecard.source.unavailable": "לא זמין",
+  "scorecard.unavailableTooltip":
+    "ניקודי הספק אינם זמינים (מכסה או כיסוי) — לא מוצג אומדן חלופי.",
+  "scorecard.asOf": "נכון לשנת כספים {year}",
   "fundamentals.pe": "מכפיל רווח (TTM)",
   "fundamentals.priceToSales": "יחס מחיר למכירות",
   "fundamentals.evToEbitda": "EV ל-EBITDA",
@@ -1570,6 +1681,40 @@ const he: Record<string, string> = {
   "metrics.totalAssets": "סך נכסים",
   "metrics.marketCap": "שווי שוק",
   "metrics.eps": "EPS",
+
+  // דף ההשוואה (השוואת יסודות זה לצד זה בין כמה סמלים). תוויות שורות,
+  // כותרות קבוצות וממשק — client/pages/Compare.tsx.
+  "compare.title": "השוואת מניות",
+  "compare.description": "{count} מדדים זה לצד זה עבור עד 5 סמלים",
+  "compare.addPlaceholder": "הוסף סמל (לדוגמה AAPL)…",
+  "compare.add": "הוסף",
+  "compare.remove": "הסר את {ticker}",
+  "compare.maxTickers": "עד {count}",
+  "compare.metricColumn": "מדד",
+  "compare.group.revenue": "הכנסות ורווחיות",
+  "compare.group.balance": "מאזן",
+  "compare.group.cashflow": "תזרים מזומנים",
+  "compare.group.valuation": "הערכת שווי (TTM)",
+  "compare.group.market": "שוק",
+  "compare.currencyNote":
+    "הנתונים בדוחות הכספיים מוצגים במטבע הדיווח של כל חברה; יחסים וערכים למניה אינם דורשים המרה.",
+  "compare.bundleError":
+    "לא ניתן היה לטעון נתונים עבור {{symbols}} — מציג את מה שיש. לחץ כדי לנסות שוב.",
+  "compare.retry": "נסה שוב",
+  "compare.metric.grossMargin": "שולי רווח גולמי",
+  "compare.metric.netMargin": "שולי רווח נקי",
+  "compare.metric.totalDebt": "סה\"כ חוב",
+  "compare.metric.debtToEquity": "חוב להון",
+  "compare.metric.operatingCashFlow": "תזרים מפעילות שוטפת",
+  "compare.metric.capex": "השקעות הוניות",
+  "compare.metric.fcfMargin": "שולי תזרים חופשי",
+  "compare.metric.evSales": "EV למכירות",
+  "compare.metric.roe": "ROE (TTM)",
+  "compare.metric.roa": "ROA (TTM)",
+  "compare.metric.currentRatio": "יחס שוטף",
+  "compare.metric.quickRatio": "יחס מהיר",
+  "compare.metric.price": "מחיר",
+  "compare.metric.dayChange": "שינוי יומי",
 
   // פילוח הכנסות לפי מגזר (FMP revenue-product-segmentation). `locked` הוא
   // תווית השבב המוצגת כשמכסת התוכנית החינמית הסתיימה; הטקסט המוקפץ מסביר

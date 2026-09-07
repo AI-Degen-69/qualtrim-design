@@ -71,6 +71,7 @@ import {
   resolveTransactionValue,
 } from "./insiderUtils";
 import { mergeFinancialStatements } from "./financialStatementFallback";
+import { extendFinancialHistory } from "./secEdgar";
 
 // yahoo-finance2 v4 ships the class as its default export. Use one shared
 // instance per process; constructing it "throwaway" per call degrades
@@ -1548,6 +1549,15 @@ export const stockService = {
       : await this.getYahooFinancialStatements(symbol, period, limit);
     result = mergeFinancialStatements(primary, fallback);
 
+    // SEC EDGAR XBRL backfill — when a statement still sits under the
+    // 10-year target (free FMP caps at 5y / ~7 quarters and Yahoo FTS at
+    // ~5y), append older periods straight from the filer's 10-K/10-Q XBRL
+    // facts (keyless, no daily quota). Recent rows keep their FMP/Yahoo
+    // provenance; only the older extension rows are marked `sec`. The
+    // extension itself is cached 24h (slow-moving data), so this stays a
+    // cheap array merge on every subsequent call.
+    result = await extendFinancialHistory(symbol, period, result, kvJsonCache);
+
     // 1h KV TTL — earnings reports anchor once per quarter so this stays
     // warm across cold starts without serving stale pre-earnings figures.
     // Cross-lambda propagation matters here: a freshly-deployed peer
@@ -1868,6 +1878,8 @@ export const stockService = {
             symbol: String(s0.symbol ?? symbol),
             altmanZScore: s0.altmanZScore,
             piotroskiScore: s0.piotroskiScore,
+            // Per-year payload — surfaces as "as of FY n" on the scorecard.
+            year: s0.year ?? undefined,
           }
         : null,
       source: "fmp",

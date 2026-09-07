@@ -138,6 +138,13 @@ export interface IncomeStatementRow {
   netIncome: number;
   eps: number;
   epsDiluted?: number;
+  /**
+   * Row-level provenance. Present only when the row came from SEC EDGAR
+   * XBRL backfill (`"sec"`) — FMP/Yahoo rows leave it unset so recent
+   * payloads stay tight. Lets the charts surface badge which periods are
+   * SEC-sourced history beyond the FMP free window.
+   */
+  dataSource?: "fmp" | "yahoo" | "sec";
 }
 
 export interface BalanceSheetRow {
@@ -158,6 +165,8 @@ export interface BalanceSheetRow {
   _derived_tbv?: number;
   /** Derived: total assets − total intangibles. */
   _derived_totalTangible?: number;
+  /** SEC EDGAR XBRL backfill provenance (see IncomeStatementRow.dataSource). */
+  dataSource?: "fmp" | "yahoo" | "sec";
 }
 
 export interface CashFlowRow {
@@ -173,6 +182,8 @@ export interface CashFlowRow {
   dividendPayments?: number;
   /** Derived: dividends paid + net buybacks (positive = returned to shareholders). */
   _derived_netReturned?: number;
+  /** SEC EDGAR XBRL backfill provenance (see IncomeStatementRow.dataSource). */
+  dataSource?: "fmp" | "yahoo" | "sec";
 }
 
 export type FinancialStatementProvider = "fmp" | "yahoo" | null;
@@ -280,6 +291,8 @@ export interface FinancialScores {
   symbol: string;
   altmanZScore?: number;
   piotroskiScore?: number; // 0–9
+  /** Fiscal year the scores were computed for (FMP per-year payload). */
+  year?: string;
 }
 
 /**
