@@ -117,22 +117,23 @@ export default function InsightsCard({
 
   const barColor = metricChartColor(metricId, metricData.color);
 
-  // Display series for the current frequency + range window. Falls back to
-  // the annual series whenever the quarterly source has no usable rows, so
-  // a symbol without quarterly coverage still renders a chart.
-  const series = useMemo(
+  // Display series for the current frequency + range window. When the
+  // quarterly source has no usable rows the annual series stands in — the
+  // badge and the range slice then follow the EFFECTIVE frequency, so a TTM
+  // selection can never show annual bars under a TTM badge.
+  const { points: frequencyPoints, effectiveFrequency } = useMemo(
     () =>
-      sliceSeriesByRange(
-        buildFrequencySeries({
-          metricName: metricId,
-          annualData: metricData.data,
-          quarterlyStatements,
-          frequency,
-        }),
-        range,
+      buildFrequencySeries({
+        metricName: metricId,
+        annualData: metricData.data,
+        quarterlyStatements,
         frequency,
-      ),
-    [metricId, metricData.data, quarterlyStatements, frequency, range],
+      }),
+    [metricId, metricData.data, quarterlyStatements, frequency],
+  );
+  const series = useMemo(
+    () => sliceSeriesByRange(frequencyPoints, range, effectiveFrequency),
+    [frequencyPoints, range, effectiveFrequency],
   );
 
   const chartDomain = useMemo(
@@ -190,7 +191,7 @@ export default function InsightsCard({
               {title}
             </h3>
             <span className="shrink-0 text-[11px] font-bold text-chart-amber" dir="ltr">
-              {t(frequencyLabelKey(frequency))}
+              {t(frequencyLabelKey(effectiveFrequency))}
             </span>
           </div>
           <Maximize2
@@ -276,13 +277,17 @@ export default function InsightsCard({
         </div>
       </div>
 
-      {/* Self-managed modal — only in uncontrolled mode (RevenueSegmentsCard). */}
+      {/* Self-managed modal — only in uncontrolled mode (RevenueSegmentsCard).
+          Opens on the card's effective chart window so the expanded view
+          starts where the card already is. */}
       {!isControlled && (
         <ChartModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           metric={metricData}
           ticker={ticker}
+          initialFrequency={effectiveFrequency}
+          initialRange={range}
           segmentRows={segmentRows}
           selectedSegment={selectedSegment ?? null}
           segmentLockedReason={segmentLockedReason ?? null}

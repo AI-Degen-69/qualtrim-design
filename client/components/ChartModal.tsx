@@ -49,6 +49,7 @@ import {
   rangePeriodCount,
   sliceSeriesByRange,
   type ChartFrequency,
+  type ChartRange,
 } from "@/lib/financialSeries";
 import {
   FrequencyTabs,
@@ -104,6 +105,14 @@ interface ChartModalProps {
    * (RevenueSegmentsCard) — no arrows there.
    */
   onNavigate?: (direction: -1 | 1) => void;
+  /**
+   * Frequency the modal opens on (and resets to on close), so the expanded
+   * view starts where the calling card already is instead of jumping to the
+   * default quarterly view. Defaults to quarterly.
+   */
+  initialFrequency?: ChartFrequency;
+  /** Range window the modal opens on. Defaults to 10Y. */
+  initialRange?: ChartRange;
 }
 
 type TimeframeType = "2Y" | "5Y" | "10Y" | "All";
@@ -187,10 +196,12 @@ export default function ChartModal({
   segmentLockedReason = null,
   onUpgradeClick,
   onNavigate,
+  initialFrequency = "quarterly",
+  initialRange = "10Y",
 }: ChartModalProps) {
   const { t } = useI18n();
-  const [timeframe, setTimeframe] = useState<TimeframeType>("10Y");
-  const [granularity, setGranularity] = useState<Granularity>("quarterly");
+  const [timeframe, setTimeframe] = useState<TimeframeType>(initialRange);
+  const [granularity, setGranularity] = useState<Granularity>(initialFrequency);
   const [showYoy, setShowYoy] = useState(false);
   const [showTable, setShowTable] = useState(false);
   const [hiddenSegments, setHiddenSegments] = useState<string[]>([]);
@@ -246,16 +257,18 @@ export default function ChartModal({
   // four quarters for flow metrics, latest balance for stock variables).
   // Recomputed only when the frequency switches or the quarterly payload
   // lands — keeps the "switching tabs doesn't refetch the same bars"
-  // guarantee.
-  const fullSeries = useMemo(() => {
-    if (granularity === "annual") return metric.data;
-    return buildFrequencySeries({
-      metricName: metric.name,
-      annualData: metric.data,
-      quarterlyStatements,
-      frequency: granularity,
-    });
-  }, [granularity, metric, quarterlyStatements, quarterlyUpdatedAt]);
+  // guarantee. `effectiveFrequency` reflects annual fallbacks so the badge
+  // never labels annual bars as TTM/quarterly.
+  const { points: fullSeries, effectiveFrequency } = useMemo(
+    () =>
+      buildFrequencySeries({
+        metricName: metric.name,
+        annualData: metric.data,
+        quarterlyStatements,
+        frequency: granularity,
+      }),
+    [granularity, metric, quarterlyStatements, quarterlyUpdatedAt],
+  );
 
   const filteredData = useMemo(() => {
     const sliced = sliceSeriesByRange(fullSeries, timeframe, granularity);
@@ -264,7 +277,12 @@ export default function ChartModal({
     if (
       Number.isFinite(expectedCount) &&
       sliced.length < expectedCount &&
-      sliced.length > 0
+      sliced.length > 0 &&
+      // Pad with locked placeholders only when the requested frequency
+      // actually resolved — if the data fell back to annual, a wall of
+      // fake quarter labels would misrepresent real annual points, and
+      // the unavailable-quarterly warning already explains the gap.
+      effectiveFrequency === granularity
     ) {
       // Free-tier payloads stop early — pad the window's leading edge with
       // locked placeholder periods (quarter labels for quarterly mode, FY
@@ -276,7 +294,10 @@ export default function ChartModal({
 
       for (let i = 0; i < missingCount; i++) {
         let prevDate = `Locked - ${missingCount - i}`;
-        if (granularity === "quarterly") {
+        if (granularity !== "annual") {
+          // Quarterly and TTM bars both carry Qn YYYY labels — walk back
+          // one quarter per missing period. Annual falls through to the
+          // FY-label walk.
           prevDate = previousQuarterLabel(lastDateStr);
           lastDateStr = prevDate;
         } else {
@@ -292,7 +313,7 @@ export default function ChartModal({
       return [...lockedPeriods, ...sliced];
     }
     return sliced;
-  }, [fullSeries, granularity, timeframe, quarterlyUpdatedAt]);
+  }, [fullSeries, granularity, timeframe, effectiveFrequency]);
 
   // YoY % mode: bars flip from absolute values to per-period YoY growth,
   // computed off the FULL frequency series (it needs lookback rows before
@@ -608,13 +629,14 @@ export default function ChartModal({
           : [],
       );
     } else if (!isOpen) {
-      setGranularity("quarterly");
-      setTimeframe("10Y");
+      // Reset to the calling card's chart window, not hardcoded defaults.
+      setGranularity(initialFrequency);
+      setTimeframe(initialRange);
       setShowYoy(false);
       setHiddenSegments([]);
     }
     wasOpenRef.current = isOpen;
-  }, [isOpen, selectedSegment, segmentModel.names]);
+  }, [isOpen, selectedSegment, segmentModel.names, initialFrequency, initialRange]);
 
   if (!isOpen) return null;
 
@@ -625,7 +647,7 @@ export default function ChartModal({
     const csv = isSegmentMode
       ? [
           [
-            granularity === "quarterly" ? "Period" : "Year",
+            granularity === "annual" ? "Year" : "Period",
             ...visibleNames,
             "Total",
           ].join(","),
@@ -646,8 +668,11 @@ export default function ChartModal({
     a.href = url;
     a.download = isSegmentMode
       ? "revenue_by_segment_annual.csv"
-      : `${metric.name}${
-          granularity === "quarterly" ? "_quarterly" : "_annual"
+      : `${metric.name}${          granularity === "quarterly"
+            ? "_quarterly"
+            : granularity === "ttm"
+              ? "_ttm"
+              : "_annual"
         }.csv`;
     a.click();
   };
@@ -1095,7 +1120,7 @@ export default function ChartModal({
                     className="shrink-0 text-[11px] font-bold text-chart-amber"
                     dir="ltr"
                   >
-                    {t(frequencyLabelKey(granularity))}
+                    {t(frequencyLabelKey(effectiveFrequency))}
                   </span>
                 )}
               </h2>

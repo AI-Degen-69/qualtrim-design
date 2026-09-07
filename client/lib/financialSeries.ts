@@ -180,12 +180,24 @@ export function buildTtmSeries(
   }));
 }
 
+export interface FrequencySeries {
+  points: { date: string; value: number | null }[];
+  /**
+   * Frequency the returned points actually represent. When the quarterly
+   * source has no usable rows the annual series stands in — callers badge
+   * and slice with THIS, not the requested frequency, so a TTM selection
+   * can never display annual bars under a TTM badge.
+   */
+  effectiveFrequency: ChartFrequency;
+}
+
 /**
  * Display series for one metric at a given frequency. `annualData` is the
  * pre-built ascending series from Index.tsx (already in display units);
  * quarterly and TTM are projected from the quarterly statements payload.
- * Falls back to the annual series whenever the finer-grained source has no
- * usable rows, so a symbol without quarterly coverage still renders.
+ * Falls back to the annual series (with `effectiveFrequency: "annual"`)
+ * whenever the finer-grained source has no usable rows, so a symbol without
+ * quarterly coverage still renders.
  */
 export function buildFrequencySeries({
   metricName,
@@ -197,14 +209,20 @@ export function buildFrequencySeries({
   annualData: ReadonlyArray<{ date: string; value: number | null }>;
   quarterlyStatements: StatementsLike;
   frequency: ChartFrequency;
-}): { date: string; value: number | null }[] {
-  if (frequency === "annual") return [...annualData];
+}): FrequencySeries {
+  if (frequency === "annual") {
+    return { points: [...annualData], effectiveFrequency: "annual" };
+  }
   const projected = projectMetricSeries(metricName, quarterlyStatements);
   if (frequency === "quarterly") {
-    return projected.length > 0 ? projected : [...annualData];
+    return projected.length > 0
+      ? { points: projected, effectiveFrequency: "quarterly" }
+      : { points: [...annualData], effectiveFrequency: "annual" };
   }
   const ttm = buildTtmSeries(metricName, quarterlyStatements);
-  return ttm.length > 0 ? ttm : [...annualData];
+  return ttm.length > 0
+    ? { points: ttm, effectiveFrequency: "ttm" }
+    : { points: [...annualData], effectiveFrequency: "annual" };
 }
 
 /** Keep the last `count` points of an ascending series (`All` = untouched). */

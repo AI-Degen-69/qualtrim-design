@@ -35,26 +35,46 @@ const quarterlyFlow = [
 const statements = { income: [], balance: [], cash: [] };
 
 describe("buildTtmSeries", () => {
-  it("rolls the trailing four quarters for flow metrics", () => {
-    // buildTtmSeries projects via metricStatementKey, so drive it through a
-    // known metric id via buildFrequencySeries instead of raw statements.
+  it("falls back to the annual series and reports the effective frequency", () => {
+    // projectMetricSeries reads rows by statement key; empty statements →
+    // annual fallback. The effective frequency must say "annual" so the
+    // card never badges annual bars as TTM.
     const annual = [
       { date: "2023", value: 6 },
       { date: "2024", value: 10 },
     ];
-    const series = buildFrequencySeries({
+    const result = buildFrequencySeries({
       metricName: "insights.revenue",
       annualData: annual,
-      // projectMetricSeries reads rows by key; empty statements → fallback.
       quarterlyStatements: statements,
       frequency: "ttm",
     });
-    // No usable quarterly rows → falls back to the annual series untouched.
-    expect(series).toEqual(annual);
+    expect(result.points).toEqual(annual);
+    expect(result.effectiveFrequency).toBe("annual");
   });
 
   it("returns [] under four quarters and falls back at the caller", () => {
     expect(buildTtmSeries("insights.revenue", statements)).toEqual([]);
+  });
+
+  it("keeps the requested frequency when quarterly rows exist", () => {
+    const annual = [{ date: "2024", value: 10 }];
+    const result = buildFrequencySeries({
+      metricName: "insights.revenue",
+      annualData: annual,
+      quarterlyStatements: {
+        income: [
+          { period: "Q1", calendarYear: "2025", revenue: 1e9 },
+          { period: "Q2", calendarYear: "2025", revenue: 2e9 },
+        ],
+      },
+      frequency: "quarterly",
+    });
+    expect(result.effectiveFrequency).toBe("quarterly");
+    expect(result.points).toEqual([
+      { date: "Q1 2025", value: 1 },
+      { date: "Q2 2025", value: 2 },
+    ]);
   });
 
   it("flags balance-sheet metrics as stock variables", () => {

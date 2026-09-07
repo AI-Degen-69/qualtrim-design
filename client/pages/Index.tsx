@@ -1255,13 +1255,16 @@ export default function Index() {
       </div>
 
       {/* Chart Modal — one page-level instance with Stocknest prev/next
-          navigation across the metric grid (controlled via selectedMetric). */}
+          navigation across the metric grid (controlled via selectedMetric).
+          Opens on the grid's shared chart window. */}
       {selectedMetric && (
         <ChartModal
           metric={selectedMetric}
           isOpen
           onClose={() => setSelectedMetric(null)}
           ticker={ticker}
+          initialFrequency={chartFrequency}
+          initialRange={chartRange}
           onNavigate={navigateMetric}
         />
       )}
