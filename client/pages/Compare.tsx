@@ -23,8 +23,33 @@ import type {
 } from "@shared/api";
 import { cn } from "@/lib/utils";
 
-const MAX_TICKERS = 5;
-const DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA"];
+export const MAX_TICKERS = 5;
+export const DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA"] as const;
+
+/**
+ * Uppercase / trim / drop empties / de-dupe (order-preserving) / cap.
+ * Every ticker path — URL parsing, add, remove — goes through this so the
+ * rendered list is always distinct symbols within the 2–5 range.
+ */
+export function normalizeTickerList(
+  raw: readonly string[],
+  max: number = MAX_TICKERS,
+): string[] {
+  const out: string[] = [];
+  for (const s of raw) {
+    const sym = s.trim().toUpperCase();
+    if (!sym || out.includes(sym)) continue;
+    if (out.length >= max) break;
+    out.push(sym);
+  }
+  return out;
+}
+
+/** Normalized list guaranteed to hold 2–5 symbols (defaults when fewer). */
+function validTickers(raw: readonly string[]): string[] {
+  const norm = normalizeTickerList(raw);
+  return norm.length >= 2 ? norm : [...DEFAULT_TICKERS];
+}
 
 interface CompareBundle {
   statements: FinancialStatements;
@@ -107,29 +132,26 @@ export default function Compare() {
   const { t } = useI18n();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Tickers come from the URL (?tickers=AAPL,MSFT) so a comparison is
-  // shareable; empty state seeds the page with three majors.
-  const urlTickers = (searchParams.get("tickers") ?? "")
-    .split(",")
-    .map((s) => s.trim().toUpperCase())
-    .filter(Boolean);
-  const [tickers, setTickers] = useState<string[]>(
-    urlTickers.length > 0 ? urlTickers.slice(0, MAX_TICKERS) : DEFAULT_TICKERS,
+  // The URL is the single source of truth for the comparison: tickers are
+  // derived from `?tickers=` on every render, so back/forward navigation and
+  // pasted share-links always drive the displayed columns (state never
+  // drifts from the address bar). Invalid/duplicate/single-ticker values are
+  // normalized through `validTickers` — fewer than two distinct symbols
+  // falls back to the page defaults.
+  const tickers = useMemo(
+    () =>
+      validTickers((searchParams.get("tickers") ?? "").split(",")),
+    [searchParams],
   );
 
-  // Keep URL in sync when chips change (add/remove), so back/forward and
-  // share-links work.
-  useEffect(() => {
-    const next = tickers.join(",");
-    const current = (searchParams.get("tickers") ?? "").trim();
-    if (current !== next) {
-      setSearchParams(
-        tickers.length > 0 ? { tickers: next } : {},
-        { replace: true },
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tickers]);
+  // Chip edits push real history entries (not replace), so Back restores the
+  // prior comparison.
+  const commitTickers = (raw: readonly string[], replace = false) => {
+    const next = validTickers(raw);
+    setSearchParams(next.length > 0 ? { tickers: next.join(",") } : {}, {
+      replace,
+    });
+  };
 
   // Ticker autocomplete (same pattern as the Charts page).
   const [searchQuery, setSearchQuery] = useState("");
@@ -164,18 +186,14 @@ export default function Compare() {
 
   const addTicker = (raw: string) => {
     const sym = raw.trim().toUpperCase();
-    if (!sym) return;
-    setTickers((prev) => {
-      if (prev.includes(sym)) return prev;
-      if (prev.length >= MAX_TICKERS) return prev;
-      return [...prev, sym];
-    });
+    if (!sym || tickers.includes(sym) || tickers.length >= MAX_TICKERS) return;
+    commitTickers([...tickers, sym]);
     setSearchQuery("");
     setIsSearchOpen(false);
   };
 
   const removeTicker = (sym: string) =>
-    setTickers((prev) => prev.filter((s) => s !== sym));
+    commitTickers(tickers.filter((s) => s !== sym));
 
   const bundles = useCompareBundles(tickers);
 
@@ -200,6 +218,10 @@ export default function Compare() {
   }, [bundles, tickers]);
 
   const anyLoading = bundles.some((q) => q.isLoading);
+  const failedBundles = bundles
+    .map((q, i) => (q.isError ? tickers[i] : null))
+    .filter((s): s is string => Boolean(s));
+  const anyError = failedBundles.length > 0;
 
   return (
     <div className="w-full bg-background dark min-h-screen p-8">
@@ -213,8 +235,10 @@ export default function Compare() {
           description={t("compare.description", {
             count: COMPARE_METRICS.length,
           })}
-          status={anyLoading ? undefined : "live"}
-          source={anyLoading ? undefined : "FMP · Yahoo"}
+          status={anyLoading || anyError ? undefined : "live"}
+          source={
+            anyLoading || anyError ? undefined : "FMP · Yahoo"
+          }
         />
 
         {/* Ticker picker */}
@@ -340,6 +364,29 @@ export default function Compare() {
           </div>
         </div>
 
+        {/* Bundle failure honesty — a failed fetch is an error, not
+            "unavailable data": surface it instead of live em dashes. */}
+        {anyError && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-chart-negative/30 bg-chart-negative/5 px-4 py-3">
+            <p className="text-xs text-chart-negative">
+              {t("compare.bundleError", {
+                symbols: failedBundles.join(", "),
+              })}
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                for (const q of bundles) {
+                  if (q.isError) void q.refetch();
+                }
+              }}
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-card border border-border text-foreground hover:bg-muted/40 transition-colors"
+            >
+              {t("compare.retry")}
+            </button>
+          </div>
+        )}
+
         {/* Comparison table */}
         <div className="rounded-xl border border-border bg-card overflow-hidden">
           <div className="overflow-x-auto custom-scrollbar">
@@ -372,7 +419,23 @@ export default function Compare() {
                             </span>
                           )}
                           <span className="inline-flex w-fit items-center px-1 py-px rounded bg-muted/60 border border-border/50 text-[9px] font-mono text-muted-foreground">
-                            {profile?.currency ?? "USD"}
+                            {(() => {
+                              // Statement values use each company's reporting
+                              // currency — read the latest income row's
+                              // reportedCurrency (by date, not array order),
+                              // falling back to the profile currency.
+                              const stmts = bundles[i]?.data?.statements;
+                              const latestIncome = stmts?.income
+                                ?.slice()
+                                .sort((a, b) =>
+                                  b.date.localeCompare(a.date),
+                                )[0];
+                              return (
+                                latestIncome?.reportedCurrency ??
+                                profile?.currency ??
+                                "—"
+                              );
+                            })()}
                           </span>
                         </div>
                       </th>

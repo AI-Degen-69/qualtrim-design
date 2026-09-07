@@ -86,6 +86,15 @@ function latest<T extends { date: string }>(
   return sortedRows(rows)[0] ?? null;
 }
 
+/** The row (in an array) whose reporting `date` matches, or null. */
+function rowByDate<T extends { date: string }>(
+  rows: readonly T[] | undefined,
+  date: string,
+): T | null {
+  if (!rows) return null;
+  return rows.find((r) => r.date === date) ?? null;
+}
+
 /** The row one period before `latest` (same array), or null. */
 function prior<T extends { date: string }>(
   rows: readonly T[] | undefined,
@@ -396,10 +405,16 @@ export const COMPARE_METRICS: readonly CompareMetric[] = [
     group: "cashflow",
     unit: "%",
     value: (inputs) => {
+      // FCF margin is FCF over revenue for the SAME reporting period. Cash
+      // and income feeds can end at different fiscal dates (income usually
+      // leads), so pick the income row that matches the selected cash-flow
+      // row's date instead of taking each feed's latest independently — a
+      // mismatched pair would silently compare different fiscal years.
       const cashRow = latest(inputs.statements?.cash);
-      const incomeRow = latest(inputs.statements?.income);
+      if (!cashRow) return null;
+      const incomeRow = rowByDate(inputs.statements?.income, cashRow.date);
       return marginPct(
-        cashRow ? num(cashRow.freeCashFlow) : null,
+        num(cashRow.freeCashFlow),
         incomeRow ? num(incomeRow.revenue) : null,
       );
     },
@@ -408,8 +423,9 @@ export const COMPARE_METRICS: readonly CompareMetric[] = [
       const incomeRows = inputs.statements?.income;
       const curCash = latest(cashRows);
       const prevCash = prior(cashRows, curCash);
-      const curInc = latest(incomeRows);
-      const prevInc = prior(incomeRows, curInc);
+      // Match income to each cash row by date — never pair different years.
+      const curInc = curCash ? rowByDate(incomeRows, curCash.date) : null;
+      const prevInc = prevCash ? rowByDate(incomeRows, prevCash.date) : null;
       const curM = marginPct(
         curCash ? num(curCash.freeCashFlow) : null,
         curInc ? num(curInc.revenue) : null,
@@ -597,20 +613,26 @@ export function metricsByGroup(group: CompareGroup): CompareMetric[] {
  * Formatting                                                          *
  * ------------------------------------------------------------------ */
 
-/** Format a metric value for a table cell, e.g. "$385.60B", "6.1%", "28.40". */
+/**
+ * Format a metric value for a table cell, e.g. "385.60B", "6.1%", "28.40".
+ * Statement quantities ("B") and per-share/price values ("$") are rendered
+ * WITHOUT a currency symbol — statement rows carry each company's reporting
+ * currency, which differs per ticker, so the per-column currency badge is the
+ * authority; a hardcoded "$" would mislabel EUR/GBP-reporting tickers.
+ */
 export function formatCompareValue(value: number, metric: CompareMetric): string {
   if (!Number.isFinite(value)) return "—";
   if (metric.unit === "B") {
-    return `$${value.toLocaleString("en-US", {
+    return `${value.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}B`;
   }
   if (metric.unit === "$") {
-    return `$${value.toLocaleString("en-US", {
+    return value.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    })}`;
+    });
   }
   if (metric.unit === "%") {
     return `${value.toLocaleString("en-US", {

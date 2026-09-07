@@ -450,6 +450,9 @@ const en = {
   "compare.group.market": "Market",
   "compare.currencyNote":
     "Statement figures are in each company's reporting currency; ratios and per-share values need no conversion.",
+  "compare.bundleError":
+    "Couldn't load data for {{symbols}} — showing what we have. Retry to refetch these tickers.",
+  "compare.retry": "Retry",
   "compare.metric.grossMargin": "Gross Margin",
   "compare.metric.netMargin": "Net Margin",
   "compare.metric.totalDebt": "Total Debt",
@@ -1620,6 +1623,9 @@ const he: Record<string, string> = {
   "compare.group.market": "שוק",
   "compare.currencyNote":
     "הנתונים בדוחות הכספיים מוצגים במטבע הדיווח של כל חברה; יחסים וערכים למניה אינם דורשים המרה.",
+  "compare.bundleError":
+    "לא ניתן היה לטעון נתונים עבור {{symbols}} — מציג את מה שיש. לחץ כדי לנסות שוב.",
+  "compare.retry": "נסה שוב",
   "compare.metric.grossMargin": "שולי רווח גולמי",
   "compare.metric.netMargin": "שולי רווח נקי",
   "compare.metric.totalDebt": "סה\"כ חוב",

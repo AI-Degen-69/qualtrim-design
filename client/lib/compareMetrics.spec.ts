@@ -180,6 +180,77 @@ describe("compareMetrics vocabulary", () => {
     expect(metric("revenue").value(inputs)).toBeCloseTo(0, 5);
   });
 
+  it("pairs FCF margin income to the cash row's own reporting date", () => {
+    // Cash ends FY2024; income LAGS (no FY2024 row yet). The margin must
+    // pair FY2024 FCF with FY2024 revenue — absent that income row the
+    // margin is null, never a silently mismatched fiscal-year comparison.
+    const inputs = fixture();
+    inputs.statements = {
+      ...inputs.statements!,
+      cash: [
+        {
+          date: "2024-09-28",
+          symbol: "AAPL",
+          reportedCurrency: "USD",
+          calendarYear: "2024",
+          period: "FY",
+          operatingCashFlow: 110e9,
+          capitalExpenditure: -11e9,
+          freeCashFlow: 100e9,
+        },
+        {
+          date: "2023-09-30",
+          symbol: "AAPL",
+          reportedCurrency: "USD",
+          calendarYear: "2023",
+          period: "FY",
+          operatingCashFlow: 100e9,
+          capitalExpenditure: -11e9,
+          freeCashFlow: 89e9,
+        },
+      ],
+      income: [
+        {
+          date: "2023-09-30",
+          symbol: "AAPL",
+          reportedCurrency: "USD",
+          calendarYear: "2023",
+          period: "FY",
+          revenue: 350e9,
+          grossProfit: 150e9,
+          operatingIncome: 110e9,
+          ebitda: 115e9,
+          netIncome: 95e9,
+          eps: 6.0,
+        },
+      ],
+    };
+    // Latest cash (FY2024) has no FY2024 income row → null, not a 2023 mix.
+    expect(metric("fcfMargin").value(inputs)).toBeNull();
+    expect(metric("fcfMargin").change(inputs)).toBeNull();
+
+    // Add the FY2024 income row → pairs by date (25.0% vs prior 89/350).
+    inputs.statements!.income = [
+      ...inputs.statements!.income,
+      {
+        date: "2024-09-28",
+        symbol: "AAPL",
+        reportedCurrency: "USD",
+        calendarYear: "2024",
+        period: "FY",
+        revenue: 400e9,
+        grossProfit: 170e9,
+        operatingIncome: 120e9,
+        ebitda: 130e9,
+        netIncome: 100e9,
+        eps: 6.5,
+      },
+    ];
+    expect(metric("fcfMargin").value(inputs)).toBeCloseTo(25, 5);
+    // (100/400=25.0) - (89/350≈25.4286) ≈ -0.4286pp
+    expect(metric("fcfMargin").change(inputs)).toBeCloseTo(-0.4286, 2);
+  });
+
   it("falls back from metrics to ratios for P/E TTM", () => {
     const inputs = fixture();
     inputs.metrics = {
@@ -222,13 +293,15 @@ describe("compareMetrics vocabulary", () => {
 });
 
 describe("formatCompareValue", () => {
-  it("formats billions with a $ prefix and B suffix", () => {
-    expect(formatCompareValue(385.6, metric("revenue"))).toBe("$385.60B");
-    expect(formatCompareValue(0.02, metric("revenue"))).toBe("$0.02B");
+  it("formats billions with a B suffix and NO currency symbol", () => {
+    // Statement figures are in each company's reporting currency — the
+    // per-column currency badge is the authority, never a hardcoded "$".
+    expect(formatCompareValue(385.6, metric("revenue"))).toBe("385.60B");
+    expect(formatCompareValue(0.02, metric("revenue"))).toBe("0.02B");
   });
 
-  it("formats per-share dollars with two decimals", () => {
-    expect(formatCompareValue(6.5, metric("eps"))).toBe("$6.50");
+  it("formats per-share dollars without a currency symbol", () => {
+    expect(formatCompareValue(6.5, metric("eps"))).toBe("6.50");
   });
 
   it("formats percent and ratio units", () => {

@@ -6,7 +6,7 @@ import * as React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter } from "react-router-dom";
 import { I18nProvider } from "@/lib/i18n";
-import Compare from "./Compare";
+import Compare, { DEFAULT_TICKERS, MAX_TICKERS, normalizeTickerList } from "./Compare";
 
 /**
  * Contract net for the Compare page: with every network query stubbed, the
@@ -126,5 +126,36 @@ describe("Compare page", () => {
     ]) {
       expect(html).toContain(label);
     }
+  });
+});
+
+describe("normalizeTickerList", () => {
+  it("uppercases, trims, and drops empties", () => {
+    expect(normalizeTickerList([" aapl ", "", " msft "])).toEqual([
+      "AAPL",
+      "MSFT",
+    ]);
+  });
+
+  it("deduplicates preserving first-seen order", () => {
+    expect(normalizeTickerList(["AAPL", "aapl", "MSFT", "AAPL"])).toEqual([
+      "AAPL",
+      "MSFT",
+    ]);
+  });
+
+  it("caps at MAX_TICKERS", () => {
+    expect(
+      normalizeTickerList(["A", "B", "C", "D", "E", "F", "G"]).length,
+    ).toBe(MAX_TICKERS);
+    expect(normalizeTickerList(["A", "B", "C"], 2)).toEqual(["A", "B"]);
+  });
+
+  it("keeps defaults untouched", () => {
+    expect(normalizeTickerList([...DEFAULT_TICKERS])).toEqual([
+      "AAPL",
+      "MSFT",
+      "NVDA",
+    ]);
   });
 });
