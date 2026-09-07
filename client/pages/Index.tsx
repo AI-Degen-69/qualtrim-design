@@ -25,6 +25,7 @@ import PricingModal from "@/components/PricingModal";
 import RevenueSegmentsCard from "@/components/RevenueSegmentsCard";
 import CompanyProfile from "@/components/CompanyProfile";
 import StockFundamentalsStrip from "@/components/StockFundamentalsStrip";
+import StockHealthScorecard from "@/components/StockHealthScorecard";
 import TickerLogo from "@/components/TickerLogo";
 import { deriveSpotlightMetrics } from "@/lib/spotlightMetrics";
 import {
@@ -841,6 +842,14 @@ export default function Index() {
             loading={
               quoteLoading || stockMetricsLoading || quarterlyFinancialsLoading
             }
+          />
+
+          {/* Stock health scorecard — Altman Z + Piotroski (FMP financial-
+              scores) plus Vantage-derived profitability/growth composites. */}
+          <StockHealthScorecard
+            metrics={stockMetricsData}
+            income={financialsData?.income}
+            loading={quoteLoading || stockMetricsLoading}
           />
         </div>
 
