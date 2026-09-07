@@ -18,7 +18,8 @@
     "test": "vitest --run",
     "fmp:audit": "tsx scripts/fmp-audit.ts",
     "format.fix": "prettier --write .",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "sec:audit": "tsx scripts/sec-audit.ts"
   },
   "dependencies": {
     "adm-zip": "^0.6.0",

@@ -1263,6 +1263,7 @@ export default function Index() {
           isOpen
           onClose={() => setSelectedMetric(null)}
           ticker={ticker}
+          annualStatements={financialsData}
           initialFrequency={chartFrequency}
           initialRange={chartRange}
           onNavigate={navigateMetric}

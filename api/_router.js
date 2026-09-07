@@ -31,6 +31,9 @@ import { normalizeYahooQuote } from "../server/services/yahooQuoteShape.js";
 // dedupe semantics as the Express stock-data routes (same
 // .js-extension import mechanism as apiUsageTracker.js).
 import { parseSymbolsQuery } from "../server/services/symbolsQuery.js";
+// SEC EDGAR XBRL history backfill — parity twin of stockService's use of
+// the same module (resolves via the .js-extension import mechanism above).
+import { extendFinancialHistory } from "../server/services/secEdgar.js";
 
 const yfInner = new yfDefault({ suppressNotices: ["yahooSurvey"] });
 // Proxy-wrap yf so every method invocation auto-records one Yahoo call
@@ -143,6 +146,17 @@ export const kvJsonCache = {
         e?.message,
       );
     }
+  },
+};
+
+// Adapter from this twin's getJSON/setJSON API to the get/set shape the
+// SEC backfill module expects (mirrors server/services/secEdgar.ts SecCache).
+const secCacheAdapter = {
+  async get(key) {
+    return kvJsonCache.getJSON(key);
+  },
+  async set(key, value, ttlSeconds) {
+    return kvJsonCache.setJSON(key, value, ttlSeconds);
   },
 };
 
@@ -839,7 +853,16 @@ export async function handleStockFinancials(req, res) {
       if (Array.isArray(cshRes))
         cash = cshRes.map((r) => processFtsRow(r, "cash"));
 
-      const result = { income, balance, cash };
+      // SEC EDGAR XBRL backfill (parity twin of stockService): when the
+      // Yahoo FTS window (5y annual / ~quarterly) is shorter than the 10y
+      // target, append older 10-K/10-Q periods from SEC companyfacts —
+      // keyless, rows tagged `dataSource: "sec"`. Cached 24h inside.
+      const result = await extendFinancialHistory(
+        symbol,
+        period,
+        { income, balance, cash },
+        secCacheAdapter,
+      );
       // 6h TTL — fundamentalsTimeSeries modules propagate asynchronously at
       // Yahoo's end (income may land before balance sheet on earnings day),
       // so 6h strikes the balance between fresh and not-thrashing rate limits.
@@ -946,11 +969,13 @@ export async function handleStockFinancials(req, res) {
       stripUndef(symbolRow(r, "cash", period === "quarter" ? "Q" : "FY")),
     );
 
-    const result = {
-      income: incomeLegacy,
-      balance: balanceLegacy,
-      cash: cashLegacy,
-    };
+    // SEC EDGAR XBRL backfill — same 10y extension as the FTS path.
+    const result = await extendFinancialHistory(
+      symbol,
+      period,
+      { income: incomeLegacy, balance: balanceLegacy, cash: cashLegacy },
+      secCacheAdapter,
+    );
     await kvJsonCache.setJSON(ck, result, 86400); // 24h — quarterly statements don't change daily
     res.json(result);
   } catch (e) {
