@@ -13,6 +13,14 @@ import { useI18n } from "@/lib/i18n";
 import AnimatedNumber from "@/components/AnimatedNumber";
 import ChartModal from "@/components/ChartModal";
 import InsightsCard from "@/components/InsightsCard";
+import {
+  FrequencyTabs,
+  RangeTabs,
+} from "@/components/ChartControls";
+import type {
+  ChartFrequency,
+  ChartRange,
+} from "@/lib/financialSeries";
 import PricingModal from "@/components/PricingModal";
 import RevenueSegmentsCard from "@/components/RevenueSegmentsCard";
 import CompanyProfile from "@/components/CompanyProfile";
@@ -158,6 +166,12 @@ export default function Index() {
   const [selectedMetric, setSelectedMetric] = useState<FinancialMetric | null>(
     null,
   );
+  // Stocknest-style shared chart window: every metric card and the expanded
+  // modal read the same range/frequency pair, driven from the grid header
+  // (2Y/5Y/10Y/All left, Quarterly/Annual/TTM right).
+  const [chartRange, setChartRange] = useState<ChartRange>("10Y");
+  const [chartFrequency, setChartFrequency] =
+    useState<ChartFrequency>("ttm");
   // Page-level upgrade modal — opened by the locked-chip / banner
   // Upgrade CTAs (rendered through `onUpgradeClick` callbacks on the
   // RevenueSegmentsCard → InsightsCard → ChartModal chain). Keeps the
@@ -428,6 +442,22 @@ export default function Index() {
   // Historical cards are shown only when real statement data was fetched;
   // Yahoo fallback is intentionally limited to its explicit single-point view.
   const displayMetrics = metrics.length > 0 ? metrics : [];
+
+  // Stocknest-style prev/next navigation inside the expanded chart modal:
+  // cycles the open metric through the grid's display order (wraps at both
+  // ends). Opening the revenue card's index from the modal shows the plain
+  // total-revenue chart — the segment breakdown stays on its own card.
+  const navigateMetric = (direction: -1 | 1) => {
+    if (displayMetrics.length === 0 || !selectedMetric) return;
+    const currentIndex = displayMetrics.findIndex(
+      (m) => m.name === selectedMetric.name,
+    );
+    if (currentIndex < 0) return;
+    const nextIndex =
+      (currentIndex + direction + displayMetrics.length) %
+      displayMetrics.length;
+    setSelectedMetric(displayMetrics[nextIndex]);
+  };
 
   // Locale-aware earnings-date formatted via `formatEarningsDate` (en:
   // "Apr 22, 2026", he: "22 באפר 2026"). The previous `toISOString().slice(0,10)`
@@ -840,6 +870,17 @@ export default function Index() {
                 : "Only recently fetched provider statement data is displayed."}
             </p>
           </div>
+
+          {/* Stocknest-style shared chart window: ranges + frequency */}
+          {!quoteLoading && displayMetrics.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <RangeTabs value={chartRange} onChange={setChartRange} />
+              <FrequencyTabs
+                value={chartFrequency}
+                onChange={setChartFrequency}
+              />
+            </div>
+          )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10 text-left">
           {/* Cache-key switch (e.g. /stock/AAPL → /stock/MSFT) resets isFetched
@@ -910,12 +951,13 @@ export default function Index() {
                     key={idx}
                     metric={metric}
                     ticker={ticker}
+                    frequency={chartFrequency}
+                    range={chartRange}
+                    quarterlyStatements={quarterlyFinancialsData}
                     onUpgradeClick={() => setIsUpgradeOpen(true)}
                   />
                 );
               }
-              const latestVal = metric.data[metric.data.length - 1]?.value;
-              const yoyChange = metric.yoy;
               return (
                 <InsightsCard
                   key={idx}
@@ -924,26 +966,13 @@ export default function Index() {
                       ? metric.name.split(".")[1]
                       : t(metric.name)
                   }
-                  value={
-                    latestVal == null
-                      ? "—"
-                      : `${latestVal.toFixed(2)}${metric.unit === "$" ? "" : metric.unit}`
-                  }
-                  badgeText={
-                    yoyChange == null
-                      ? "—"
-                      : `${yoyChange >= 0 ? "+" : ""}${yoyChange.toFixed(2)}%`
-                  }
-                  badgeType={
-                    yoyChange == null
-                      ? "neutral"
-                      : yoyChange >= 0
-                        ? "positive"
-                        : "negative"
-                  }
                   metricId={metric.name}
                   metricData={metric}
                   ticker={ticker}
+                  frequency={chartFrequency}
+                  range={chartRange}
+                  quarterlyStatements={quarterlyFinancialsData}
+                  onExpand={() => setSelectedMetric(metric)}
                 />
               );
             })
@@ -1225,13 +1254,15 @@ export default function Index() {
         <CompanyProfile ticker={ticker} />
       </div>
 
-      {/* Chart Modal */}
+      {/* Chart Modal — one page-level instance with Stocknest prev/next
+          navigation across the metric grid (controlled via selectedMetric). */}
       {selectedMetric && (
         <ChartModal
           metric={selectedMetric}
-          isOpen={selectedMetric !== null}
+          isOpen
           onClose={() => setSelectedMetric(null)}
           ticker={ticker}
+          onNavigate={navigateMetric}
         />
       )}
 

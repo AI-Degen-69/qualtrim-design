@@ -132,6 +132,13 @@ const en = {
   "chart.period": "Period",
   "chart.value": "Value",
   "chart.yoy": "YoY Growth",
+  // Stocknest-style chart grid: frequency tabs + YoY toggle + nav labels.
+  "chart.annual": "Annual",
+  "chart.ttm": "TTM",
+  "chart.yoyToggle": "YoY %",
+  "chart.expand": "Expand chart",
+  "chart.prevMetric": "Previous metric",
+  "chart.nextMetric": "Next metric",
   // Segment stacked-chart tooltip / table footer total (Revenue by Segment).
   "chart.total": "Total",
   "chart.segmentQuarterlyUnavailable":
@@ -1216,6 +1223,13 @@ const he: Record<string, string> = {
   "chart.period": "תקופה",
   "chart.value": "ערך",
   "chart.yoy": "צמיחה שנתית",
+  // רשת הגרפים בסטייל Stocknest: לשוניות תדירות + מתג YoY + ניווט.
+  "chart.annual": "שנתי",
+  "chart.ttm": "TTM",
+  "chart.yoyToggle": "YoY %",
+  "chart.expand": "הגדלת גרף",
+  "chart.prevMetric": "מדד קודם",
+  "chart.nextMetric": "מדד הבא",
   "chart.segmentQuarterlyUnavailable":
     "נתוני מגזרים רבעוניים אינם זמינים עבור סמל זה — מציג שנתי.",
   "chart.segmentNoSelection": "בחר לפחות מגזר אחד להצגה.",

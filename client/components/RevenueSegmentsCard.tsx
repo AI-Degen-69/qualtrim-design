@@ -5,11 +5,29 @@ import { useStockRevenueSegmentation } from "@/hooks/useStockData";
 import { useI18n } from "@/lib/i18n";
 import type { FinancialMetric, StockMetric } from "@/lib/mockData";
 import type { RevenueSegmentRow } from "@shared/api";
+import type {
+  ChartFrequency,
+  ChartRange,
+} from "@/lib/financialSeries";
 
 interface RevenueSegmentsCardProps {
   /** The total-revenue metric (annual series, B units) from Index.tsx. */
   metric: FinancialMetric;
   ticker: string;
+  /**
+   * Shared chart window from the page grid (Stocknest-style). While no
+   * segment is focused the card renders the total-revenue series at the
+   * page's frequency/range like every other card; once a segment chip is
+   * focused the chart falls back to the annual per-segment series (FMP
+   * segment rows are annual-only), so the modal mirrors the card.
+   */
+  frequency?: ChartFrequency;
+  range?: ChartRange;
+  quarterlyStatements?: {
+    income?: ReadonlyArray<unknown>;
+    balance?: ReadonlyArray<unknown>;
+    cash?: ReadonlyArray<unknown>;
+  } | null;
   /**
    * Opens the placeholder /pricing modal hosted at the page root.
    * Wired into the chip strip's small Upgrade link (rendered next to
@@ -38,6 +56,9 @@ export default function RevenueSegmentsCard({
   metric,
   ticker,
   onUpgradeClick,
+  frequency = "annual",
+  range = "10Y",
+  quarterlyStatements,
 }: RevenueSegmentsCardProps) {
   const { t } = useI18n();
   const { data: segmentation, isLoading } = useStockRevenueSegmentation(ticker);
@@ -235,6 +256,9 @@ export default function RevenueSegmentsCard({
       metricId={metric.name}
       metricData={activeMetric}
       ticker={ticker}
+      frequency={selectedSegment ? "annual" : frequency}
+      range={range}
+      quarterlyStatements={quarterlyStatements}
       filterBar={filterBar || undefined}
       segmentRows={rows}
       /* Carry the card's segment selection into the modal so the stacked
