@@ -1232,6 +1232,7 @@ export default function Index() {
           isOpen={selectedMetric !== null}
           onClose={() => setSelectedMetric(null)}
           ticker={ticker}
+          annualStatements={financialsData}
         />
       )}
 

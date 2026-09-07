@@ -29,7 +29,7 @@ import {
   LabelList,
 } from "recharts";
 import { FinancialMetric } from "@/lib/mockData";
-import type { RevenueSegmentRow } from "@shared/api";
+import type { FinancialStatements, RevenueSegmentRow } from "@shared/api";
 import { cn } from "@/lib/utils";
 import {
   cagrAtYearsBack,
@@ -89,10 +89,43 @@ interface ChartModalProps {
    * that mode so the modal doesn't crash on a missing callback.
    */
   onUpgradeClick?: () => void;
+  /**
+   * Annual statement rows (the same payload Index.tsx already fetched to
+   * build `metric`). Lets the modal badge rows the server backfilled from
+   * SEC EDGAR XBRL (older 10-K/10-Q periods) without an extra request —
+   * optional because tests / standalone renders may omit it.
+   */
+  annualStatements?: FinancialStatements | null;
 }
 
-type TimeframeType = "1Y" | "3Y" | "5Y";
+type TimeframeType = "1Y" | "3Y" | "5Y" | "10Y";
 type Granularity = "annual" | "quarter";
+
+/**
+ * Periods per timeframe window. Annual counts fiscal years; quarterly
+ * counts quarters (4 per year). The 5Y/10Y options exist so the SEC EDGAR
+ * backfilled history (10 years on the free tier) is actually reachable in
+ * the chart — windows are only offered once the underlying rows can fill
+ * them, so nothing new renders with locked padding.
+ */
+const WINDOW_ROWS: Record<Granularity, Record<TimeframeType, number>> = {
+  annual: { "1Y": 1, "3Y": 3, "5Y": 5, "10Y": 10 },
+  quarter: { "1Y": 4, "3Y": 12, "5Y": 20, "10Y": 40 },
+};
+
+function windowRows(timeframe: TimeframeType, granularity: Granularity): number {
+  return WINDOW_ROWS[granularity][timeframe];
+}
+
+/** Fiscal-period x label for a statement row (matches `projectMetricSeries`). */
+function statementPeriodLabel(
+  row: { period?: string | null; calendarYear?: string | null } | undefined,
+): string {
+  const p = String(row?.period ?? "").trim();
+  const y = String(row?.calendarYear ?? "").trim();
+  if (!y) return "";
+  return /^Q[1-4]$/.test(p) ? `${p} ${y}` : y;
+}
 
 /**
  * Granularity toggle reads as `Quarterly | Yearly` (Q | Y). When Q is
@@ -175,6 +208,7 @@ export default function ChartModal({
   selectedSegment = null,
   segmentLockedReason = null,
   onUpgradeClick,
+  annualStatements = null,
 }: ChartModalProps) {
   const { t } = useI18n();
   const [timeframe, setTimeframe] = useState<TimeframeType>("1Y");
@@ -211,6 +245,42 @@ export default function ChartModal({
     quarterlyStatements?.sources?.cash ??
     null;
 
+  // SEC EDGAR backfill provenance. Rows the server appended from 10-K/10-Q
+  // XBRL facts carry `dataSource: "sec"`; collect their period labels so
+  // the table can badge exactly those rows and the chart can show a
+  // free-tier-honesty note with the extended-period count.
+  const secInfo = useMemo(() => {
+    const labels = new Set<string>();
+    let count = 0;
+    const scan = (
+      rows?: ReadonlyArray<{
+        period?: string | null;
+        calendarYear?: string | null;
+        dataSource?: string;
+      }>,
+    ) => {
+      if (!Array.isArray(rows)) return;
+      for (const row of rows) {
+        if (row?.dataSource === "sec") {
+          const label = statementPeriodLabel(row);
+          if (label) {
+            labels.add(label);
+            count++;
+          }
+        }
+      }
+    };
+    const sources = [annualStatements, quarterlyStatements].filter(
+      (s): s is FinancialStatements => Boolean(s),
+    );
+    for (const st of sources) {
+      scan(st.income);
+      scan(st.balance);
+      scan(st.cash);
+    }
+    return { count, labels };
+  }, [annualStatements, quarterlyStatements]);
+
   // Quarterly segment rows (FMP `revenue-product-segmentation?period=quarter`),
   // fetched only when the modal is open, segment mode is active, and the
   // user switched the granularity toggle to quarterly. Each row is one 10-Q
@@ -244,15 +314,13 @@ export default function ChartModal({
             quarterlyStatements ?? { income: [], balance: [], cash: [] },
           )
         : [];
-      // 1Y = 4Q and 3Y = 12Q. Five-year windows are intentionally not
-      // offered until the provider returns enough endpoints.
-      expectedCount = timeframe === "1Y" ? 4 : 12;
+      // Quarterly windows are 4 / 12 / 20 / 40 quarters (1/3/5/10y).
+      expectedCount = windowRows(timeframe, "quarter");
       sliced = series.slice(-expectedCount);
     } else {
-      // Annual path: scale the 1/3-year window off the precomputed
-      // `metric.data`. Five-year windows are not offered without six
-      // annual endpoints.
-      expectedCount = timeframe === "1Y" ? 1 : 3;
+      // Annual windows are 1 / 3 / 5 / 10 fiscal years off the
+      // precomputed `metric.data`.
+      expectedCount = windowRows(timeframe, "annual");
       sliced = metric.data.slice(-expectedCount);
     }
 
@@ -442,6 +510,30 @@ export default function ChartModal({
 
   const isSegmentMode =
     segmentModel.rows.length > 0 && segmentModel.names.length > 0;
+
+  // Timeframe options. 1Y/3Y always offered (legacy behavior — a short
+  // series pads with locked "Pro" rows); 5Y/10Y appear only once the
+  // underlying rows can actually fill them (SEC EDGAR backfill unlocks
+  // the 10-year windows). Segment mode never extends, so it stays 1Y/3Y.
+  const availableStatementRows = useMemo(() => {
+    if (granularity === "quarter") {
+      const meta = metricStatementKey(metric.name);
+      if (!meta) return 0;
+      const rows = quarterlyStatements?.[meta.statement];
+      return Array.isArray(rows) ? rows.length : 0;
+    }
+    return Array.isArray(metric.data) ? metric.data.length : 0;
+  }, [granularity, metric, quarterlyStatements]);
+  const offeredTimeframes = useMemo<TimeframeType[]>(() => {
+    const base: TimeframeType[] = ["1Y", "3Y"];
+    if (isSegmentMode) return base; // segment rows don't extend 10y
+    if (availableStatementRows >= windowRows("5Y", granularity)) base.push("5Y");
+    if (availableStatementRows >= windowRows("10Y", granularity)) base.push("10Y");
+    return base;
+  }, [availableStatementRows, granularity, isSegmentMode]);
+  useEffect(() => {
+    if (!offeredTimeframes.includes(timeframe)) setTimeframe("1Y");
+  }, [offeredTimeframes, timeframe]);
   const segmentColor = (name: string) =>
     SEGMENT_PALETTE[
       Math.max(0, segmentModel.names.indexOf(name)) % SEGMENT_PALETTE.length
@@ -662,7 +754,7 @@ export default function ChartModal({
     filteredData.map((entry) => entry.value),
   );
   const requestedPeriodCount =
-    granularity === "quarter" ? (timeframe === "1Y" ? 4 : 12) : 0;
+    granularity === "quarter" ? windowRows(timeframe, "quarter") : 0;
   const quarterlyAvailability = getChartAvailability(
     filteredData.map((entry) => entry.value),
     requestedPeriodCount,
@@ -1364,7 +1456,7 @@ export default function ChartModal({
                 role="tablist"
                 aria-label={t("chart.timeframe")}
               >
-                {["1Y", "3Y"].map((tf) => (
+                {offeredTimeframes.map((tf) => (
                   <button
                     key={tf}
                     onClick={() => setTimeframe(tf as TimeframeType)}
@@ -1591,6 +1683,16 @@ export default function ChartModal({
                 })}
               </div>
             )}
+            {secInfo.count > 0 && (
+              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground" dir="ltr">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/30">
+                  SEC EDGAR
+                </span>
+                <span>
+                  {t("chart.secHistoryNote", { count: secInfo.count })}
+                </span>
+              </div>
+            )}
             {renderChart()}
           </div>
 
@@ -1801,7 +1903,17 @@ export default function ChartModal({
                               className="py-2.5 px-3 font-semibold text-foreground whitespace-nowrap"
                               dir="ltr"
                             >
-                              {row.date}
+                              <span className="inline-flex items-center gap-1.5">
+                                {row.date}
+                                {secInfo.labels.has(String(row.date)) && (
+                                  <span
+                                    className="inline-flex items-center px-1 py-px rounded-[3px] text-[8px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/25"
+                                    title={t("chart.secRowTooltip")}
+                                  >
+                                    SEC
+                                  </span>
+                                )}
+                              </span>
                             </td>
                             <td
                               className="py-2.5 px-3 text-right font-mono tabular-nums text-foreground whitespace-nowrap"

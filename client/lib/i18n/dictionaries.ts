@@ -137,6 +137,11 @@ const en = {
   "chart.segmentQuarterlyUnavailable":
     "Quarterly segment data is unavailable for this symbol — showing annual.",
   "chart.segmentNoSelection": "Select at least one segment to display.",
+  // SEC EDGAR XBRL history backfill — older 10-K/10-Q periods appended
+  // beyond the FMP/Yahoo window (see docs/data-providers.md §3.5).
+  "chart.secHistoryNote":
+    "Extended {count} older periods from SEC EDGAR 10-K/10-Q filings — free, no API key.",
+  "chart.secRowTooltip": "Sourced from SEC EDGAR XBRL filings.",
 
   // PricingModal (placeholder). Triggered by the Upgrade CTA beside
   // the locked "Segments 🔒" chip and inside the chart modal banner.
@@ -1219,6 +1224,10 @@ const he: Record<string, string> = {
   "chart.segmentQuarterlyUnavailable":
     "נתוני מגזרים רבעוניים אינם זמינים עבור סמל זה — מציג שנתי.",
   "chart.segmentNoSelection": "בחר לפחות מגזר אחד להצגה.",
+  // הרחבת היסטוריה מ-SEC EDGAR (10-K/10-Q) — תקופות ישנות יותר מחלון FMP/Yahoo.
+  "chart.secHistoryNote":
+    "היסטוריה מורחבת ב-{count} תקופות מדיווחי SEC EDGAR (10-K/10-Q) — חינם, ללא מפתח API.",
+  "chart.secRowTooltip": "מקור הנתון: דיווחי SEC EDGAR XBRL.",
   // סה"כ בגרף המגזרים הערוך (הכנסות לפי מגזר).
   "chart.total": 'סה"כ',
 
