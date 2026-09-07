@@ -799,6 +799,19 @@ export async function handleStockFinancials(req, res) {
           row.netDebt =
             ftsGet(r, ["netDebt"]) ??
             (row.totalDebt ?? 0) - row.cashAndCashEquivalents;
+          // Stocknest-style derived rows: total intangibles = goodwill +
+          // intangibles; TBV = equity − intangibles; tangible assets = total
+          // assets − intangibles. Yahoo FTS names goodwill `goodWill`.
+          const totalIntangibles = deriveTotalIntangibles(
+            ftsGet(r, ["goodWill", "goodwill"]),
+            ftsGet(r, ["intangibleAssets"]),
+          );
+          row._derived_totalIntangibles = totalIntangibles;
+          if (totalIntangibles !== undefined && row.totalEquity !== undefined)
+            row._derived_tbv = row.totalEquity - totalIntangibles;
+          if (totalIntangibles !== undefined && row.totalAssets !== undefined)
+            row._derived_totalTangible =
+              row.totalAssets - totalIntangibles;
         } else if (kind === "cash") {
           const explicitOcf = ftsGet(r, [
             "operatingCashFlow",
@@ -828,6 +841,15 @@ export async function handleStockFinancials(req, res) {
             "cashDividendsPaid",
             "dividendsPaid",
           ]);
+          // Derived net capital returned to shareholders (dividends + net
+          // buybacks). Yahoo FTS reports buybacks as
+          // `repurchaseOfCapitalStock` (negative).
+          row._derived_netReturned = deriveNetReturned(
+            ftsGet(r, ["cashDividendsPaid", "dividendsPaid"]),
+            ftsGet(r, ["salePurchaseOfStock"]) ??
+              ftsGet(r, ["repurchaseOfCapitalStock"]) ??
+              ftsGet(r, ["commonStockRepurchased"]),
+          );
         }
         return stripUndef(row);
       };
@@ -966,6 +988,23 @@ function stripUndef(o) {
   return Object.fromEntries(
     Object.entries(o).filter(([, v]) => v !== undefined),
   );
+}
+
+// ── Derived statement rows (parity twin of server/services/derivedRows.ts) ──
+// Stocknest-style `_derived_*` fields computed from raw rows. Each is
+// emitted only when its inputs exist (undefined values are dropped by
+// stripUndef downstream), so a missing goodwill field never reads as zero.
+function deriveTotalIntangibles(goodwill, intangibleAssets) {
+  if (goodwill === undefined && intangibleAssets === undefined) return undefined;
+  return (goodwill ?? 0) + (intangibleAssets ?? 0);
+}
+
+function deriveNetReturned(dividendsPaid, buybacks) {
+  if (dividendsPaid === undefined && buybacks === undefined) return undefined;
+  // Flip the provider's signed convention (outflows ≤ 0) so the derived
+  // row reads "positive = returned to shareholders". Normalize -0 to 0.
+  const returned = -((dividendsPaid ?? 0) + (buybacks ?? 0));
+  return returned === 0 ? 0 : returned;
 }
 
 export async function handleStockAnalyst(req, res) {

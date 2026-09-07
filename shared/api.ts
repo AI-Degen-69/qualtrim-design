@@ -152,6 +152,12 @@ export interface BalanceSheetRow {
   totalDebt?: number;
   cashAndCashEquivalents: number;
   netDebt?: number;
+  /** Derived: goodwill + intangibles (stocknest convention). */
+  _derived_totalIntangibles?: number;
+  /** Derived: total equity − total intangibles. */
+  _derived_tbv?: number;
+  /** Derived: total assets − total intangibles. */
+  _derived_totalTangible?: number;
 }
 
 export interface CashFlowRow {
@@ -165,6 +171,8 @@ export interface CashFlowRow {
   freeCashFlow?: number;
   stockBasedCompensation?: number;
   dividendPayments?: number;
+  /** Derived: dividends paid + net buybacks (positive = returned to shareholders). */
+  _derived_netReturned?: number;
 }
 
 export type FinancialStatementProvider = "fmp" | "yahoo" | null;

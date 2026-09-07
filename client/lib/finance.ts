@@ -146,6 +146,29 @@ const METRIC_KEY_MAP: Record<string, MetricStatementKey> = {
     key: "totalAssets",
     divisor: 1e9,
   },
+  // Stocknest-style derived rows computed in the statement normalization
+  // (server/services/derivedRows.ts) — plotable by any series consumer
+  // (charts grid, compare vocabulary, future surfaces).
+  "insights.totalIntangibles": {
+    statement: "balance",
+    key: "_derived_totalIntangibles",
+    divisor: 1e9,
+  },
+  "insights.tangibleBookValue": {
+    statement: "balance",
+    key: "_derived_tbv",
+    divisor: 1e9,
+  },
+  "insights.totalTangibleAssets": {
+    statement: "balance",
+    key: "_derived_totalTangible",
+    divisor: 1e9,
+  },
+  "insights.netReturned": {
+    statement: "cash",
+    key: "_derived_netReturned",
+    divisor: 1e9,
+  },
 };
 
 export function projectMetricSeries(
