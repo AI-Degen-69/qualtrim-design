@@ -138,6 +138,13 @@ export interface IncomeStatementRow {
   netIncome: number;
   eps: number;
   epsDiluted?: number;
+  /**
+   * Row-level provenance. Present only when the row came from SEC EDGAR
+   * XBRL backfill (`"sec"`) — FMP/Yahoo rows leave it unset so recent
+   * payloads stay tight. Lets the charts surface badge which periods are
+   * SEC-sourced history beyond the FMP free window.
+   */
+  dataSource?: "fmp" | "yahoo" | "sec";
 }
 
 export interface BalanceSheetRow {
@@ -152,6 +159,14 @@ export interface BalanceSheetRow {
   totalDebt?: number;
   cashAndCashEquivalents: number;
   netDebt?: number;
+  /** Derived: goodwill + intangibles (stocknest convention). */
+  _derived_totalIntangibles?: number;
+  /** Derived: total equity − total intangibles. */
+  _derived_tbv?: number;
+  /** Derived: total assets − total intangibles. */
+  _derived_totalTangible?: number;
+  /** SEC EDGAR XBRL backfill provenance (see IncomeStatementRow.dataSource). */
+  dataSource?: "fmp" | "yahoo" | "sec";
 }
 
 export interface CashFlowRow {
@@ -165,6 +180,10 @@ export interface CashFlowRow {
   freeCashFlow?: number;
   stockBasedCompensation?: number;
   dividendPayments?: number;
+  /** Derived: dividends paid + net buybacks (positive = returned to shareholders). */
+  _derived_netReturned?: number;
+  /** SEC EDGAR XBRL backfill provenance (see IncomeStatementRow.dataSource). */
+  dataSource?: "fmp" | "yahoo" | "sec";
 }
 
 export type FinancialStatementProvider = "fmp" | "yahoo" | null;
@@ -272,6 +291,8 @@ export interface FinancialScores {
   symbol: string;
   altmanZScore?: number;
   piotroskiScore?: number; // 0–9
+  /** Fiscal year the scores were computed for (FMP per-year payload). */
+  year?: string;
 }
 
 /**
@@ -284,6 +305,49 @@ export interface FinancialScores {
  * - `notFound`    — no such endpoint / provider 404 / hard error. UI: red "✕"/"E".
  * - `nullByDesign`— legitimately absent for this instrument (e.g. no dividend). Neutral dash, not an error.
  */
+/* ------------------------------------------------------------------ *
+ * Ownership (Yahoo quoteSummary: institution/fund/insider holders)    *
+ * ------------------------------------------------------------------ */
+
+/** One top holder row from Yahoo `institutionOwnership` / `fundOwnership`. */
+export interface OwnershipHolder {
+  name: string;
+  /** Percent of shares outstanding held (already %-points, e.g. 8.4). */
+  pctHeld?: number;
+  /** Shares held. */
+  position?: number;
+  /** USD value of the position. */
+  value?: number;
+  /** Report date (ISO YYYY-MM-DD). */
+  reportDate?: string;
+}
+
+/** One top insider holder row from Yahoo `insiderHolders`. */
+export interface InsiderHolder {
+  name: string;
+  title?: string;
+  relation?: string;
+  latestTransDate?: string;
+  shares?: number;
+  value?: number;
+}
+
+/**
+ * Ownership snapshot from the free Yahoo `quoteSummary` modules.
+ * `unavailable` is true when Yahoo returned nothing usable — callers must
+ * NOT fall back to premium FMP ownership endpoints.
+ */
+export interface StockOwnership {
+  /** Aggregate institutional ownership, % of shares outstanding. */
+  institutionPercent?: number;
+  /** Aggregate insider ownership, % of shares outstanding. */
+  insiderPercent?: number;
+  institutionHolders: OwnershipHolder[];
+  fundHolders: OwnershipHolder[];
+  insiderHolders: InsiderHolder[];
+  unavailable: boolean;
+}
+
 export type AvailabilityState =
   | "available"
   | "pro"

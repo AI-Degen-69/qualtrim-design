@@ -6,6 +6,7 @@ import {
   Calendar,
   Search,
   BriefcaseBusiness,
+  Scale,
 } from "lucide-react";
 import { useI18n } from "@/lib/i18n";
 import LanguageSwitcher from "./LanguageSwitcher";
@@ -26,6 +27,11 @@ const navItems = [
     i18nKey: "nav.watchlists",
     href: "/watchlists",
     icon: List,
+  },
+  {
+    i18nKey: "nav.compare",
+    href: "/compare",
+    icon: Scale,
   },
   {
     i18nKey: "nav.charts",

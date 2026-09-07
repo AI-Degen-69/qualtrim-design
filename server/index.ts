@@ -23,6 +23,7 @@ import {
   handleProviderHealth,
   handleStockYahooFallbackFinancials,
   handleSectorHeatmap,
+  handleStockOwnership,
 } from "./routes/stock-data";
 import {
   handleScreenerSearch,
@@ -128,6 +129,7 @@ export function createServer() {
   app.get("/api/stock-revenue-segmentation", handleRevenueSegmentation);
   app.get("/api/stock-analyst", handleStockAnalyst);
   app.get("/api/stock-insider", handleStockInsider);
+  app.get("/api/stock-ownership", handleStockOwnership);
   app.get("/api/stock-news", handleStockNews);
   app.get("/api/earnings-calendar", handleEarningsCalendar);
   app.get("/api/stock-chart", handleStockChart);

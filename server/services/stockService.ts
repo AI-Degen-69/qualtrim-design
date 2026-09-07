@@ -33,11 +33,14 @@ import {
   SmaDistanceResponse,
   SmaDistanceRow,
   StockMetrics,
+  StockOwnership,
   StockQuote,
   YahooFallbackFinancials,
   AvailabilityState,
 } from "../../shared/api";
 import { insightsTabLabels, insightsTabUniverses } from "./insightsUniverses";
+import { normalizeOwnership } from "./ownershipNormalizer";
+import { deriveBalanceRows, deriveNetReturned } from "./derivedRows";
 import {
   normalizeDividendYield,
   normalizeYahooPercentage,
@@ -70,6 +73,7 @@ import {
   resolveTransactionValue,
 } from "./insiderUtils";
 import { mergeFinancialStatements } from "./financialStatementFallback";
+import { extendFinancialHistory } from "./secEdgar";
 
 // yahoo-finance2 v4 ships the class as its default export. Use one shared
 // instance per process; constructing it "throwaway" per call degrades
@@ -709,18 +713,28 @@ function normalizeIncomeRow(raw: any): IncomeStatementRow {
 function normalizeBalanceRow(raw: any): BalanceSheetRow {
   const toNum = (v: any) => (v === undefined ? undefined : Number(v));
   const year = raw.calendarYear ?? raw.fiscalYear ?? "";
+  const totalEquity = toNum(raw.totalEquity);
+  const totalAssets = toNum(raw.totalAssets) ?? 0;
   return {
     date: String(raw.date ?? ""),
     symbol: String(raw.symbol ?? ""),
     reportedCurrency: String(raw.reportedCurrency ?? "USD"),
     calendarYear: String(year),
     period: String(raw.period ?? ""),
-    totalAssets: toNum(raw.totalAssets) ?? 0,
+    totalAssets,
     totalLiabilities: toNum(raw.totalLiabilities),
-    totalEquity: toNum(raw.totalEquity),
+    totalEquity,
     totalDebt: toNum(raw.totalDebt),
     cashAndCashEquivalents: toNum(raw.cashAndCashEquivalents) ?? 0,
     netDebt: toNum(raw.netDebt),
+    // Stocknest-style derived rows (goodwill + intangibles, TBV, tangible
+    // assets) — see server/services/derivedRows.ts.
+    ...deriveBalanceRows({
+      goodwill: toNum(raw.goodwill),
+      intangibleAssets: toNum(raw.intangibleAssets),
+      totalEquity,
+      totalAssets,
+    }),
   };
 }
 
@@ -744,6 +758,12 @@ function normalizeCashRow(raw: any): CashFlowRow {
     freeCashFlow: toNum(raw.freeCashFlow) ?? 0,
     stockBasedCompensation: toNum(raw.stockBasedCompensation),
     dividendPayments: toNum(raw.dividendPayments),
+    // Derived net capital returned to shareholders (dividends + buybacks).
+    ...deriveNetReturned({
+      dividendsPaid: toNum(raw.dividendsPaid),
+      salePurchaseOfStock: toNum(raw.salePurchaseOfStock),
+      commonStockRepurchased: toNum(raw.commonStockRepurchased),
+    }),
   };
 }
 
@@ -1511,22 +1531,35 @@ export const stockService = {
         epsDiluted: r.dilutedEPS || 0,
       }));
 
-      const balance = balanceRows.map((r: any) => ({
-        date: new Date(r.date).toISOString().slice(0, 10),
-        symbol: ticker,
-        reportedCurrency: "USD",
-        calendarYear: new Date(r.date).getFullYear().toString(),
-        period: getPeriod(r),
-        totalAssets: r.totalAssets || 0,
-        totalLiabilities: r.totalLiabilitiesNetMinorityInterest || 0,
-        totalEquity: r.stockholdersEquity || 0,
-        totalDebt: r.totalDebt || 0,
-        cashAndCashEquivalents:
-          r.cashAndCashEquivalents ||
-          r.cashCashEquivalentsAndShortTermInvestments ||
-          0,
-        netDebt: r.netDebt || 0,
-      }));
+      const balance = balanceRows.map((r: any) => {
+        const totalEquity = r.stockholdersEquity || 0;
+        const totalAssets = r.totalAssets || 0;
+        return {
+          date: new Date(r.date).toISOString().slice(0, 10),
+          symbol: ticker,
+          reportedCurrency: "USD",
+          calendarYear: new Date(r.date).getFullYear().toString(),
+          period: getPeriod(r),
+          totalAssets,
+          totalLiabilities: r.totalLiabilitiesNetMinorityInterest || 0,
+          totalEquity,
+          totalDebt: r.totalDebt || 0,
+          cashAndCashEquivalents:
+            r.cashAndCashEquivalents ||
+            r.cashCashEquivalentsAndShortTermInvestments ||
+            0,
+          netDebt: r.netDebt || 0,
+          // Stocknest-style derived rows — Yahoo FTS names its intangibles
+          // fields `goodWill`/`intangibleAssets` (camelCase), FMP uses
+          // `goodwill`/`intangibleAssets`.
+          ...deriveBalanceRows({
+            goodwill: r.goodWill ?? r.goodwill,
+            intangibleAssets: r.intangibleAssets,
+            totalEquity,
+            totalAssets,
+          }),
+        };
+      });
 
       const cash = cashRows.map((r: any) => ({
         date: new Date(r.date).toISOString().slice(0, 10),
@@ -1540,6 +1573,13 @@ export const stockService = {
           0,
         capitalExpenditure: r.capitalExpenditure || 0,
         freeCashFlow: r.freeCashFlow || 0,
+        // Derived net capital returned (dividends + buybacks). Yahoo FTS
+        // reports buybacks as `repurchaseOfCapitalStock` (negative).
+        ...deriveNetReturned({
+          dividendsPaid: r.dividendsPaid,
+          salePurchaseOfStock: r.salePurchaseOfStock,
+          commonStockRepurchased: r.repurchaseOfCapitalStock,
+        }),
       }));
 
       return {
@@ -1624,6 +1664,15 @@ export const stockService = {
       ? { income: [], balance: [], cash: [] }
       : await this.getYahooFinancialStatements(symbol, period, limit);
     result = mergeFinancialStatements(primary, fallback);
+
+    // SEC EDGAR XBRL backfill — when a statement still sits under the
+    // 10-year target (free FMP caps at 5y / ~7 quarters and Yahoo FTS at
+    // ~5y), append older periods straight from the filer's 10-K/10-Q XBRL
+    // facts (keyless, no daily quota). Recent rows keep their FMP/Yahoo
+    // provenance; only the older extension rows are marked `sec`. The
+    // extension itself is cached 24h (slow-moving data), so this stays a
+    // cheap array merge on every subsequent call.
+    result = await extendFinancialHistory(symbol, period, result, kvJsonCache);
 
     // 1h KV TTL — earnings reports anchor once per quarter so this stays
     // warm across cold starts without serving stale pre-earnings figures.
@@ -1841,6 +1890,8 @@ export const stockService = {
             symbol: String(s0.symbol ?? symbol),
             altmanZScore: s0.altmanZScore,
             piotroskiScore: s0.piotroskiScore,
+            // Per-year payload — surfaces as "as of FY n" on the scorecard.
+            year: s0.year ?? undefined,
           }
         : null,
       source: "fmp",
@@ -2139,6 +2190,46 @@ export const stockService = {
         `[stockService] insider ${symbol} failed: ${e?.message ?? e}`,
       );
       return [];
+    }
+  },
+
+  /**
+   * Institutional / fund / insider ownership snapshot from the free Yahoo
+   * `quoteSummary` modules (`defaultKeyStatistics` + `institutionOwnership`
+   * + `fundOwnership` + `insiderHolders`). Slow-moving data → 1h KV TTL
+   * so cold starts reuse the same snapshot instead of re-hitting Yahoo.
+   * Never falls back to premium FMP ownership endpoints — when Yahoo
+   * returns nothing, `unavailable: true` is honest.
+   */
+  async getOwnership(symbol: string): Promise<StockOwnership> {
+    const cacheKey = `ownership_${symbol}`;
+    const cached = await kvJsonCache.get<StockOwnership>(cacheKey);
+    if (cached) return cached;
+    const empty: StockOwnership = {
+      institutionHolders: [],
+      fundHolders: [],
+      insiderHolders: [],
+      unavailable: true,
+    };
+    try {
+      const raw: any = await yahooFinance.quoteSummary(symbol, {
+        modules: [
+          "defaultKeyStatistics",
+          "institutionOwnership",
+          "fundOwnership",
+          "insiderHolders",
+        ],
+      });
+      const result = normalizeOwnership(raw);
+      await kvJsonCache.set(cacheKey, result, 3600);
+      return result;
+    } catch (e: any) {
+      throttledWarn(
+        `ownership:${symbol}`,
+        `[stockService] ownership ${symbol} failed: ${e?.message ?? e}`,
+      );
+      await kvJsonCache.set(cacheKey, empty, 3600);
+      return empty;
     }
   },
 

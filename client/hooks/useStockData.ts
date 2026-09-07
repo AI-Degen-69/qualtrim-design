@@ -22,6 +22,7 @@ import type {
   SectorHeatmapMetadata,
   SectorHeatmapResponse,
   StockMetrics,
+  StockOwnership,
   StockQuote,
   YahooFallbackFinancials,
 } from "@shared/api";
@@ -432,6 +433,23 @@ export function useStockInsider(ticker: string) {
         `/api/stock-insider?symbol=${encodeURIComponent(ticker)}`,
       ),
     enabled: !!ticker,
+  });
+}
+
+/**
+ * Institutional / fund / top-insider ownership snapshot from the free Yahoo
+ * `quoteSummary` modules. Slow-moving → 1h staleTime matches the server's
+ * 1h KV TTL so re-mounts reuse the cache instead of re-hitting Yahoo.
+ */
+export function useStockOwnership(ticker: string) {
+  return useQuery({
+    queryKey: ["stockOwnership", ticker],
+    queryFn: () =>
+      fetchJSON<StockOwnership>(
+        `/api/stock-ownership?symbol=${encodeURIComponent(ticker)}`,
+      ),
+    enabled: !!ticker,
+    staleTime: 60 * 60_000,
   });
 }
 

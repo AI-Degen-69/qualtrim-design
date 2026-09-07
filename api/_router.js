@@ -31,6 +31,9 @@ import { normalizeYahooQuote } from "../server/services/yahooQuoteShape.js";
 // dedupe semantics as the Express stock-data routes (same
 // .js-extension import mechanism as apiUsageTracker.js).
 import { parseSymbolsQuery } from "../server/services/symbolsQuery.js";
+// SEC EDGAR XBRL history backfill — parity twin of stockService's use of
+// the same module (resolves via the .js-extension import mechanism above).
+import { extendFinancialHistory } from "../server/services/secEdgar.js";
 
 const yfInner = new yfDefault({ suppressNotices: ["yahooSurvey"] });
 // Proxy-wrap yf so every method invocation auto-records one Yahoo call
@@ -143,6 +146,17 @@ export const kvJsonCache = {
         e?.message,
       );
     }
+  },
+};
+
+// Adapter from this twin's getJSON/setJSON API to the get/set shape the
+// SEC backfill module expects (mirrors server/services/secEdgar.ts SecCache).
+const secCacheAdapter = {
+  async get(key) {
+    return kvJsonCache.getJSON(key);
+  },
+  async set(key, value, ttlSeconds) {
+    return kvJsonCache.setJSON(key, value, ttlSeconds);
   },
 };
 
@@ -507,6 +521,11 @@ export async function handleStockMetrics(req, res) {
     const clean = (o) =>
       Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
 
+    // Parity note: this Vercel twin is deliberately Yahoo-only (no FMP
+    // financial-scores fetch — keeps the serverless path keyless and within
+    // the free FMP budget). Scores are therefore always null here; the
+    // client scorecard badges this as unavailable instead of inventing data.
+    // The TS server path (stockService.getMetrics) serves real FMP scores.
     const result = {
       metrics: clean(metrics),
       ratios: clean(ratios),
@@ -1022,6 +1041,19 @@ export async function handleStockFinancials(req, res) {
           row.netDebt =
             ftsGet(r, ["netDebt"]) ??
             (row.totalDebt ?? 0) - row.cashAndCashEquivalents;
+          // Stocknest-style derived rows: total intangibles = goodwill +
+          // intangibles; TBV = equity − intangibles; tangible assets = total
+          // assets − intangibles. Yahoo FTS names goodwill `goodWill`.
+          const totalIntangibles = deriveTotalIntangibles(
+            ftsGet(r, ["goodWill", "goodwill"]),
+            ftsGet(r, ["intangibleAssets"]),
+          );
+          row._derived_totalIntangibles = totalIntangibles;
+          if (totalIntangibles !== undefined && row.totalEquity !== undefined)
+            row._derived_tbv = row.totalEquity - totalIntangibles;
+          if (totalIntangibles !== undefined && row.totalAssets !== undefined)
+            row._derived_totalTangible =
+              row.totalAssets - totalIntangibles;
         } else if (kind === "cash") {
           const explicitOcf = ftsGet(r, [
             "operatingCashFlow",
@@ -1051,6 +1083,15 @@ export async function handleStockFinancials(req, res) {
             "cashDividendsPaid",
             "dividendsPaid",
           ]);
+          // Derived net capital returned to shareholders (dividends + net
+          // buybacks). Yahoo FTS reports buybacks as
+          // `repurchaseOfCapitalStock` (negative).
+          row._derived_netReturned = deriveNetReturned(
+            ftsGet(r, ["cashDividendsPaid", "dividendsPaid"]),
+            ftsGet(r, ["salePurchaseOfStock"]) ??
+              ftsGet(r, ["repurchaseOfCapitalStock"]) ??
+              ftsGet(r, ["commonStockRepurchased"]),
+          );
         }
         return stripUndef(row);
       };
@@ -1062,7 +1103,16 @@ export async function handleStockFinancials(req, res) {
       if (Array.isArray(cshRes))
         cash = cshRes.map((r) => processFtsRow(r, "cash"));
 
-      const result = { income, balance, cash };
+      // SEC EDGAR XBRL backfill (parity twin of stockService): when the
+      // Yahoo FTS window (5y annual / ~quarterly) is shorter than the 10y
+      // target, append older 10-K/10-Q periods from SEC companyfacts —
+      // keyless, rows tagged `dataSource: "sec"`. Cached 24h inside.
+      const result = await extendFinancialHistory(
+        symbol,
+        period,
+        { income, balance, cash },
+        secCacheAdapter,
+      );
       // 6h TTL — fundamentalsTimeSeries modules propagate asynchronously at
       // Yahoo's end (income may land before balance sheet on earnings day),
       // so 6h strikes the balance between fresh and not-thrashing rate limits.
@@ -1169,11 +1219,13 @@ export async function handleStockFinancials(req, res) {
       stripUndef(symbolRow(r, "cash", period === "quarter" ? "Q" : "FY")),
     );
 
-    const result = {
-      income: incomeLegacy,
-      balance: balanceLegacy,
-      cash: cashLegacy,
-    };
+    // SEC EDGAR XBRL backfill — same 10y extension as the FTS path.
+    const result = await extendFinancialHistory(
+      symbol,
+      period,
+      { income: incomeLegacy, balance: balanceLegacy, cash: cashLegacy },
+      secCacheAdapter,
+    );
     await kvJsonCache.setJSON(ck, result, 86400); // 24h — quarterly statements don't change daily
     res.json(result);
   } catch (e) {
@@ -1189,6 +1241,23 @@ function stripUndef(o) {
   return Object.fromEntries(
     Object.entries(o).filter(([, v]) => v !== undefined),
   );
+}
+
+// ── Derived statement rows (parity twin of server/services/derivedRows.ts) ──
+// Stocknest-style `_derived_*` fields computed from raw rows. Each is
+// emitted only when its inputs exist (undefined values are dropped by
+// stripUndef downstream), so a missing goodwill field never reads as zero.
+function deriveTotalIntangibles(goodwill, intangibleAssets) {
+  if (goodwill === undefined && intangibleAssets === undefined) return undefined;
+  return (goodwill ?? 0) + (intangibleAssets ?? 0);
+}
+
+function deriveNetReturned(dividendsPaid, buybacks) {
+  if (dividendsPaid === undefined && buybacks === undefined) return undefined;
+  // Flip the provider's signed convention (outflows ≤ 0) so the derived
+  // row reads "positive = returned to shareholders". Normalize -0 to 0.
+  const returned = -((dividendsPaid ?? 0) + (buybacks ?? 0));
+  return returned === 0 ? 0 : returned;
 }
 
 export async function handleStockAnalyst(req, res) {
@@ -1362,6 +1431,125 @@ export async function handleStockInsider(req, res) {
   } catch (e) {
     throttledWarn(`insider:${symbol}`, `insider ${symbol}:`, e?.message);
     res.json([]);
+  }
+}
+
+// ── Ownership (parity twin of stockService.getOwnership) ───────────────────
+// Yahoo quoteSummary modules `defaultKeyStatistics` + `institutionOwnership`
+// + `fundOwnership` + `insiderHolders`. Values arrive flat or wrapped in
+// `{raw, fmt}`; percentages are decimals (0.035 = 3.5%); dates are ms
+// epochs. Never falls back to premium FMP ownership endpoints.
+const unwrapNum = (v) => {
+  if (v === null || v === undefined || v === "") return undefined;
+  if (typeof v === "number") return Number.isFinite(v) ? v : undefined;
+  if (typeof v === "object" && v !== null) {
+    const n = Number(v.raw);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+};
+const yahooPct = (v) => {
+  const n = unwrapNum(v);
+  if (n === undefined) return undefined;
+  // Round away float noise (0.035 * 100 = 3.5000000000000004).
+  const pct = Math.abs(n) <= 1 ? n * 100 : n;
+  return Math.round(pct * 1e4) / 1e4;
+};
+const isoDateOf = (v) => {
+  const n = unwrapNum(v);
+  if (n === undefined) return undefined;
+  const d = new Date(n < 1e12 ? n * 1000 : n);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString().slice(0, 10);
+};
+const toHolder = (h) => {
+  const r = h ?? {};
+  const out = { name: String(r.organization || r.name || "").trim() };
+  const pct = yahooPct(r.pctHeld);
+  if (pct !== undefined) out.pctHeld = pct;
+  const position = unwrapNum(r.position);
+  if (position !== undefined) out.position = position;
+  const value = unwrapNum(r.value);
+  if (value !== undefined) out.value = value;
+  const reportDate = isoDateOf(r.reportDate);
+  if (reportDate !== undefined) out.reportDate = reportDate;
+  return out;
+};
+const toInsider = (h) => {
+  const r = h ?? {};
+  const out = { name: String(r.name || "").trim() };
+  if (typeof r.title === "string" && r.title.trim()) out.title = r.title.trim();
+  if (typeof r.relation === "string" && r.relation.trim())
+    out.relation = r.relation.trim();
+  const transDate = isoDateOf(r.latestTransDate);
+  if (transDate !== undefined) out.latestTransDate = transDate;
+  const shares = unwrapNum(r.shares);
+  if (shares !== undefined) out.shares = shares;
+  const value = unwrapNum(r.value);
+  if (value !== undefined) out.value = value;
+  return out;
+};
+
+export async function handleStockOwnership(req, res) {
+  const symbol = String(req.query?.symbol || "").toUpperCase();
+  if (!symbol)
+    return res.status(400).json({ error: "symbol parameter required" });
+  const ck = `ownership_${symbol}`;
+  const cached = await kvJsonCache.getJSON(ck);
+  if (cached) return res.json(cached);
+  const empty = {
+    institutionHolders: [],
+    fundHolders: [],
+    insiderHolders: [],
+    unavailable: true,
+  };
+  try {
+    const raw = await yf.quoteSummary(symbol, {
+      modules: [
+        "defaultKeyStatistics",
+        "institutionOwnership",
+        "fundOwnership",
+        "insiderHolders",
+      ],
+    });
+    const dks = raw?.defaultKeyStatistics ?? {};
+    const institutionPercent = yahooPct(dks.heldPercentInstitutions);
+    const insiderPercent = yahooPct(dks.heldPercentInsiders);
+    const institutionList = Array.isArray(
+      raw?.institutionOwnership?.ownershipList,
+    )
+      ? raw.institutionOwnership.ownershipList
+      : [];
+    const fundList = Array.isArray(raw?.fundOwnership?.ownershipList)
+      ? raw.fundOwnership.ownershipList
+      : [];
+    const insiderList = Array.isArray(raw?.insiderHolders?.holders)
+      ? raw.insiderHolders.holders
+      : [];
+    const institutionHolders = institutionList.slice(0, 10).map(toHolder);
+    const fundHolders = fundList.slice(0, 10).map(toHolder);
+    const insiderHolders = insiderList.slice(0, 10).map(toInsider);
+    const result = {
+      ...(institutionPercent !== undefined ? { institutionPercent } : {}),
+      ...(insiderPercent !== undefined ? { insiderPercent } : {}),
+      institutionHolders,
+      fundHolders,
+      insiderHolders,
+      unavailable:
+        institutionPercent === undefined &&
+        insiderPercent === undefined &&
+        institutionHolders.length === 0 &&
+        fundHolders.length === 0 &&
+        insiderHolders.length === 0,
+    };
+    // 1h KV TTL — ownership is slow-moving; cross-instance propagation means
+    // a cold lambda reads the same snapshot instead of another quoteSummary.
+    await kvJsonCache.setJSON(ck, result, 3600);
+    res.json(result);
+  } catch (e) {
+    throttledWarn(`ownership:${symbol}`, `ownership ${symbol}:`, e?.message);
+    await kvJsonCache.setJSON(ck, empty, 3600);
+    res.json(empty);
   }
 }
 
@@ -2175,6 +2363,7 @@ const routes = {
   "/api/stock-revenue-segmentation": handleRevenueSegmentation,
   "/api/stock-analyst": handleStockAnalyst,
   "/api/stock-insider": handleStockInsider,
+  "/api/stock-ownership": handleStockOwnership,
   "/api/stock-news": handleStockNews,
   "/api/earnings-calendar": handleEarningsCalendar,
   "/api/stock-chart": handleStockChart,
