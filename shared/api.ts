@@ -357,6 +357,40 @@ export type AvailabilityState =
   | "notFound"
   | "nullByDesign";
 
+/**
+ * One matched row from the screener's live fundamental filter. `metrics`
+ * is keyed by `SCREENER_METRIC_FILTERS` id (`pe`, `roe`, …) with the
+ * value normalized the same way as /api/stock-metrics (percent fields in
+ * percent units). `market_cap` is the FinanceDatabase cap-band string
+ * ("Large Cap", …) — the universe's static band, not a live value.
+ */
+export interface ScreenerFundamentalRow {
+  symbol: string;
+  name: string;
+  asset_type: string;
+  sector: string | null;
+  industry: string | null;
+  country: string | null;
+  exchange: string | null;
+  market_cap: string | null;
+  metrics: Record<string, number | undefined>;
+  /** Provider that supplied the metric snapshot; null when Yahoo yielded nothing. */
+  source: string | null;
+}
+
+export interface ScreenerFundamentalResponse {
+  /** Matched rows across the scanned universe (before pagination). */
+  total: number;
+  results: ScreenerFundamentalRow[];
+  /** Universe candidates fanned out (metadata-filtered, capped). */
+  scanned: number;
+  /** Metadata-filtered universe size before the candidate cap. */
+  universeTotal: number;
+  /** Yahoo refused/emptied most rows — UI shows the "live filters unavailable" state. */
+  rateLimited: boolean;
+  source: string | null;
+}
+
 export interface StockMetrics {
   metrics: KeyMetricsTTM;
   ratios: RatiosTTM;

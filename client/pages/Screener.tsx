@@ -57,6 +57,7 @@ import PageHeader from "@/components/PageHeader";
 import TickerLogo from "@/components/TickerLogo";
 import BatchQuoteFallbackHint from "@/components/BatchQuoteFallbackHint";
 import EagerLogoWarmer from "@/components/EagerLogoWarmer";
+import ScreenerFundamentalPanel from "@/components/ScreenerFundamentalPanel";
 
 interface FilterChip {
   value: string;
@@ -803,6 +804,21 @@ export default function Screener() {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Live Fundamental Filters — additive live screen (Yahoo-primary
+              fan-out, server-side; see /api/screener/fundamental-filter) */}
+          <div className="mt-5">
+            <ScreenerFundamentalPanel
+              metadata={{
+                q: debouncedQuery,
+                sector: filters.sector,
+                industry: filters.industry,
+                country: filters.country,
+                asset_type: filters.asset_type,
+                exclude_dots: filters.exclude_dots,
+              }}
+            />
           </div>
         </div>
       </div>

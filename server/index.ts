@@ -30,6 +30,7 @@ import {
   handleScreenerFilter,
   handleScreenerAsset,
   handleScreenerFacets,
+  handleScreenerFundamentalFilter,
 } from "./routes/screener";
 import { initFinanceDatabase } from "./services/financeDatabaseSync";
 
@@ -147,6 +148,10 @@ export function createServer() {
   // Screener routes
   app.get("/api/screener/search", handleScreenerSearch);
   app.get("/api/screener/filter", handleScreenerFilter);
+  app.get(
+    "/api/screener/fundamental-filter",
+    handleScreenerFundamentalFilter,
+  );
   app.get("/api/screener/asset/:symbol", handleScreenerAsset);
   app.get("/api/screener/facets", handleScreenerFacets);
 

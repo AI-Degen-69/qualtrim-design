@@ -18,6 +18,7 @@ import type {
   ProviderHealthResponse,
   RevenueSegmentation,
   SmaDistanceResponse,
+  ScreenerFundamentalResponse,
   SectorHeatmapMetadata,
   SectorHeatmapResponse,
   StockMetrics,
@@ -982,5 +983,60 @@ export function useScreenerFacets() {
     queryKey: ["screenerFacets"],
     queryFn: () => fetchJSON<ScreenerFacets>("/api/screener/facets"),
     staleTime: 24 * 60 * 60_000, // Facets don't change within a session
+  });
+}
+
+/**
+ * Live fundamental screen — the server narrows the FinanceDatabase
+ * universe with the same metadata filters, fans out Yahoo-primary metrics
+ * (row-level cached), applies the numeric metric ranges, and paginates.
+ * `metricRanges` maps screener metric ids (pe, roe, …) to min/max bounds;
+ * the query is `enabled` only once the user pressed Screen with ≥1 range.
+ */
+export function useScreenerFundamentalFilter(
+  opts: {
+    q?: string;
+    sector?: string[];
+    industry?: string[];
+    country?: string[];
+    asset_type?: string[];
+    exclude_dots?: boolean;
+    market_cap?: string[];
+    metricRanges: Record<
+      string,
+      { min?: number; max?: number } | undefined
+    >;
+    limit: number;
+    offset: number;
+    enabled: boolean;
+  },
+) {
+  const params = new URLSearchParams({
+    limit: opts.limit.toString(),
+    offset: opts.offset.toString(),
+  });
+  if (opts.q?.trim()) params.set("q", opts.q.trim());
+  if (opts.sector?.length) params.set("sector", opts.sector.join(","));
+  if (opts.industry?.length) params.set("industry", opts.industry.join(","));
+  if (opts.country?.length) params.set("country", opts.country.join(","));
+  if (opts.asset_type?.length)
+    params.set("asset_type", opts.asset_type.join(","));
+  if (opts.exclude_dots) params.set("exclude_dots", "1");
+  if (opts.market_cap?.length)
+    params.set("market_cap", opts.market_cap.join(","));
+  for (const [id, range] of Object.entries(opts.metricRanges)) {
+    if (!range) continue;
+    if (range.min === undefined && range.max === undefined) continue;
+    params.set(id, `${range.min ?? ""}:${range.max ?? ""}`);
+  }
+  return useQuery({
+    queryKey: ["screenerFundamental", params.toString()],
+    queryFn: () =>
+      fetchJSON<ScreenerFundamentalResponse>(
+        `/api/screener/fundamental-filter?${params.toString()}`,
+      ),
+    enabled: opts.enabled,
+    placeholderData: keepPreviousData,
+    staleTime: 5 * 60_000,
   });
 }
