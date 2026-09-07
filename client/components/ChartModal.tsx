@@ -14,6 +14,8 @@ import { useI18n } from "@/lib/i18n";
 import {
   BarChart,
   Bar,
+  ComposedChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -33,6 +35,7 @@ import {
   metricStatementKey,
 } from "@/lib/finance";
 import {
+  useStockChart,
   useStockFinancials,
   useStockRevenueSegmentation,
 } from "@/hooks/useStockData";
@@ -51,6 +54,12 @@ import {
   type ChartFrequency,
   type ChartRange,
 } from "@/lib/financialSeries";
+import { chartMetricById } from "@/lib/metricCatalog";
+import {
+  buildCloseOverlayByDate,
+  buildPeriodEndMap,
+  overlayHasPoints,
+} from "@/lib/priceOverlay";
 import {
   FrequencyTabs,
   RangeTabs,
@@ -187,6 +196,15 @@ function formatMetricValue(
   return `${prefix}${formattedNum}${suffix}`;
 }
 
+/** Dollar tick/tooltip formatting for the right-axis price overlay. */
+function formatOverlayPrice(value: number): string {
+  if (!Number.isFinite(value)) return "—";
+  return value.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 /**
  * Distinct hue ladder for the stacked segment bars. Rotates across segments;
  * the same index → color mapping is used by the legend, tooltip, and table so
@@ -221,6 +239,7 @@ export default function ChartModal({
   const [timeframe, setTimeframe] = useState<TimeframeType>(initialRange);
   const [granularity, setGranularity] = useState<Granularity>(initialFrequency);
   const [showYoy, setShowYoy] = useState(false);
+  const [showPrice, setShowPrice] = useState(false);
   const [showTable, setShowTable] = useState(false);
   const [hiddenSegments, setHiddenSegments] = useState<string[]>([]);
 
@@ -230,6 +249,17 @@ export default function ChartModal({
   // single-series path and the segment path never request data they don't
   // render.
   const hasSegmentData = segmentRows.some((r) => r.products.length > 0);
+
+  // Close-price overlay availability: catalog metrics flagged `priceOverlay`
+  // (dollar-denominated flow / per-share series), and never in segment mode
+  // (revenue-by-segment bars) or YoY % mode (percent bars share no axis with
+  // a dollar price line). `hasSegmentData` is the stable pre-fetch proxy for
+  // segment mode — when the revenue card has segment rows the modal IS a
+  // stacked-bar view, so the overlay toggle stays hidden there.
+  const metricPriceOverlay =
+    chartMetricById(metric.name)?.priceOverlay ?? false;
+  const priceOverlayAllowed =
+    !hasSegmentData && metricPriceOverlay && !showYoy;
 
   // Quarterly fetch only kicks in when needed; the hook is still safe to
   // call unconditionally because it disables on `!ticker`, but skipping
@@ -251,6 +281,13 @@ export default function ChartModal({
     quarterlyStatements?.sources?.balance ??
     quarterlyStatements?.sources?.cash ??
     null;
+
+  // Daily close history for the right-axis price overlay. Fetched only once
+  // the user enables the overlay with the modal open — never on open, so the
+  // FMP budget isn't hit by a feature nobody toggled.
+  const { data: chartSeries } = useStockChart(ticker, {
+    enabled: isOpen && showPrice,
+  });
 
   // Quarterly segment rows (FMP `revenue-product-segmentation?period=quarter`),
   // fetched only when the modal is open, segment mode is active, and the
@@ -378,6 +415,50 @@ export default function ChartModal({
     const count = rangePeriodCount(timeframe, granularity);
     return Number.isFinite(count) ? yoy.slice(-count) : yoy;
   }, [showYoy, filteredData, fullSeries, granularity, timeframe]);
+
+  // Right-axis close-price overlay: align the windowed period labels to the
+  // daily history so each bar gets the latest close at/under its fiscal
+  // period end. Anchoring to the statement row's actual period-end date (not
+  // the calendar year/quarter) excludes closes after the fiscal period end
+  // for non-calendar fiscal years — e.g. a Sep year-end bar never overlays
+  // the Dec 31 close. Null when the overlay is off, YoY is on, or no history
+  // point lines up with any period.
+  const periodEndByLabel = useMemo(
+    () => buildPeriodEndMap(annualStatements, quarterlyStatements),
+    [annualStatements, quarterlyStatements],
+  );
+  const priceCloseSeries = useMemo(() => {
+    if (!priceOverlayAllowed || !showPrice) return null;
+    if (!chartSeries || chartSeries.historical.length === 0) return null;
+    const aligned = buildCloseOverlayByDate(
+      displayData.map((p) => p.date),
+      chartSeries.historical,
+      periodEndByLabel,
+    );
+    return overlayHasPoints(aligned) ? aligned : null;
+  }, [
+    priceOverlayAllowed,
+    showPrice,
+    chartSeries,
+    displayData,
+    periodEndByLabel,
+  ]);
+
+  // Merged rows handed to the chart: when the overlay is live each point
+  // carries an extra `priceClose` field for the right-axis line; otherwise
+  // identical to `displayData` so nothing downstream changes.
+  const chartData = useMemo(
+    () =>
+      priceCloseSeries
+        ? displayData.map((point, i) => ({
+            ...point,
+            priceClose: priceCloseSeries[i] ?? null,
+          }))
+        : displayData,
+    [priceCloseSeries, displayData],
+  );
+  const priceActive =
+    showPrice && priceOverlayAllowed && priceCloseSeries !== null;
 
   // Drive live CAGR/YoY numbers off the projected series so they flip
   // when the user toggles Q ↔ Y. `detectPeriodGranularity` peeks at the
@@ -687,6 +768,7 @@ export default function ChartModal({
       setGranularity(initialFrequency);
       setTimeframe(initialRange);
       setShowYoy(false);
+      setShowPrice(false);
       setHiddenSegments([]);
     }
     wasOpenRef.current = isOpen;
@@ -713,9 +795,13 @@ export default function ChartModal({
             ].join(","),
           ),
         ].join("\n")
-      : ["Date,Value", ...filteredData.map((d) => `${d.date},${d.value}`)].join(
-          "\n",
-        );
+      : [
+          `Date,Value${priceActive ? ",Close" : ""}`,
+          ...filteredData.map(
+            (d, i) =>
+              `${d.date},${d.value}${priceActive ? `,${priceCloseSeries?.[i] ?? ""}` : ""}`,
+          ),
+        ].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -852,6 +938,19 @@ export default function ChartModal({
                   : formatMetricValue(data.value, metric.unit, 2)}
               </span>
             </p>
+            {typeof data.priceClose === "number" && (
+              <p className="mt-1.5 flex items-center justify-between gap-3 border-t border-border/40 pt-1.5">
+                <span className="text-muted-foreground">
+                  {t("chart.priceOverlay")}
+                </span>
+                <span
+                  dir="ltr"
+                  className="font-mono tabular-nums font-bold text-foreground"
+                >
+                  ${formatOverlayPrice(data.priceClose)}
+                </span>
+              </p>
+            )}
           </div>
         );
       }
@@ -1065,9 +1164,14 @@ export default function ChartModal({
     return (
       <div className="relative h-[340px] w-full sm:h-[380px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={displayData}
-            margin={{ top: 16, right: 16, left: 4, bottom: 4 }}
+          <ComposedChart
+            data={chartData}
+            margin={{
+              top: 16,
+              right: priceActive ? 54 : 16,
+              left: 4,
+              bottom: 4,
+            }}
           >
             <CartesianGrid
               strokeDasharray="4 4"
@@ -1109,6 +1213,24 @@ export default function ChartModal({
                   : formatMetricValue(val, metric.unit, 0)
               }
             />
+            {priceActive && (
+              <YAxis
+                yAxisId="price"
+                orientation="right"
+                width={50}
+                axisLine={false}
+                tickLine={false}
+                tick={{
+                  fontSize: 11,
+                  fill: axisColor,
+                  fontFamily: "JetBrains Mono, monospace",
+                }}
+                tickMargin={6}
+                domain={["auto", "auto"]}
+                tickCount={5}
+                tickFormatter={(val) => `$${formatOverlayPrice(val)}`}
+              />
+            )}
             <Tooltip
               content={<CustomTooltip />}
               cursor={{ fill: "hsl(250 20% 16% / 0.35)" }}
@@ -1137,7 +1259,20 @@ export default function ChartModal({
               stroke="hsl(250 20% 30%)"
               strokeWidth={1}
             />
-          </BarChart>
+            {priceActive && (
+              <Line
+                yAxisId="price"
+                type="monotone"
+                dataKey="priceClose"
+                stroke="hsl(var(--chart-accent))"
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3, strokeWidth: 0 }}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
+            )}
+          </ComposedChart>
         </ResponsiveContainer>
         {quarterlyMask}
       </div>
@@ -1215,6 +1350,33 @@ export default function ChartModal({
             <RangeTabs value={timeframe} onChange={setTimeframe} />
             {!isSegmentMode && (
               <YoYToggle checked={showYoy} onToggle={setShowYoy} />
+            )}
+            {priceOverlayAllowed && (
+              <button
+                type="button"
+                role="checkbox"
+                aria-checked={showPrice}
+                aria-label={t("chart.priceOverlay")}
+                title={t("chart.priceOverlay")}
+                onClick={() => setShowPrice(!showPrice)}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-all",
+                  showPrice
+                    ? "border-primary/40 bg-primary/10 text-foreground"
+                    : "border-border/60 bg-muted/40 text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-2 w-2 rounded-full transition-colors",
+                    showPrice
+                      ? "bg-[hsl(var(--chart-accent))]"
+                      : "bg-muted-foreground/40",
+                  )}
+                  aria-hidden="true"
+                />
+                <span dir="ltr">{t("chart.priceOverlay")}</span>
+              </button>
             )}
             <div className="flex items-center gap-2 flex-wrap ms-auto">
               <FrequencyTabs value={granularity} onChange={setGranularity} />

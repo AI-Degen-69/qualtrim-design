@@ -117,6 +117,8 @@ const METRIC_CHART_COLORS: Record<string, string> = {
   "insights.eps": "hsl(var(--chart-pink))",
   "insights.cashAndEquivalents": "hsl(var(--chart-amber))",
   "insights.totalAssets": "hsl(var(--chart-accent))",
+  // Free cash flow — cash-generated, so it shares the cash-family amber.
+  "insights.fcf": "hsl(var(--chart-amber))",
 };
 
 const LEGACY_COLOR_FALLBACK: Record<string, string> = {

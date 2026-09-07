@@ -36,6 +36,7 @@ import {
   NewsCardSkeleton,
 } from "@/components/Skeleton";
 import type { FinancialMetric } from "@/lib/mockData";
+import { chartMetricById } from "@/lib/metricCatalog";
 import {
   useStockQuote,
   useStockProfile,
@@ -395,6 +396,39 @@ export default function Index() {
           color: "purple",
         },
       ];
+
+      // Free Cash Flow (cash-flow group) — charts the statement's FCF row
+      // the same way the income/balance metrics above do. Cash rows are
+      // optional (a provider gap must omit the card, never render an empty
+      // series), so FCF only joins the grid when at least one annual value
+      // exists. Catalog-driven: unit/type read from the entry, so the card
+      // and modal stay in lockstep with the vocabulary.
+      const fcfRows = (financialsData?.cash ?? [])
+        .filter((row) => Number.isFinite(row.freeCashFlow))
+        .sort((a, b) => (a.date < b.date ? -1 : 1));
+      if (fcfRows.length > 0) {
+        const fcfDef = chartMetricById("insights.fcf");
+        metricsResult.push({
+          name: "insights.fcf",
+          unit: fcfDef?.unit ?? "B",
+          yoy:
+            fcfRows.length >= 2
+              ? yoyGrowth(
+                  // Filtered above to finite numbers — the cast just narrows
+                  // the optional field for the helper's `number` signature.
+                  fcfRows[fcfRows.length - 2].freeCashFlow as number,
+                  fcfRows[fcfRows.length - 1].freeCashFlow as number,
+                )
+              : null,
+          cagr3Y: cagrAtYearsBack(fcfRows, "freeCashFlow", 3, granularity),
+          data: fcfRows.map((d) => ({
+            date: d.calendarYear,
+            value: (d.freeCashFlow as number) / 1e9,
+          })),
+          type: fcfDef?.chart ?? "bar",
+          color: "cyan",
+        });
+      }
     }
     return metricsResult;
   }, [financialsData]);
