@@ -514,14 +514,15 @@ export function useEarningsCalendar(from: string, to: string) {
  * @param ticker - The stock ticker symbol
  * @returns The chart series, or `null` when no data is available
  */
-export function useStockChart(ticker: string) {
+export function useStockChart(ticker: string, opts?: { enabled?: boolean }) {
+  const enabled = opts?.enabled ?? true;
   return useQuery({
     queryKey: ["stockChart", ticker],
     queryFn: () =>
       fetchJSON<ChartSeries | null>(
         `/api/stock-chart?symbol=${encodeURIComponent(ticker)}`,
       ),
-    enabled: !!ticker,
+    enabled: !!ticker && enabled,
   });
 }
 

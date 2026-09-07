@@ -146,6 +146,14 @@ const METRIC_KEY_MAP: Record<string, MetricStatementKey> = {
     key: "totalAssets",
     divisor: 1e9,
   },
+  // Free cash flow (cash statement, FMP/SEC-provided row field). A flow
+  // metric — TTM rolls the trailing four quarters — chartable from the same
+  // annual/quarterly payloads as the income metrics.
+  "insights.fcf": {
+    statement: "cash",
+    key: "freeCashFlow",
+    divisor: 1e9,
+  },
   // Stocknest-style derived rows computed in the statement normalization
   // (server/services/derivedRows.ts) — plotable by any series consumer
   // (charts grid, compare vocabulary, future surfaces).
