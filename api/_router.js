@@ -1211,6 +1211,125 @@ export async function handleStockInsider(req, res) {
   }
 }
 
+// ── Ownership (parity twin of stockService.getOwnership) ───────────────────
+// Yahoo quoteSummary modules `defaultKeyStatistics` + `institutionOwnership`
+// + `fundOwnership` + `insiderHolders`. Values arrive flat or wrapped in
+// `{raw, fmt}`; percentages are decimals (0.035 = 3.5%); dates are ms
+// epochs. Never falls back to premium FMP ownership endpoints.
+const unwrapNum = (v) => {
+  if (v === null || v === undefined || v === "") return undefined;
+  if (typeof v === "number") return Number.isFinite(v) ? v : undefined;
+  if (typeof v === "object" && v !== null) {
+    const n = Number(v.raw);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? n : undefined;
+};
+const yahooPct = (v) => {
+  const n = unwrapNum(v);
+  if (n === undefined) return undefined;
+  // Round away float noise (0.035 * 100 = 3.5000000000000004).
+  const pct = Math.abs(n) <= 1 ? n * 100 : n;
+  return Math.round(pct * 1e4) / 1e4;
+};
+const isoDateOf = (v) => {
+  const n = unwrapNum(v);
+  if (n === undefined) return undefined;
+  const d = new Date(n < 1e12 ? n * 1000 : n);
+  return Number.isNaN(d.getTime()) ? undefined : d.toISOString().slice(0, 10);
+};
+const toHolder = (h) => {
+  const r = h ?? {};
+  const out = { name: String(r.organization || r.name || "").trim() };
+  const pct = yahooPct(r.pctHeld);
+  if (pct !== undefined) out.pctHeld = pct;
+  const position = unwrapNum(r.position);
+  if (position !== undefined) out.position = position;
+  const value = unwrapNum(r.value);
+  if (value !== undefined) out.value = value;
+  const reportDate = isoDateOf(r.reportDate);
+  if (reportDate !== undefined) out.reportDate = reportDate;
+  return out;
+};
+const toInsider = (h) => {
+  const r = h ?? {};
+  const out = { name: String(r.name || "").trim() };
+  if (typeof r.title === "string" && r.title.trim()) out.title = r.title.trim();
+  if (typeof r.relation === "string" && r.relation.trim())
+    out.relation = r.relation.trim();
+  const transDate = isoDateOf(r.latestTransDate);
+  if (transDate !== undefined) out.latestTransDate = transDate;
+  const shares = unwrapNum(r.shares);
+  if (shares !== undefined) out.shares = shares;
+  const value = unwrapNum(r.value);
+  if (value !== undefined) out.value = value;
+  return out;
+};
+
+export async function handleStockOwnership(req, res) {
+  const symbol = String(req.query?.symbol || "").toUpperCase();
+  if (!symbol)
+    return res.status(400).json({ error: "symbol parameter required" });
+  const ck = `ownership_${symbol}`;
+  const cached = await kvJsonCache.getJSON(ck);
+  if (cached) return res.json(cached);
+  const empty = {
+    institutionHolders: [],
+    fundHolders: [],
+    insiderHolders: [],
+    unavailable: true,
+  };
+  try {
+    const raw = await yf.quoteSummary(symbol, {
+      modules: [
+        "defaultKeyStatistics",
+        "institutionOwnership",
+        "fundOwnership",
+        "insiderHolders",
+      ],
+    });
+    const dks = raw?.defaultKeyStatistics ?? {};
+    const institutionPercent = yahooPct(dks.heldPercentInstitutions);
+    const insiderPercent = yahooPct(dks.heldPercentInsiders);
+    const institutionList = Array.isArray(
+      raw?.institutionOwnership?.ownershipList,
+    )
+      ? raw.institutionOwnership.ownershipList
+      : [];
+    const fundList = Array.isArray(raw?.fundOwnership?.ownershipList)
+      ? raw.fundOwnership.ownershipList
+      : [];
+    const insiderList = Array.isArray(raw?.insiderHolders?.holders)
+      ? raw.insiderHolders.holders
+      : [];
+    const institutionHolders = institutionList.slice(0, 10).map(toHolder);
+    const fundHolders = fundList.slice(0, 10).map(toHolder);
+    const insiderHolders = insiderList.slice(0, 10).map(toInsider);
+    const result = {
+      ...(institutionPercent !== undefined ? { institutionPercent } : {}),
+      ...(insiderPercent !== undefined ? { insiderPercent } : {}),
+      institutionHolders,
+      fundHolders,
+      insiderHolders,
+      unavailable:
+        institutionPercent === undefined &&
+        insiderPercent === undefined &&
+        institutionHolders.length === 0 &&
+        fundHolders.length === 0 &&
+        insiderHolders.length === 0,
+    };
+    // 1h KV TTL — ownership is slow-moving; cross-instance propagation means
+    // a cold lambda reads the same snapshot instead of another quoteSummary.
+    await kvJsonCache.setJSON(ck, result, 3600);
+    res.json(result);
+  } catch (e) {
+    throttledWarn(`ownership:${symbol}`, `ownership ${symbol}:`, e?.message);
+    await kvJsonCache.setJSON(ck, empty, 3600);
+    res.json(empty);
+  }
+}
+
 export async function handleStockNews(req, res) {
   const symbol = String(req.query?.symbol || "").toUpperCase();
   if (!symbol)
@@ -2021,6 +2140,7 @@ const routes = {
   "/api/stock-revenue-segmentation": handleRevenueSegmentation,
   "/api/stock-analyst": handleStockAnalyst,
   "/api/stock-insider": handleStockInsider,
+  "/api/stock-ownership": handleStockOwnership,
   "/api/stock-news": handleStockNews,
   "/api/earnings-calendar": handleEarningsCalendar,
   "/api/stock-chart": handleStockChart,

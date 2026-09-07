@@ -255,6 +255,14 @@ export const handleStockInsider: RequestHandler = async (req, res) => {
   res.json(data);
 };
 
+export const handleStockOwnership: RequestHandler = async (req, res) => {
+  const symbol = parseTicker(req.query.symbol);
+  if (!symbol)
+    return res.status(400).json({ error: "valid symbol parameter required" });
+  const data = await stockService.getOwnership(symbol);
+  res.json(data);
+};
+
 export const handleStockNews: RequestHandler = async (req, res) => {
   const symbol = parseTicker(req.query.symbol);
   if (!symbol)

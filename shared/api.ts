@@ -305,6 +305,49 @@ export interface FinancialScores {
  * - `notFound`    — no such endpoint / provider 404 / hard error. UI: red "✕"/"E".
  * - `nullByDesign`— legitimately absent for this instrument (e.g. no dividend). Neutral dash, not an error.
  */
+/* ------------------------------------------------------------------ *
+ * Ownership (Yahoo quoteSummary: institution/fund/insider holders)    *
+ * ------------------------------------------------------------------ */
+
+/** One top holder row from Yahoo `institutionOwnership` / `fundOwnership`. */
+export interface OwnershipHolder {
+  name: string;
+  /** Percent of shares outstanding held (already %-points, e.g. 8.4). */
+  pctHeld?: number;
+  /** Shares held. */
+  position?: number;
+  /** USD value of the position. */
+  value?: number;
+  /** Report date (ISO YYYY-MM-DD). */
+  reportDate?: string;
+}
+
+/** One top insider holder row from Yahoo `insiderHolders`. */
+export interface InsiderHolder {
+  name: string;
+  title?: string;
+  relation?: string;
+  latestTransDate?: string;
+  shares?: number;
+  value?: number;
+}
+
+/**
+ * Ownership snapshot from the free Yahoo `quoteSummary` modules.
+ * `unavailable` is true when Yahoo returned nothing usable — callers must
+ * NOT fall back to premium FMP ownership endpoints.
+ */
+export interface StockOwnership {
+  /** Aggregate institutional ownership, % of shares outstanding. */
+  institutionPercent?: number;
+  /** Aggregate insider ownership, % of shares outstanding. */
+  insiderPercent?: number;
+  institutionHolders: OwnershipHolder[];
+  fundHolders: OwnershipHolder[];
+  insiderHolders: InsiderHolder[];
+  unavailable: boolean;
+}
+
 export type AvailabilityState =
   | "available"
   | "pro"

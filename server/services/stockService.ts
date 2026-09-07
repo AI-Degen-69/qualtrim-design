@@ -33,11 +33,13 @@ import {
   SmaDistanceResponse,
   SmaDistanceRow,
   StockMetrics,
+  StockOwnership,
   StockQuote,
   YahooFallbackFinancials,
   AvailabilityState,
 } from "../../shared/api";
 import { insightsTabLabels, insightsTabUniverses } from "./insightsUniverses";
+import { normalizeOwnership } from "./ownershipNormalizer";
 import { deriveBalanceRows, deriveNetReturned } from "./derivedRows";
 import {
   normalizeDividendYield,
@@ -2163,6 +2165,46 @@ export const stockService = {
         `[stockService] insider ${symbol} failed: ${e?.message ?? e}`,
       );
       return [];
+    }
+  },
+
+  /**
+   * Institutional / fund / insider ownership snapshot from the free Yahoo
+   * `quoteSummary` modules (`defaultKeyStatistics` + `institutionOwnership`
+   * + `fundOwnership` + `insiderHolders`). Slow-moving data → 1h KV TTL
+   * so cold starts reuse the same snapshot instead of re-hitting Yahoo.
+   * Never falls back to premium FMP ownership endpoints — when Yahoo
+   * returns nothing, `unavailable: true` is honest.
+   */
+  async getOwnership(symbol: string): Promise<StockOwnership> {
+    const cacheKey = `ownership_${symbol}`;
+    const cached = await kvJsonCache.get<StockOwnership>(cacheKey);
+    if (cached) return cached;
+    const empty: StockOwnership = {
+      institutionHolders: [],
+      fundHolders: [],
+      insiderHolders: [],
+      unavailable: true,
+    };
+    try {
+      const raw: any = await yahooFinance.quoteSummary(symbol, {
+        modules: [
+          "defaultKeyStatistics",
+          "institutionOwnership",
+          "fundOwnership",
+          "insiderHolders",
+        ],
+      });
+      const result = normalizeOwnership(raw);
+      await kvJsonCache.set(cacheKey, result, 3600);
+      return result;
+    } catch (e: any) {
+      throttledWarn(
+        `ownership:${symbol}`,
+        `[stockService] ownership ${symbol} failed: ${e?.message ?? e}`,
+      );
+      await kvJsonCache.set(cacheKey, empty, 3600);
+      return empty;
     }
   },
 
