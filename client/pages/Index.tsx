@@ -26,6 +26,7 @@ import RevenueSegmentsCard from "@/components/RevenueSegmentsCard";
 import CompanyProfile from "@/components/CompanyProfile";
 import StockFundamentalsStrip from "@/components/StockFundamentalsStrip";
 import OwnershipCard from "@/components/OwnershipCard";
+import StockHealthScorecard from "@/components/StockHealthScorecard";
 import TickerLogo from "@/components/TickerLogo";
 import { deriveSpotlightMetrics } from "@/lib/spotlightMetrics";
 import {
@@ -844,6 +845,14 @@ export default function Index() {
             }
           />
 
+          {/* Stock health scorecard — Altman Z + Piotroski (FMP financial-
+              scores) plus Vantage-derived profitability/growth composites. */}
+          <StockHealthScorecard
+            metrics={stockMetricsData}
+            income={financialsData?.income}
+            loading={quoteLoading || stockMetricsLoading}
+          />
+
           {/* Institutional / fund / insider ownership — free Yahoo modules. */}
           <OwnershipCard ticker={ticker} />
         </div>
@@ -1267,6 +1276,7 @@ export default function Index() {
           isOpen
           onClose={() => setSelectedMetric(null)}
           ticker={ticker}
+          annualStatements={financialsData}
           initialFrequency={chartFrequency}
           initialRange={chartRange}
           onNavigate={navigateMetric}

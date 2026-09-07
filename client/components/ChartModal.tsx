@@ -25,7 +25,7 @@ import {
   LabelList,
 } from "recharts";
 import { FinancialMetric } from "@/lib/mockData";
-import type { RevenueSegmentRow } from "@shared/api";
+import type { FinancialStatements, RevenueSegmentRow } from "@shared/api";
 import { cn } from "@/lib/utils";
 import {
   cagrAtYearsBack,
@@ -99,6 +99,13 @@ interface ChartModalProps {
    */
   onUpgradeClick?: () => void;
   /**
+   * Annual statement rows (the same payload Index.tsx already fetched to
+   * build `metric`). Lets the modal badge rows the server backfilled from
+   * SEC EDGAR XBRL (older 10-K/10-Q periods) without an extra request —
+   * optional because tests / standalone renders may omit it.
+   */
+  annualStatements?: FinancialStatements | null;
+  /**
    * Stocknest-style metric navigation: when provided (Index.tsx hosts one
    * page-level modal), the header renders prev/next chevrons that cycle to
    * the adjacent metric's chart. Absent for self-hosted modals
@@ -143,6 +150,16 @@ function previousQuarterLabel(label: string): string {
     year -= 1;
   }
   return `Q${quarter} ${year}`;
+}
+
+/** Fiscal-period x label for a statement row (matches `projectMetricSeries`). */
+function statementPeriodLabel(
+  row: { period?: string | null; calendarYear?: string | null } | undefined,
+): string {
+  const p = String(row?.period ?? "").trim();
+  const y = String(row?.calendarYear ?? "").trim();
+  if (!y) return "";
+  return /^Q[1-4]$/.test(p) ? `${p} ${y}` : y;
 }
 
 function formatMetricValue(
@@ -195,6 +212,7 @@ export default function ChartModal({
   selectedSegment = null,
   segmentLockedReason = null,
   onUpgradeClick,
+  annualStatements = null,
   onNavigate,
   initialFrequency = "quarterly",
   initialRange = "10Y",
@@ -314,6 +332,42 @@ export default function ChartModal({
     }
     return sliced;
   }, [fullSeries, granularity, timeframe, effectiveFrequency]);
+
+  // SEC EDGAR backfill provenance. Rows the server appended from 10-K/10-Q
+  // XBRL facts carry `dataSource: "sec"`; collect their period labels so
+  // the table can badge exactly those rows and the chart can show a
+  // free-tier-honesty note with the extended-period count.
+  const secInfo = useMemo(() => {
+    const labels = new Set<string>();
+    let count = 0;
+    const scan = (
+      rows?: ReadonlyArray<{
+        period?: string | null;
+        calendarYear?: string | null;
+        dataSource?: string;
+      }>,
+    ) => {
+      if (!Array.isArray(rows)) return;
+      for (const row of rows) {
+        if (row?.dataSource === "sec") {
+          const label = statementPeriodLabel(row);
+          if (label) {
+            labels.add(label);
+            count++;
+          }
+        }
+      }
+    };
+    const sources = [annualStatements, quarterlyStatements].filter(
+      (s): s is FinancialStatements => Boolean(s),
+    );
+    for (const st of sources) {
+      scan(st.income);
+      scan(st.balance);
+      scan(st.cash);
+    }
+    return { count, labels };
+  }, [annualStatements, quarterlyStatements]);
 
   // YoY % mode: bars flip from absolute values to per-period YoY growth,
   // computed off the FULL frequency series (it needs lookback rows before
@@ -1205,6 +1259,19 @@ export default function ChartModal({
                 {t("chart.segmentQuarterlyUnavailable")}
               </div>
             )}
+            {/* SEC EDGAR backfill note — extended periods beyond the
+                primary provider's free-tier depth */}
+            {secInfo.count > 0 && !isSegmentMode && (
+              <div
+                className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground"
+                dir="ltr"
+              >
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/30">
+                  SEC EDGAR
+                </span>
+                <span>{t("chart.secHistoryNote", { count: secInfo.count })}</span>
+              </div>
+            )}
             {/* Locked-premium fallback */}
             {segmentLockedReason && !isSegmentMode && (
               <>
@@ -1529,7 +1596,17 @@ export default function ChartModal({
                               className="py-2.5 px-3 font-semibold text-foreground whitespace-nowrap"
                               dir="ltr"
                             >
-                              {row.date}
+                              <span className="inline-flex items-center gap-1.5">
+                                {row.date}
+                                {secInfo.labels.has(String(row.date)) && (
+                                  <span
+                                    className="inline-flex items-center px-1 py-px rounded-[3px] text-[8px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/25"
+                                    title={t("chart.secRowTooltip")}
+                                  >
+                                    SEC
+                                  </span>
+                                )}
+                              </span>
                             </td>
                             <td
                               className="py-2.5 px-3 text-right font-mono tabular-nums text-foreground whitespace-nowrap"

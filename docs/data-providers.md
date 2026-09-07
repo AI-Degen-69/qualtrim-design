@@ -196,6 +196,34 @@ Provides company news and an earnings calendar. **Currently dead code** (see
 Only used as the last-resort quote fallback in `stockService.getQuote`.
 Budget is tiny — effectively never reached because Yahoo is first.
 
+### 3.5 SEC EDGAR XBRL — free, no key (history backfill)
+
+`https://data.sec.gov/api/xbrl/companyfacts/CIK##########.json` — one file
+per US issuer with every tagged us-gaap fact since XBRL adoption (~2009 for
+large filers). This is the upstream source FMP/Yahoo fundamentals derive
+from, so it closes the free-tier depth gap (FMP 5y / ~7 quarters) with the
+same numbers — see `server/services/secEdgar.ts`.
+
+| Endpoint | Status | Notes |
+| --- | --- | --- |
+| `company_tickers.json` (ticker → CIK) | ✅ Free | ~4 MB, cached 7 days per process |
+| `companyfacts/CIK##########.json` | ✅ Free | ~1–5 MB per issuer; memoized 24h per process |
+
+Guidelines SEC asks callers to follow: identify in the `User-Agent`
+(default: project URL; override `SEC_EDGAR_USER_AGENT`), cache aggressively,
+and stay under ~10 req/s. Backfill fetches only fire when a statement is
+still under the 10-year target AND the per-symbol extension cache misses, so
+real traffic is ~1 SEC call per issuer per 24h per region at most.
+
+Mapping notes: annual rows read 10-K FY totals; quarterly rows prefer the
+filer's own single-quarter tag and otherwise derive by subtracting YTD
+cumulative figures inside one fiscal year on one concept (XBRL tags migrate
+across taxonomy releases — see the alias tables in `secEdgar.ts`). Rows the
+backfill appends carry `dataSource: "sec"` so the charts UI can badge them
+(free-tier honesty convention). Non-US / ETF tickers resolve to no CIK and
+are negative-cached for a day. Verify a ticker by hand with
+`pnpm sec:audit -- AAPL quarterly`.
+
 ---
 
 ## 4. Caching model (server)
