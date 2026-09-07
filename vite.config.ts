@@ -5,6 +5,16 @@ import { createServer } from "./server";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // Vitest must never scan the agent-runtime worktrees under .freebuff/
+  // (gitignored) — they are separate checkouts whose in-progress state
+  // would fail the root suite's audits (e.g. the i18n key audit).
+  test: {
+    exclude: [
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/.freebuff/**",
+    ],
+  },
   server: {
     host: "::",
     port: 8080,

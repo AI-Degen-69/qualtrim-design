@@ -468,6 +468,23 @@ const en = {
   "fundamentals.premiumTitle":
     "{{label}} is a Vantage Premium metric (FMP premium endpoint).",
 
+  // Ownership card (institutional / fund / insider holders) — free Yahoo
+  // quoteSummary modules; never falls back to premium FMP endpoints.
+  "ownership.title": "Ownership",
+  "ownership.institution": "Top Institutional Holders",
+  "ownership.fund": "Top Fund Holders",
+  "ownership.insiders": "Top Insider Holders",
+  "ownership.institutionPercent": "Institutional ownership:",
+  "ownership.insiderPercent": "Insider ownership:",
+  "ownership.asOf": "as of {date}",
+  "ownership.insiderRelation": "Insider",
+  "ownership.emptyInstitution": "No institutional holders reported.",
+  "ownership.emptyFund": "No fund holders reported.",
+  "ownership.emptyInsiders": "No insider holders reported.",
+  "ownership.unavailable": "Ownership data unavailable.",
+  "ownership.unavailableNote":
+    "Yahoo returned no ownership modules for this symbol — no estimate is shown.",
+
   // Availability badges — distinguish WHY a metric is missing/empty.
   "availability.pro": "Pro",
   "availability.proTitle":
@@ -1269,6 +1286,23 @@ const he: Record<string, string> = {
     "{{label}} אינו זמין בתוכנית החינמית — מסופק על ידי נקודות קצה פרימיום של FMP (ratios-ttm / key-metrics-ttm).",
   "fundamentals.premiumTitle":
     "{{label}} הוא מדד Vantage פרימיום (נקודת קצה פרימיום של FMP).",
+
+  // כרטיס בעלות (מחזיקים מוסדיים / קרנות / נושאי משרה) — מודולי quoteSummary
+  // של Yahoo ללא תשלום; אין נפילה לנקודות קצה בתשלום של FMP.
+  "ownership.title": "בעלות",
+  "ownership.institution": "מחזיקים מוסדיים מובילים",
+  "ownership.fund": "קרנות מובילות",
+  "ownership.insiders": "נושאי משרה מובילים",
+  "ownership.institutionPercent": "בעלות מוסדית:",
+  "ownership.insiderPercent": "בעלות נושאי משרה:",
+  "ownership.asOf": "נכון ל-{date}",
+  "ownership.insiderRelation": "נושא משרה",
+  "ownership.emptyInstitution": "אין מחזיקים מוסדיים מדווחים.",
+  "ownership.emptyFund": "אין קרנות מדווחות.",
+  "ownership.emptyInsiders": "אין נושאי משרה מדווחים.",
+  "ownership.unavailable": "נתוני בעלות אינם זמינים.",
+  "ownership.unavailableNote":
+    "Yahoo לא החזיר מודולי בעלות עבור סמל זה — לא מוצג אומדן חלופי.",
 
   // Availability badges (Hebrew) — same labels as English, lock before "Pro".
   "availability.pro": "Pro",
