@@ -56,7 +56,8 @@ import {
 } from "@/lib/financialSeries";
 import { chartMetricById } from "@/lib/metricCatalog";
 import {
-  buildCloseOverlay,
+  buildCloseOverlayByDate,
+  buildPeriodEndMap,
   overlayHasPoints,
 } from "@/lib/priceOverlay";
 import {
@@ -416,18 +417,32 @@ export default function ChartModal({
   }, [showYoy, filteredData, fullSeries, granularity, timeframe]);
 
   // Right-axis close-price overlay: align the windowed period labels to the
-  // daily history so each bar gets the latest close at/under its period
-  // (year-end for annual, quarter-end for quarterly/TTM). Null when the
-  // overlay is off, YoY is on, or no history point lines up with any label.
+  // daily history so each bar gets the latest close at/under its fiscal
+  // period end. Anchoring to the statement row's actual period-end date (not
+  // the calendar year/quarter) excludes closes after the fiscal period end
+  // for non-calendar fiscal years — e.g. a Sep year-end bar never overlays
+  // the Dec 31 close. Null when the overlay is off, YoY is on, or no history
+  // point lines up with any period.
+  const periodEndByLabel = useMemo(
+    () => buildPeriodEndMap(annualStatements, quarterlyStatements),
+    [annualStatements, quarterlyStatements],
+  );
   const priceCloseSeries = useMemo(() => {
     if (!priceOverlayAllowed || !showPrice) return null;
     if (!chartSeries || chartSeries.historical.length === 0) return null;
-    const aligned = buildCloseOverlay(
+    const aligned = buildCloseOverlayByDate(
       displayData.map((p) => p.date),
       chartSeries.historical,
+      periodEndByLabel,
     );
     return overlayHasPoints(aligned) ? aligned : null;
-  }, [priceOverlayAllowed, showPrice, chartSeries, displayData]);
+  }, [
+    priceOverlayAllowed,
+    showPrice,
+    chartSeries,
+    displayData,
+    periodEndByLabel,
+  ]);
 
   // Merged rows handed to the chart: when the overlay is live each point
   // carries an extra `priceClose` field for the right-axis line; otherwise

@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { ChartPoint } from "@shared/api";
 import {
   buildCloseOverlay,
+  buildCloseOverlayByDate,
+  buildPeriodEndMap,
   latestCloseForLabel,
+  latestCloseOnOrBefore,
   overlayHasPoints,
   parseFiscalLabel,
 } from "./priceOverlay";
@@ -101,5 +104,87 @@ describe("buildCloseOverlay / overlayHasPoints", () => {
   it("tolerates history in any order (uses the latest date, not array order)", () => {
     const shuffled = [...history].reverse();
     expect(buildCloseOverlay(["2021", "2023"], shuffled)).toEqual([20, 70]);
+  });
+});
+
+describe("buildPeriodEndMap", () => {
+  it("maps annual rows by calendarYear and quarterly rows by 'Qn YYYY'", () => {
+    const annual = {
+      income: [
+        { date: "2023-09-30", calendarYear: "2023", period: "FY" },
+        { date: "2024-09-28", calendarYear: "2024", period: "FY" },
+      ],
+    };
+    const quarterly = {
+      income: [
+        { date: "2024-12-28", calendarYear: "2025", period: "Q1" },
+        { date: "2025-03-29", calendarYear: "2025", period: "Q2" },
+      ],
+    };
+    expect(buildPeriodEndMap(annual, quarterly)).toEqual({
+      "2023": "2023-09-30",
+      "2024": "2024-09-28",
+      "Q1 2025": "2024-12-28",
+      "Q2 2025": "2025-03-29",
+    });
+  });
+
+  it("keeps the latest date when a label repeats (FMP + SEC backfill)", () => {
+    const annual = {
+      cash: [
+        { date: "2024-09-28", calendarYear: "2024", period: "FY" },
+        { date: "2024-10-02", calendarYear: "2024", period: "FY" },
+      ],
+    };
+    expect(buildPeriodEndMap(annual, null)["2024"]).toBe("2024-10-02");
+  });
+
+  it("skips rows without a date or non-quarter periods", () => {
+    expect(buildPeriodEndMap(null, { income: [{ date: "2025-06-30", calendarYear: "2025", period: "FY" }] })).toEqual({});
+  });
+});
+
+describe("latestCloseOnOrBefore / buildCloseOverlayByDate", () => {
+  const fiscalHistory = [
+    point("2024-06-28", 300),
+    point("2024-09-27", 420), // fiscal FY2024 end close (Sep year-end company)
+    point("2024-12-31", 999), // months AFTER the fiscal period end — must be excluded
+    point("2025-03-28", 200),
+    point("2025-06-30", 999), // after fiscal Q2 2025 end
+  ];
+
+  it("excludes post-period-end closes for an annual label", () => {
+    expect(
+      latestCloseOnOrBefore(fiscalHistory, "2024-09-28"),
+    ).toBe(420);
+    expect(
+      buildCloseOverlayByDate(["2024"], fiscalHistory, { "2024": "2024-09-28" }),
+    ).toEqual([420]);
+  });
+
+  it("excludes post-period-end closes for a quarterly label", () => {
+    expect(
+      buildCloseOverlayByDate(["Q2 2025"], fiscalHistory, {
+        "Q2 2025": "2025-03-29",
+      }),
+    ).toEqual([200]);
+  });
+
+  it("a TTM point uses its last quarter's period end (history after it excluded)", () => {
+    expect(
+      buildCloseOverlayByDate(["Q2 2025"], fiscalHistory, {
+        "Q2 2025": "2025-03-29",
+      }),
+    ).toEqual([200]);
+  });
+
+  it("falls back to calendar-window matching when no period end is known", () => {
+    expect(
+      buildCloseOverlayByDate(["2024"], fiscalHistory, {})[0],
+    ).toBe(999); // calendar 2024 → Dec 31, since no fiscal period end was supplied
+  });
+
+  it("returns null when the history predates the period end", () => {
+    expect(latestCloseOnOrBefore(fiscalHistory, "2020-01-01")).toBeNull();
   });
 });
