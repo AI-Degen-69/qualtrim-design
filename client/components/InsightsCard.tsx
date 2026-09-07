@@ -1,25 +1,56 @@
-import { useState } from "react";
-import { Maximize2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Maximize2 } from "lucide-react";
 import ChartModal from "./ChartModal";
 import { FinancialMetric } from "@/lib/mockData";
 import type { RevenueSegmentRow } from "@shared/api";
 import { useI18n } from "@/lib/i18n";
-import { Area, AreaChart, ReferenceLine, ResponsiveContainer } from "recharts";
-import { splitSparklineValues } from "@/lib/chartStyles";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  buildFrequencySeries,
+  compactPeriodLabel,
+  formatAxisValue,
+  frequencyLabelKey,
+  metricChartColor,
+  sliceSeriesByRange,
+  type ChartFrequency,
+  type ChartRange,
+} from "@/lib/financialSeries";
+import { calculateChartDomain } from "@/lib/chartStyles";
+
+/** Minimal shape of the quarterly statements payload the card chart needs. */
+type QuarterlyStatements = {
+  income?: ReadonlyArray<unknown>;
+  balance?: ReadonlyArray<unknown>;
+  cash?: ReadonlyArray<unknown>;
+} | null
+  | undefined;
 
 interface InsightsCardProps {
   title: string;
-  value: string;
+  /**
+   * Legacy value/trend props. The Stocknest-style card renders only the
+   * title + frequency badge + bar chart, so these are accepted for API
+   * compatibility (RevenueSegmentsCard still passes them) but no longer
+   * rendered — the latest value reads from the bars/tooltip and the modal.
+   */
+  value?: string;
   badgeText?: string;
   badgeType?: "positive" | "negative" | "neutral";
   metricId: string; // Refers to the financialMetric name to pull historical data
   metricData: FinancialMetric; // The actual metric data with historical series
   ticker?: string;
   /**
-   * Optional node rendered between the metric header and the sparkline
-   * (e.g. RevenueSegmentsCard's segment-filter chips). Keeps the card
-   * chrome identical for every metric while letting one card inject
-   * its own interactive strip.
+   * Optional node rendered between the metric header and the bar chart
+   * (e.g. RevenueSegmentsCard's segment-filter chips).
    */
   filterBar?: React.ReactNode;
   /**
@@ -42,13 +73,31 @@ interface InsightsCardProps {
    * Upgrade CTA. Undefined = no CTA rendered (standalone previews).
    */
   onUpgradeClick?: () => void;
+  /**
+   * Chart frequency for the card's bars — annual (default), quarterly, or
+   * TTM. Driven by the shared page-level frequency tabs.
+   */
+  frequency?: ChartFrequency;
+  /** Range window sliced off the end of the series (default 10Y). */
+  range?: ChartRange;
+  /**
+   * Quarterly statements payload (from `useStockFinancials(ticker, { period:
+   * "quarter" })`). Required for the quarterly/TTM frequencies to project
+   * anything beyond the annual fallback.
+   */
+  quarterlyStatements?: QuarterlyStatements;
+  /**
+   * Controlled-open mode: when provided, clicking the card calls this
+   * instead of mounting its own ChartModal. Index.tsx uses it to host ONE
+   * page-level modal with prev/next navigation across all metric cards.
+   * Left undefined (RevenueSegmentsCard), the card keeps its self-managed
+   * modal below.
+   */
+  onExpand?: () => void;
 }
 
 export default function InsightsCard({
   title,
-  value,
-  badgeText,
-  badgeType = "neutral",
   metricId,
   metricData,
   ticker,
@@ -57,222 +106,204 @@ export default function InsightsCard({
   selectedSegment,
   segmentLockedReason,
   onUpgradeClick,
+  frequency = "annual",
+  range = "10Y",
+  quarterlyStatements,
+  onExpand,
 }: InsightsCardProps) {
   const { t } = useI18n();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const isControlled = onExpand !== undefined;
 
-  const getBadgeStyles = () => {
-    switch (badgeType) {
-      case "positive":
-        return "bg-chart-positive/15 text-chart-positive border-chart-positive/30 shadow-[0_0_12px_-2px_hsl(var(--chart-positive)/0.3)]";
-      case "negative":
-        return "bg-chart-negative/15 text-chart-negative border-chart-negative/30 shadow-[0_0_12px_-2px_hsl(var(--chart-negative)/0.3)]";
-      default:
-        return "bg-muted/40 text-muted-foreground border-border/50";
-    }
+  const barColor = metricChartColor(metricId, metricData.color);
+
+  // Display series for the current frequency + range window. When the
+  // quarterly source has no usable rows the annual series stands in — the
+  // badge and the range slice then follow the EFFECTIVE frequency, so a TTM
+  // selection can never show annual bars under a TTM badge.
+  const { points: frequencyPoints, effectiveFrequency } = useMemo(
+    () =>
+      buildFrequencySeries({
+        metricName: metricId,
+        annualData: metricData.data,
+        quarterlyStatements,
+        frequency,
+      }),
+    [metricId, metricData.data, quarterlyStatements, frequency],
+  );
+  const series = useMemo(
+    () => sliceSeriesByRange(frequencyPoints, range, effectiveFrequency),
+    [frequencyPoints, range, effectiveFrequency],
+  );
+
+  const chartDomain = useMemo(
+    () => calculateChartDomain(series.map((point) => point.value)),
+    [series],
+  );
+
+  const openModal = () => {
+    if (isControlled) onExpand();
+    else setIsModalOpen(true);
   };
-
-  const TrendIcon =
-    badgeType === "positive"
-      ? TrendingUp
-      : badgeType === "negative"
-        ? TrendingDown
-        : Minus;
-
-  const lineColor =
-    badgeType === "positive"
-      ? "hsl(155 65% 52%)"
-      : badgeType === "negative"
-        ? "hsl(6 75% 58%)"
-        : "hsl(42 65% 70%)";
-
-  const handleOpenModal = () => setIsModalOpen(true);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      handleOpenModal();
+      openModal();
     }
   };
 
-  // Extract a small sparkline dataset (last 20 items)
-  const sparklineData = splitSparklineValues(metricData.data.slice(-20));
-
-  const firstDate = metricData.data[0]?.date;
-  const lastDate = metricData.data[metricData.data.length - 1]?.date;
-  const dataSpanLabel =
-    firstDate && lastDate
-      ? t("insights.card.dataSpan", { first: firstDate, last: lastDate })
-      : null;
-  const pointsLabel = t("insights.card.points", {
-    count: metricData.data.length,
-  });
+  const MiniTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const value = payload[0]?.payload?.value;
+    if (value === null || value === undefined || !Number.isFinite(value)) {
+      return null;
+    }
+    return (
+      <div
+        className="bg-card/95 backdrop-blur-md border border-border/80 px-3 py-2 rounded-lg text-xs text-foreground shadow-xl min-w-[110px]"
+        dir="ltr"
+      >
+        <p className="text-muted-foreground font-mono text-[11px] mb-0.5">
+          {label}
+        </p>
+        <p className="font-bold font-mono tabular-nums text-sm text-foreground">
+          {formatMetricValue(value, metricData.unit)}
+        </p>
+      </div>
+    );
+  };
 
   return (
     <>
       <div
-        className="relative overflow-hidden rounded-xl border border-border/80 bg-gradient-to-b from-card/95 via-card/75 to-card/45 backdrop-blur-xl p-5 flex flex-col justify-between shadow-[0_4px_20px_-4px_rgba(0,0,0,0.5)] transition-all duration-300 hover:border-primary/60 hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.7),0_0_20px_-4px_hsl(var(--primary)/0.25)] hover:-translate-y-0.5 group cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-        onClick={handleOpenModal}
+        className="group relative flex cursor-pointer flex-col overflow-hidden rounded-xl border border-border/80 bg-card p-4 transition-all duration-200 hover:border-primary/50 hover:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.8)] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+        onClick={openModal}
         onKeyDown={handleKeyDown}
         role="button"
         tabIndex={0}
+        aria-label={`${title} — ${t("chart.expand")}`}
       >
-        {/* Subtle Ambient Radial Highlight on Hover */}
-        <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-primary/5 blur-2xl group-hover:bg-primary/10 transition-all duration-500" />
-
-        {/* Top Header Row */}
-        <div>
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <span className="text-[11px] font-bold text-muted-foreground/80 uppercase tracking-[0.14em] group-hover:text-foreground/90 transition-colors">
+        {/* Header: metric title + Stocknest-style amber frequency badge */}
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <h3 className="truncate text-sm font-bold tracking-tight text-foreground">
               {title}
+            </h3>
+            <span className="shrink-0 text-[11px] font-bold text-chart-amber" dir="ltr">
+              {t(frequencyLabelKey(effectiveFrequency))}
             </span>
-            <button
-              className="h-7 w-7 rounded-lg bg-muted/30 border border-border/40 hover:bg-muted hover:border-primary/40 text-muted-foreground hover:text-primary transition-all flex items-center justify-center opacity-70 group-hover:opacity-100 focus:opacity-100 shadow-sm"
-              aria-label="Expand chart"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleOpenModal();
-              }}
-            >
-              <Maximize2 className="h-3.5 w-3.5" />
-            </button>
           </div>
+          <Maximize2
+            className="h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+            aria-hidden="true"
+          />
+        </div>
 
-          {/* Value Readout & Trend Badge */}
-          <div className="flex items-baseline gap-2.5 flex-wrap">
-            <span className="text-[1.65rem] font-bold text-foreground font-mono tabular-nums tracking-tight drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">
-              {value}
-            </span>
-            {badgeText && (
-              <span
-                className={`text-xs font-bold font-mono tabular-nums px-2.5 py-0.5 rounded-full border whitespace-nowrap inline-flex items-center gap-1 ${getBadgeStyles()}`}
-                dir="ltr"
+        {filterBar}
+
+        {/* Stocknest-style bar chart */}
+        <div className="mt-2 h-[168px] w-full" dir="ltr">
+          {series.length === 0 ? (
+            <div className="flex h-full items-center justify-center text-xs text-muted-foreground/60">
+              —
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={series}
+                margin={{ top: 6, right: 2, left: 0, bottom: 0 }}
               >
-                <TrendIcon className="w-3 h-3" />
-                {badgeText}
-              </span>
-            )}
-          </div>
-
-          {filterBar}
-        </div>
-
-        {/* Luminous Light-Curve Sparkline */}
-        <div
-          className="h-[74px] w-full -mx-1 mt-3 pt-1 relative"
-          style={{ filter: `drop-shadow(0 0 5px ${lineColor}70)` }}
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
-              data={sparklineData}
-              margin={{ top: 6, right: 2, left: 2, bottom: 2 }}
-            >
-              <defs>
-                <linearGradient
-                  id={`gradient-positive-${metricId}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
+                <CartesianGrid
+                  strokeDasharray="4 4"
+                  stroke="hsl(250 20% 18%)"
+                  vertical={false}
+                  strokeOpacity={0.6}
+                />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={compactPeriodLabel}
+                  tick={{
+                    fontSize: 10,
+                    fill: "hsl(220 10% 60%)",
+                    fontFamily: "JetBrains Mono, monospace",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                  interval="preserveStartEnd"
+                  minTickGap={28}
+                />
+                <YAxis
+                  width={42}
+                  tick={{
+                    fontSize: 10,
+                    fill: "hsl(220 10% 60%)",
+                    fontFamily: "JetBrains Mono, monospace",
+                  }}
+                  axisLine={false}
+                  tickLine={false}
+                  tickCount={4}
+                  domain={chartDomain}
+                  tickFormatter={(val: number) =>
+                    formatAxisValue(val, metricData.unit)
+                  }
+                />
+                <Tooltip
+                  content={<MiniTooltip />}
+                  cursor={{ fill: "hsl(250 20% 16% / 0.35)" }}
+                />
+                <Bar
+                  dataKey="value"
+                  fill={barColor}
+                  radius={[3, 3, 0, 0]}
+                  maxBarSize={22}
+                  isAnimationActive={false}
                 >
-                  <stop
-                    offset="0%"
-                    stopColor="hsl(155 75% 55%)"
-                    stopOpacity={0.45}
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="hsl(155 55% 35%)"
-                    stopOpacity={0.0}
-                  />
-                </linearGradient>
-                <linearGradient
-                  id={`gradient-negative-${metricId}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop
-                    offset="0%"
-                    stopColor="hsl(6 55% 35%)"
-                    stopOpacity={0.0}
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="hsl(6 80% 60%)"
-                    stopOpacity={0.45}
-                  />
-                </linearGradient>
-              </defs>
-              <Area
-                type="monotone"
-                dataKey="positiveValue"
-                stroke={lineColor}
-                fillOpacity={1}
-                fill={`url(#gradient-positive-${metricId})`}
-                strokeWidth={0}
-                isAnimationActive={true}
-                animationDuration={800}
-                connectNulls={false}
-                baseValue={0}
-              />
-              <Area
-                type="monotone"
-                dataKey="negativeValue"
-                stroke={lineColor}
-                fillOpacity={1}
-                fill={`url(#gradient-negative-${metricId})`}
-                strokeWidth={0}
-                isAnimationActive={true}
-                animationDuration={800}
-                connectNulls={false}
-                baseValue={0}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke={lineColor}
-                fill="none"
-                strokeWidth={2}
-                isAnimationActive={true}
-                animationDuration={800}
-                connectNulls={false}
-              />
-              <ReferenceLine
-                y={0}
-                yAxisId="0"
-                stroke="hsl(250 20% 24%)"
-                strokeOpacity={0.8}
-                strokeWidth={1}
-                strokeDasharray="2 2"
-                ifOverflow="extendDomain"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Footer Meta Row */}
-        <div className="flex justify-between items-center mt-3 pt-2.5 border-t border-border/40 text-[11px] text-muted-foreground/80 font-mono">
-          <span className="truncate text-muted-foreground/75" dir="ltr">
-            {dataSpanLabel ?? pointsLabel}
-          </span>
-          <span className="px-2 py-0.5 rounded-full bg-muted/40 border border-border/30 text-[10px] text-muted-foreground/80 font-sans font-medium uppercase tracking-wider">
-            {pointsLabel}
-          </span>
+                  {series.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={
+                        typeof entry.value === "number" && entry.value < 0
+                          ? "hsl(var(--chart-negative))"
+                          : barColor
+                      }
+                      fillOpacity={entry.value == null ? 0 : 1}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
         </div>
       </div>
 
-      <ChartModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        metric={metricData}
-        ticker={ticker}
-        segmentRows={segmentRows}
-        selectedSegment={selectedSegment ?? null}
-        segmentLockedReason={segmentLockedReason ?? null}
-        onUpgradeClick={onUpgradeClick}
-      />
+      {/* Self-managed modal — only in uncontrolled mode (RevenueSegmentsCard).
+          Opens on the card's effective chart window so the expanded view
+          starts where the card already is. */}
+      {!isControlled && (
+        <ChartModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          metric={metricData}
+          ticker={ticker}
+          initialFrequency={effectiveFrequency}
+          initialRange={range}
+          segmentRows={segmentRows}
+          selectedSegment={selectedSegment ?? null}
+          segmentLockedReason={segmentLockedReason ?? null}
+          onUpgradeClick={onUpgradeClick}
+        />
+      )}
     </>
   );
+}
+
+/** Compact value formatter for the card tooltip (values are pre-scaled). */
+function formatMetricValue(value: number, unit: string): string {
+  if (!Number.isFinite(value)) return "—";
+  if (unit === "%") return `${value.toFixed(2)}%`;
+  if (unit === "$") return `$${value.toFixed(2)}`;
+  const abs = Math.abs(value);
+  const digits = abs >= 100 ? 1 : abs >= 10 ? 1 : 2;
+  return `${value.toFixed(digits)}${unit || ""}`;
 }

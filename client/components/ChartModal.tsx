@@ -6,18 +6,14 @@ import {
   TrendingDown,
   Lock,
   Table as TableIcon,
-  Activity,
-  BarChart3,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import TickerLogo from "@/components/TickerLogo";
 import { useI18n } from "@/lib/i18n";
 import {
-  LineChart,
-  Line,
   BarChart,
   Bar,
-  AreaChart,
-  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -35,18 +31,31 @@ import {
   cagrAtYearsBack,
   detectPeriodGranularity,
   metricStatementKey,
-  projectMetricSeries,
 } from "@/lib/finance";
 import {
   useStockFinancials,
   useStockRevenueSegmentation,
 } from "@/hooks/useStockData";
 import {
-  barGradientId,
-  barStroke,
   calculateChartDomain,
   getChartAvailability,
 } from "@/lib/chartStyles";
+import {
+  buildFrequencySeries,
+  buildYoYPoints,
+  compactPeriodLabel,
+  frequencyLabelKey,
+  metricChartColor,
+  rangePeriodCount,
+  sliceSeriesByRange,
+  type ChartFrequency,
+  type ChartRange,
+} from "@/lib/financialSeries";
+import {
+  FrequencyTabs,
+  RangeTabs,
+  YoYToggle,
+} from "@/components/ChartControls";
 
 interface ChartModalProps {
   metric: FinancialMetric;
@@ -96,49 +105,34 @@ interface ChartModalProps {
    * optional because tests / standalone renders may omit it.
    */
   annualStatements?: FinancialStatements | null;
+  /**
+   * Stocknest-style metric navigation: when provided (Index.tsx hosts one
+   * page-level modal), the header renders prev/next chevrons that cycle to
+   * the adjacent metric's chart. Absent for self-hosted modals
+   * (RevenueSegmentsCard) — no arrows there.
+   */
+  onNavigate?: (direction: -1 | 1) => void;
+  /**
+   * Frequency the modal opens on (and resets to on close), so the expanded
+   * view starts where the calling card already is instead of jumping to the
+   * default quarterly view. Defaults to quarterly.
+   */
+  initialFrequency?: ChartFrequency;
+  /** Range window the modal opens on. Defaults to 10Y. */
+  initialRange?: ChartRange;
 }
 
-type TimeframeType = "1Y" | "3Y" | "5Y" | "10Y";
-type Granularity = "annual" | "quarter";
+type TimeframeType = "2Y" | "5Y" | "10Y" | "All";
+type Granularity = ChartFrequency;
 
 /**
- * Periods per timeframe window. Annual counts fiscal years; quarterly
- * counts quarters (4 per year). The 5Y/10Y options exist so the SEC EDGAR
- * backfilled history (10 years on the free tier) is actually reachable in
- * the chart — windows are only offered once the underlying rows can fill
- * them, so nothing new renders with locked padding.
- */
-const WINDOW_ROWS: Record<Granularity, Record<TimeframeType, number>> = {
-  annual: { "1Y": 1, "3Y": 3, "5Y": 5, "10Y": 10 },
-  quarter: { "1Y": 4, "3Y": 12, "5Y": 20, "10Y": 40 },
-};
-
-function windowRows(timeframe: TimeframeType, granularity: Granularity): number {
-  return WINDOW_ROWS[granularity][timeframe];
-}
-
-/** Fiscal-period x label for a statement row (matches `projectMetricSeries`). */
-function statementPeriodLabel(
-  row: { period?: string | null; calendarYear?: string | null } | undefined,
-): string {
-  const p = String(row?.period ?? "").trim();
-  const y = String(row?.calendarYear ?? "").trim();
-  if (!y) return "";
-  return /^Q[1-4]$/.test(p) ? `${p} ${y}` : y;
-}
-
-/**
- * Granularity toggle reads as `Quarterly | Yearly` (Q | Y). When Q is
- * active we re-fetch `/api/stock-financials?period=quarter` so each bar
- * is one FMP quarter (e.g. Q1 2025, Q2 2025, ...) and CAGR windows walk
- * back 4 / 12 / 20 rows — flipped cardinality vs. the annual path so
- * the 5Y badge means "20 quarters of growth, annualized".
- *
- * The metric passed in from `Index.tsx` is built from the annual
- * payload, so we recompute the (date, value) series from the matching
- * `useStockFinancials(ticker, { period })` response and ignore the
- * pre-built `metric.data` whenever quarter mode is on; the annual path
- * keeps `metric.data` untouched (no extra fetch, no flicker).
+ * Stocknest-style controls. Granularity reads as `Quarterly | Annual | TTM`:
+ * quarterly re-fetches `/api/stock-financials?period=quarter` so each bar is
+ * one FMP quarter; TTM rolls the trailing four quarters into each bar (flow
+ * metrics) or uses the latest quarter's balance (stock metrics); annual
+ * keeps the pre-built `metric.data`. The range tabs (2Y / 5Y / 10Y / All)
+ * window the series off its end, and the YoY % toggle flips the bars from
+ * absolute values to per-period year-over-year growth.
  */
 
 function currentQuarterLabel(): string {
@@ -156,6 +150,16 @@ function previousQuarterLabel(label: string): string {
     year -= 1;
   }
   return `Q${quarter} ${year}`;
+}
+
+/** Fiscal-period x label for a statement row (matches `projectMetricSeries`). */
+function statementPeriodLabel(
+  row: { period?: string | null; calendarYear?: string | null } | undefined,
+): string {
+  const p = String(row?.period ?? "").trim();
+  const y = String(row?.calendarYear ?? "").trim();
+  if (!y) return "";
+  return /^Q[1-4]$/.test(p) ? `${p} ${y}` : y;
 }
 
 function formatMetricValue(
@@ -209,11 +213,14 @@ export default function ChartModal({
   segmentLockedReason = null,
   onUpgradeClick,
   annualStatements = null,
+  onNavigate,
+  initialFrequency = "quarterly",
+  initialRange = "10Y",
 }: ChartModalProps) {
   const { t } = useI18n();
-  const [timeframe, setTimeframe] = useState<TimeframeType>("1Y");
-  const [granularity, setGranularity] = useState<Granularity>("annual");
-  const [chartView, setChartView] = useState<"bar" | "line">("bar");
+  const [timeframe, setTimeframe] = useState<TimeframeType>(initialRange);
+  const [granularity, setGranularity] = useState<Granularity>(initialFrequency);
+  const [showYoy, setShowYoy] = useState(false);
   const [showTable, setShowTable] = useState(false);
   const [hiddenSegments, setHiddenSegments] = useState<string[]>([]);
 
@@ -237,13 +244,94 @@ export default function ChartModal({
     isError: quarterlyError,
   } = useStockFinancials(ticker, {
     period: "quarter",
-    enabled: isOpen && granularity === "quarter" && !hasSegmentData,
+    enabled: isOpen && granularity !== "annual" && !hasSegmentData,
   });
   const quarterlySource =
     quarterlyStatements?.sources?.income ??
     quarterlyStatements?.sources?.balance ??
     quarterlyStatements?.sources?.cash ??
     null;
+
+  // Quarterly segment rows (FMP `revenue-product-segmentation?period=quarter`),
+  // fetched only when the modal is open, segment mode is active, and the
+  // user switched the granularity toggle to quarterly. Each row is one 10-Q
+  // filing's product breakdown.
+  const { data: quarterlySegmentation, isLoading: quarterlySegLoading } =
+    useStockRevenueSegmentation(ticker, {
+      period: "quarter",
+      enabled: isOpen && granularity === "quarterly" && hasSegmentData,
+    });
+  const quarterlySegmentRows = quarterlySegmentation?.rows ?? [];
+  const segmentQuarterlyUnavailable =
+    hasSegmentData &&
+    granularity === "quarterly" &&
+    !quarterlySegLoading &&
+    quarterlySegmentation != null &&
+    quarterlySegmentRows.length === 0 &&
+    !quarterlySegmentation.rateLimited;
+
+  // Series used by the chart. Annual = pre-built points from Index.tsx;
+  // quarterly and TTM are projected from the Q-fetch (TTM rolls the trailing
+  // four quarters for flow metrics, latest balance for stock variables).
+  // Recomputed only when the frequency switches or the quarterly payload
+  // lands — keeps the "switching tabs doesn't refetch the same bars"
+  // guarantee. `effectiveFrequency` reflects annual fallbacks so the badge
+  // never labels annual bars as TTM/quarterly.
+  const { points: fullSeries, effectiveFrequency } = useMemo(
+    () =>
+      buildFrequencySeries({
+        metricName: metric.name,
+        annualData: metric.data,
+        quarterlyStatements,
+        frequency: granularity,
+      }),
+    [granularity, metric, quarterlyStatements, quarterlyUpdatedAt],
+  );
+
+  const filteredData = useMemo(() => {
+    const sliced = sliceSeriesByRange(fullSeries, timeframe, granularity);
+    const expectedCount = rangePeriodCount(timeframe, granularity);
+
+    if (
+      Number.isFinite(expectedCount) &&
+      sliced.length < expectedCount &&
+      sliced.length > 0 &&
+      // Pad with locked placeholders only when the requested frequency
+      // actually resolved — if the data fell back to annual, a wall of
+      // fake quarter labels would misrepresent real annual points, and
+      // the unavailable-quarterly warning already explains the gap.
+      effectiveFrequency === granularity
+    ) {
+      // Free-tier payloads stop early — pad the window's leading edge with
+      // locked placeholder periods (quarter labels for quarterly mode, FY
+      // labels for annual) so the availability mask covers exactly the
+      // missing span.
+      const missingCount = expectedCount - sliced.length;
+      const lockedPeriods = [];
+      let lastDateStr = sliced[0]?.date ?? currentQuarterLabel();
+
+      for (let i = 0; i < missingCount; i++) {
+        let prevDate = `Locked - ${missingCount - i}`;
+        if (granularity !== "annual") {
+          // Quarterly and TTM bars both carry Qn YYYY labels — walk back
+          // one quarter per missing period. Annual falls through to the
+          // FY-label walk.
+          prevDate = previousQuarterLabel(lastDateStr);
+          lastDateStr = prevDate;
+        } else {
+          const m = lastDateStr.match(/FY\s+(\d{4})/);
+          if (m) {
+            const y = parseInt(m[1], 10) - 1;
+            prevDate = `FY ${y}`;
+            lastDateStr = prevDate;
+          }
+        }
+        lockedPeriods.unshift({ date: prevDate, value: null, isLocked: true });
+      }
+      return [...lockedPeriods, ...sliced];
+    }
+    return sliced;
+  }, [fullSeries, granularity, timeframe, effectiveFrequency]);
 
   // SEC EDGAR backfill provenance. Rows the server appended from 10-K/10-Q
   // XBRL facts carry `dataSource: "sec"`; collect their period labels so
@@ -281,76 +369,15 @@ export default function ChartModal({
     return { count, labels };
   }, [annualStatements, quarterlyStatements]);
 
-  // Quarterly segment rows (FMP `revenue-product-segmentation?period=quarter`),
-  // fetched only when the modal is open, segment mode is active, and the
-  // user switched the granularity toggle to quarterly. Each row is one 10-Q
-  // filing's product breakdown.
-  const { data: quarterlySegmentation, isLoading: quarterlySegLoading } =
-    useStockRevenueSegmentation(ticker, {
-      period: "quarter",
-      enabled: isOpen && granularity === "quarter" && hasSegmentData,
-    });
-  const quarterlySegmentRows = quarterlySegmentation?.rows ?? [];
-  const segmentQuarterlyUnavailable =
-    hasSegmentData &&
-    granularity === "quarter" &&
-    !quarterlySegLoading &&
-    quarterlySegmentation != null &&
-    quarterlySegmentRows.length === 0 &&
-    !quarterlySegmentation.rateLimited;
-
-  // Series used by the chart. Annual = pre-built points from Index.tsx.
-  // Quarterly = freshly projected from the Q-fetch. Recomputed only when
-  // the period switches or the quarterly payload lands — keeps the
-  // "switching tabs doesn't refetch the same 20 bars" guarantee.
-  const filteredData = useMemo(() => {
-    let sliced: any[] = [];
-    let expectedCount = 0;
-
-    if (granularity === "quarter") {
-      const series = metricStatementKey(metric.name)
-        ? projectMetricSeries(
-            metric.name,
-            quarterlyStatements ?? { income: [], balance: [], cash: [] },
-          )
-        : [];
-      // Quarterly windows are 4 / 12 / 20 / 40 quarters (1/3/5/10y).
-      expectedCount = windowRows(timeframe, "quarter");
-      sliced = series.slice(-expectedCount);
-    } else {
-      // Annual windows are 1 / 3 / 5 / 10 fiscal years off the
-      // precomputed `metric.data`.
-      expectedCount = windowRows(timeframe, "annual");
-      sliced = metric.data.slice(-expectedCount);
-    }
-
-    if (
-      sliced.length < expectedCount &&
-      (granularity === "quarter" || sliced.length > 0)
-    ) {
-      const missingCount = expectedCount - sliced.length;
-      const lockedPeriods = [];
-      let lastDateStr = sliced[0]?.date ?? currentQuarterLabel();
-
-      for (let i = 0; i < missingCount; i++) {
-        let prevDate = `Locked - ${missingCount - i}`;
-        if (granularity === "quarter") {
-          prevDate = previousQuarterLabel(lastDateStr);
-          lastDateStr = prevDate;
-        } else {
-          const m = lastDateStr.match(/FY\s+(\d{4})/);
-          if (m) {
-            const y = parseInt(m[1], 10) - 1;
-            prevDate = `FY ${y}`;
-            lastDateStr = prevDate;
-          }
-        }
-        lockedPeriods.unshift({ date: prevDate, value: null, isLocked: true });
-      }
-      return [...lockedPeriods, ...sliced];
-    }
-    return sliced;
-  }, [granularity, timeframe, metric, quarterlyStatements, quarterlyUpdatedAt]);
+  // YoY % mode: bars flip from absolute values to per-period YoY growth,
+  // computed off the FULL frequency series (it needs lookback rows before
+  // the window) and then windowed identically to the absolute path.
+  const displayData = useMemo(() => {
+    if (!showYoy) return filteredData;
+    const yoy = buildYoYPoints(fullSeries, granularity);
+    const count = rangePeriodCount(timeframe, granularity);
+    return Number.isFinite(count) ? yoy.slice(-count) : yoy;
+  }, [showYoy, filteredData, fullSeries, granularity, timeframe]);
 
   // Drive live CAGR/YoY numbers off the projected series so they flip
   // when the user toggles Q ↔ Y. `detectPeriodGranularity` peeks at the
@@ -358,7 +385,7 @@ export default function ChartModal({
   // stride automatically.
   const liveGrowth = useMemo(() => {
     const statements =
-      granularity === "quarter"
+      granularity !== "annual"
         ? (quarterlyStatements ?? { income: [], balance: [], cash: [] })
         : null;
     const seriesInfo = statements
@@ -402,24 +429,16 @@ export default function ChartModal({
   }, [granularity, quarterlyStatements, metric, quarterlyUpdatedAt]);
 
   // Generate table data from the filtered chart data to keep them in sync,
-  // but reversed (newest first) and with a YoY column computed from the full series.
+  // but reversed (newest first) and with a YoY column computed from the full
+  // frequency series. Quarterly strides 4 rows for the same quarter last
+  // year; TTM strides 4 windows (rolling year vs the rolling year one year
+  // earlier); annual strides 1.
   const tableData = useMemo(() => {
-    let fullSeries: any[] = [];
-    if (granularity === "quarter") {
-      fullSeries = metricStatementKey(metric.name)
-        ? projectMetricSeries(
-            metric.name,
-            quarterlyStatements ?? { income: [], balance: [], cash: [] },
-          )
-        : [];
-    } else {
-      fullSeries = metric.data;
-    }
+    const lookback = granularity === "annual" ? 1 : 4;
 
     return [...filteredData].reverse().map((row) => {
       const idx = fullSeries.findIndex((r) => r.date === row.date);
       let yoy: number | null = null;
-      const lookback = granularity === "quarter" ? 4 : 1;
 
       if (idx >= lookback && !row.isLocked) {
         const currentVal = fullSeries[idx]?.value;
@@ -435,7 +454,7 @@ export default function ChartModal({
 
       return { ...row, yoy };
     });
-  }, [filteredData, granularity, metric, quarterlyStatements]);
+  }, [filteredData, fullSeries, granularity]);
 
   // ── Segment stacked-bar mode (FMP revenue-product-segmentation) ─────────
   // When the revenue card supplies segment rows, the modal swaps its single-
@@ -450,7 +469,7 @@ export default function ChartModal({
   // quarterly segment data — the source falls back to the annual rows so the
   // chart never goes blank mid-toggle.
   const segmentSource =
-    granularity === "quarter" && quarterlySegmentRows.length > 0
+    granularity === "quarterly" && quarterlySegmentRows.length > 0
       ? quarterlySegmentRows
       : segmentRows;
 
@@ -459,7 +478,7 @@ export default function ChartModal({
     row: RevenueSegmentRow,
     granularity: Granularity,
   ): string => {
-    if (granularity === "quarter") {
+    if (granularity === "quarterly") {
       const m = /^(\d{4})-(\d{2})/.exec(row.date);
       if (m) {
         return `Q${Math.floor((Number(m[2]) - 1) / 3) + 1} ${m[1]}`;
@@ -473,7 +492,7 @@ export default function ChartModal({
   const segmentModel = useMemo(() => {
     const rowsWithProducts = segmentSource.filter((r) => r.products.length > 0);
     const asc = [...rowsWithProducts].sort((a, b) =>
-      granularity === "quarter"
+      granularity === "quarterly"
         ? a.date < b.date
           ? -1
           : 1
@@ -510,30 +529,6 @@ export default function ChartModal({
 
   const isSegmentMode =
     segmentModel.rows.length > 0 && segmentModel.names.length > 0;
-
-  // Timeframe options. 1Y/3Y always offered (legacy behavior — a short
-  // series pads with locked "Pro" rows); 5Y/10Y appear only once the
-  // underlying rows can actually fill them (SEC EDGAR backfill unlocks
-  // the 10-year windows). Segment mode never extends, so it stays 1Y/3Y.
-  const availableStatementRows = useMemo(() => {
-    if (granularity === "quarter") {
-      const meta = metricStatementKey(metric.name);
-      if (!meta) return 0;
-      const rows = quarterlyStatements?.[meta.statement];
-      return Array.isArray(rows) ? rows.length : 0;
-    }
-    return Array.isArray(metric.data) ? metric.data.length : 0;
-  }, [granularity, metric, quarterlyStatements]);
-  const offeredTimeframes = useMemo<TimeframeType[]>(() => {
-    const base: TimeframeType[] = ["1Y", "3Y"];
-    if (isSegmentMode) return base; // segment rows don't extend 10y
-    if (availableStatementRows >= windowRows("5Y", granularity)) base.push("5Y");
-    if (availableStatementRows >= windowRows("10Y", granularity)) base.push("10Y");
-    return base;
-  }, [availableStatementRows, granularity, isSegmentMode]);
-  useEffect(() => {
-    if (!offeredTimeframes.includes(timeframe)) setTimeframe("1Y");
-  }, [offeredTimeframes, timeframe]);
   const segmentColor = (name: string) =>
     SEGMENT_PALETTE[
       Math.max(0, segmentModel.names.indexOf(name)) % SEGMENT_PALETTE.length
@@ -565,13 +560,10 @@ export default function ChartModal({
   const segmentWindow = useMemo(
     () =>
       segmentModel.rows.slice(
-        -(granularity === "quarter"
-          ? timeframe === "1Y"
-            ? 4
-            : 12
-          : timeframe === "1Y"
-            ? 1
-            : 3),
+        -rangePeriodCount(
+          timeframe,
+          granularity === "quarterly" ? "quarterly" : "annual",
+        ),
       ),
     [segmentModel.rows, timeframe, granularity],
   );
@@ -586,13 +578,13 @@ export default function ChartModal({
       .map((r) => r.total)
       .filter((v): v is number => typeof v === "number" && Number.isFinite(v));
     const last = totals[totals.length - 1];
-    const lookback = granularity === "quarter" ? 4 : 1;
+    const lookback = granularity === "quarterly" ? 4 : 1;
     const prev = totals[totals.length - 1 - lookback];
     const yoy =
       last != null && prev != null && prev !== 0
         ? ((last - prev) / Math.abs(prev)) * 100
         : null;
-    const yearsBack = granularity === "quarter" ? 12 : 3;
+    const yearsBack = granularity === "quarterly" ? 12 : 3;
     const windowBack = totals[totals.length - 1 - yearsBack];
     const cagr3Y =
       last != null &&
@@ -609,7 +601,7 @@ export default function ChartModal({
   // against the same quarter last year in quarterly mode.
   const segmentTableRows = useMemo(() => {
     const asc = segmentModel.rows;
-    const lookback = granularity === "quarter" ? 4 : 1;
+    const lookback = granularity === "quarterly" ? 4 : 1;
     return (
       [...asc]
         .reverse()
@@ -691,12 +683,14 @@ export default function ChartModal({
           : [],
       );
     } else if (!isOpen) {
-      setGranularity("annual");
-      setTimeframe("1Y");
+      // Reset to the calling card's chart window, not hardcoded defaults.
+      setGranularity(initialFrequency);
+      setTimeframe(initialRange);
+      setShowYoy(false);
       setHiddenSegments([]);
     }
     wasOpenRef.current = isOpen;
-  }, [isOpen, selectedSegment, segmentModel.names]);
+  }, [isOpen, selectedSegment, segmentModel.names, initialFrequency, initialRange]);
 
   if (!isOpen) return null;
 
@@ -707,7 +701,7 @@ export default function ChartModal({
     const csv = isSegmentMode
       ? [
           [
-            granularity === "quarter" ? "Period" : "Year",
+            granularity === "annual" ? "Year" : "Period",
             ...visibleNames,
             "Total",
           ].join(","),
@@ -728,39 +722,30 @@ export default function ChartModal({
     a.href = url;
     a.download = isSegmentMode
       ? "revenue_by_segment_annual.csv"
-      : `${metric.name}${granularity === "quarter" ? "_quarterly" : "_annual"}.csv`;
+      : `${metric.name}${          granularity === "quarterly"
+            ? "_quarterly"
+            : granularity === "ttm"
+              ? "_ttm"
+              : "_annual"
+        }.csv`;
     a.click();
   };
 
-  const colorMap: { [key: string]: string } = {
-    "chart-green": "hsl(155 65% 52%)", // Aurora Green
-    "chart-orange": "hsl(32 85% 58%)",
-    "chart-blue": "hsl(200 60% 60%)", // Nebula Blue
-    "chart-cyan": "hsl(190 65% 58%)",
-    "chart-purple": "hsl(265 45% 62%)", // Deep Space Violet
-    "chart-pink": "hsl(340 55% 62%)",
-  };
-
-  const chartColor =
-    metric.yoy != null
-      ? metric.yoy >= 0
-        ? "hsl(155 65% 52%)"
-        : "hsl(6 75% 58%)"
-      : colorMap[metric.color] || "hsl(42 65% 70%)";
+  const chartColor = metricChartColor(metric.name, metric.color);
   const gridColor = "hsl(250 20% 18%)"; // Subtle horizontal grid
   const axisColor = "hsl(220 20% 85%)"; // High contrast readable tick labels
   const axisLineColor = "hsl(250 20% 28%)"; // Visible axis baseline
   const chartDomain = calculateChartDomain(
-    filteredData.map((entry) => entry.value),
+    displayData.map((entry) => entry.value),
   );
   const requestedPeriodCount =
-    granularity === "quarter" ? windowRows(timeframe, "quarter") : 0;
+    granularity === "annual" ? 0 : rangePeriodCount(timeframe, granularity);
   const quarterlyAvailability = getChartAvailability(
     filteredData.map((entry) => entry.value),
     requestedPeriodCount,
   );
   const showQuarterlyMask =
-    granularity === "quarter" &&
+    granularity !== "annual" &&
     (quarterlyError || quarterlyAvailability.hasUnavailable);
   const quarterlyMaskWidth =
     quarterlyAvailability.availableCount === 0
@@ -768,7 +753,7 @@ export default function ChartModal({
       : `${Math.round(quarterlyAvailability.fractionUnavailable * 100)}%`;
 
   const quarterlyMask =
-    granularity === "quarter" && (quarterlyLoading || showQuarterlyMask) ? (
+    granularity !== "annual" && (quarterlyLoading || showQuarterlyMask) ? (
       <div
         className="pointer-events-none absolute z-10 flex flex-col items-center justify-center gap-2 overflow-hidden border border-dashed border-border/80 bg-gradient-to-r from-card/95 via-card/85 to-card/25 px-6 text-center backdrop-blur-[2px] rounded-lg"
         style={{
@@ -821,11 +806,6 @@ export default function ChartModal({
     ) : null;
 
   const renderChart = () => {
-    const commonProps = {
-      data: filteredData,
-      margin: { top: 20, right: 25, left: 10, bottom: 25 },
-    };
-
     const CustomTooltip = ({ active, payload, label }: any) => {
       if (active && payload && payload.length) {
         const data = payload[0].payload;
@@ -857,7 +837,7 @@ export default function ChartModal({
             </p>
             <p className="font-bold text-base flex items-baseline gap-1.5 font-mono tabular-nums text-foreground">
               <span className="font-sans text-xs font-normal text-muted-foreground">
-                {t(metric.name)}:
+                {showYoy ? t("chart.yoyToggle") : `${t(metric.name)}:`}
               </span>
               <span
                 dir="ltr"
@@ -867,7 +847,9 @@ export default function ChartModal({
                     : "text-chart-negative"
                 }
               >
-                {formatMetricValue(data.value, metric.unit, 2)}
+                {showYoy
+                  ? `${data.value >= 0 ? "+" : ""}${data.value.toFixed(1)}%`
+                  : formatMetricValue(data.value, metric.unit, 2)}
               </span>
             </p>
           </div>
@@ -875,111 +857,6 @@ export default function ChartModal({
       }
       return null;
     };
-
-    const renderBarValueLabel = (props: {
-      x?: number | string;
-      y?: number | string;
-      width?: number | string;
-      height?: number | string;
-      value?: unknown;
-    }) => {
-      const { x, y, width, value } = props;
-      const numX =
-        typeof x === "number" ? x : typeof x === "string" ? parseFloat(x) : NaN;
-      const numY =
-        typeof y === "number" ? y : typeof y === "string" ? parseFloat(y) : NaN;
-      const numW =
-        typeof width === "number"
-          ? width
-          : typeof width === "string"
-            ? parseFloat(width)
-            : NaN;
-      if (
-        typeof value !== "number" ||
-        !Number.isFinite(value) ||
-        !Number.isFinite(numX) ||
-        !Number.isFinite(numY) ||
-        !Number.isFinite(numW)
-      ) {
-        return null;
-      }
-      const formatted = formatMetricValue(value, metric.unit, 1);
-      const isNegative = value < 0;
-      return (
-        <text
-          x={numX + numW / 2}
-          y={isNegative ? numY + 14 : numY - 6}
-          fill="#f8fafc"
-          textAnchor="middle"
-          fontSize={11.5}
-          fontWeight={500}
-          fontFamily="JetBrains Mono, monospace"
-          style={{
-            pointerEvents: "none",
-            paintOrder: "stroke fill",
-            stroke: "rgba(10, 9, 16, 0.9)",
-            strokeWidth: 2.5,
-            strokeLinejoin: "round",
-          }}
-        >
-          {formatted}
-        </text>
-      );
-    };
-
-    const renderAreaValueLabel = (props: {
-      x?: number | string;
-      y?: number | string;
-      value?: unknown;
-    }) => {
-      const { x, y, value } = props;
-      const numX =
-        typeof x === "number" ? x : typeof x === "string" ? parseFloat(x) : NaN;
-      const numY =
-        typeof y === "number" ? y : typeof y === "string" ? parseFloat(y) : NaN;
-      if (
-        typeof value !== "number" ||
-        !Number.isFinite(value) ||
-        !Number.isFinite(numX) ||
-        !Number.isFinite(numY)
-      ) {
-        return null;
-      }
-      const formatted = formatMetricValue(value, metric.unit, 1);
-      return (
-        <text
-          x={numX}
-          y={numY - 10}
-          fill="#f8fafc"
-          textAnchor="middle"
-          fontSize={11.5}
-          fontWeight={500}
-          fontFamily="JetBrains Mono, monospace"
-          style={{
-            pointerEvents: "none",
-            paintOrder: "stroke fill",
-            stroke: "rgba(10, 9, 16, 0.9)",
-            strokeWidth: 2.5,
-            strokeLinejoin: "round",
-          }}
-        >
-          {formatted}
-        </text>
-      );
-    };
-
-    const glowId = `light-curve-glow-${metric.name}`;
-    const GlowFilter = () => (
-      <defs>
-        <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="4" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-    );
 
     if (isSegmentMode) {
       const maxTotal = Math.max(
@@ -1174,203 +1051,63 @@ export default function ChartModal({
       );
     }
 
-    // Single-series rendering (Line Chart vs Bar)
-    if (
-      chartView === "line" ||
-      metric.type === "area" ||
-      metric.type === "line"
-    ) {
+    // Stocknest-style single-series bar view: slim solid bars in the
+    // metric's color, compact axes, no per-bar value labels (the tooltip
+    // carries the numbers). YoY mode colors gains/losses semantically.
+    if (displayData.length === 0) {
       return (
-        <div className="relative h-[340px] sm:h-[380px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart {...commonProps}>
-              <defs>
-                <linearGradient
-                  id={`colorValue-area-${metric.name}`}
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop offset="0%" stopColor={chartColor} stopOpacity={0.35} />
-                  <stop
-                    offset="100%"
-                    stopColor={chartColor}
-                    stopOpacity={0.0}
-                  />
-                </linearGradient>
-                <GlowFilter />
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke={gridColor}
-                vertical={false}
-                strokeOpacity={0.7}
-              />
-              <XAxis
-                height={30}
-                dataKey="date"
-                stroke={axisLineColor}
-                tickLine={{ stroke: axisLineColor, strokeWidth: 1 }}
-                tick={{
-                  fontSize: 12,
-                  fill: axisColor,
-                  fontWeight: 600,
-                  fontFamily: "JetBrains Mono, monospace",
-                }}
-                tickMargin={10}
-              />
-              <YAxis
-                width={65}
-                stroke={axisLineColor}
-                tickLine={{ stroke: axisLineColor, strokeWidth: 1 }}
-                tick={{
-                  fontSize: 12,
-                  fill: axisColor,
-                  fontWeight: 600,
-                  fontFamily: "JetBrains Mono, monospace",
-                }}
-                tickMargin={10}
-                domain={chartDomain}
-                allowDataOverflow={false}
-                tickCount={6}
-                tickFormatter={(val) => formatMetricValue(val, metric.unit, 0)}
-              />
-              <Tooltip
-                content={<CustomTooltip />}
-                cursor={{
-                  stroke: "hsl(250 20% 30%)",
-                  strokeWidth: 1,
-                  strokeDasharray: "3 3",
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke={chartColor}
-                strokeWidth={2.5}
-                filter={`url(#${glowId})`}
-                fill={`url(#colorValue-area-${metric.name})`}
-                fillOpacity={1}
-                dot={{
-                  r: 5,
-                  stroke: chartColor,
-                  strokeWidth: 2.5,
-                  fill: "#0c0b14",
-                }}
-                activeDot={{
-                  r: 7.5,
-                  stroke: chartColor,
-                  strokeWidth: 3,
-                  fill: "#ffffff",
-                }}
-                isAnimationActive={true}
-                animationDuration={800}
-                animationEasing="ease-out"
-              >
-                <LabelList dataKey="value" content={renderAreaValueLabel} />
-              </Area>
-              <ReferenceLine
-                y={0}
-                yAxisId="0"
-                stroke="hsl(250 20% 30%)"
-                strokeWidth={1.5}
-                strokeDasharray="3 3"
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-          {quarterlyMask}
+        <div className="flex h-[340px] w-full items-center justify-center text-sm text-muted-foreground sm:h-[380px]">
+          —
         </div>
       );
     }
 
-    // Default Bar Chart View
     return (
-      <div className="relative h-[340px] sm:h-[380px] w-full">
+      <div className="relative h-[340px] w-full sm:h-[380px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart {...commonProps}>
-            <defs>
-              <linearGradient
-                id={`colorValue-positive-${metric.name}`}
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop
-                  offset="0%"
-                  stopColor="hsl(155 75% 55%)"
-                  stopOpacity={0.95}
-                />
-                <stop
-                  offset="100%"
-                  stopColor="hsl(155 55% 35%)"
-                  stopOpacity={0.4}
-                />
-              </linearGradient>
-              <linearGradient
-                id={`colorValue-negative-${metric.name}`}
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop
-                  offset="0%"
-                  stopColor="hsl(6 55% 35%)"
-                  stopOpacity={0.4}
-                />
-                <stop
-                  offset="100%"
-                  stopColor="hsl(6 80% 60%)"
-                  stopOpacity={0.95}
-                />
-              </linearGradient>
-              <linearGradient
-                id={`colorValue-neutral-${metric.name}`}
-                x1="0"
-                y1="0"
-                x2="0"
-                y2="1"
-              >
-                <stop offset="0%" stopColor={chartColor} stopOpacity={0.95} />
-                <stop offset="100%" stopColor={chartColor} stopOpacity={0.4} />
-              </linearGradient>
-            </defs>
+          <BarChart
+            data={displayData}
+            margin={{ top: 16, right: 16, left: 4, bottom: 4 }}
+          >
             <CartesianGrid
-              strokeDasharray="3 3"
+              strokeDasharray="4 4"
               stroke={gridColor}
               vertical={false}
-              strokeOpacity={0.7}
+              strokeOpacity={0.6}
             />
             <XAxis
               height={30}
               dataKey="date"
-              stroke={axisLineColor}
-              tickLine={{ stroke: axisLineColor, strokeWidth: 1 }}
+              tickFormatter={compactPeriodLabel}
+              axisLine={{ stroke: axisLineColor, strokeWidth: 1 }}
+              tickLine={false}
               tick={{
-                fontSize: 12,
+                fontSize: 11,
                 fill: axisColor,
-                fontWeight: 600,
                 fontFamily: "JetBrains Mono, monospace",
               }}
-              tickMargin={10}
+              tickMargin={8}
+              interval="preserveStartEnd"
+              minTickGap={24}
             />
             <YAxis
-              width={65}
-              stroke={axisLineColor}
-              tickLine={{ stroke: axisLineColor, strokeWidth: 1 }}
+              width={56}
+              axisLine={false}
+              tickLine={false}
               tick={{
-                fontSize: 12,
+                fontSize: 11,
                 fill: axisColor,
-                fontWeight: 600,
                 fontFamily: "JetBrains Mono, monospace",
               }}
-              tickMargin={10}
+              tickMargin={8}
               domain={chartDomain}
               allowDataOverflow={false}
-              tickCount={6}
-              tickFormatter={(val) => formatMetricValue(val, metric.unit, 0)}
+              tickCount={5}
+              tickFormatter={(val) =>
+                showYoy
+                  ? `${Math.round(val)}%`
+                  : formatMetricValue(val, metric.unit, 0)
+              }
             />
             <Tooltip
               content={<CustomTooltip />}
@@ -1378,28 +1115,27 @@ export default function ChartModal({
             />
             <Bar
               dataKey="value"
-              strokeWidth={1}
-              radius={[6, 6, 0, 0]}
-              maxBarSize={48}
-              isAnimationActive={true}
-              animationDuration={800}
-              animationEasing="ease-out"
+              radius={[3, 3, 0, 0]}
+              maxBarSize={28}
+              isAnimationActive={false}
             >
-              {filteredData.map((entry, index) => (
+              {displayData.map((entry, index) => (
                 <Cell
                   key={`bar-cell-${index}`}
-                  fill={`url(#${barGradientId(metric.name, entry.value)})`}
-                  stroke={barStroke(entry.value)}
+                  fill={
+                    typeof entry.value === "number" && entry.value < 0
+                      ? "hsl(var(--chart-negative))"
+                      : chartColor
+                  }
+                  fillOpacity={entry.value == null ? 0 : 1}
                 />
               ))}
-              <LabelList dataKey="value" content={renderBarValueLabel} />
             </Bar>
             <ReferenceLine
               y={0}
               yAxisId="0"
               stroke="hsl(250 20% 30%)"
-              strokeWidth={1.5}
-              strokeDasharray="3 3"
+              strokeWidth={1}
             />
           </BarChart>
         </ResponsiveContainer>
@@ -1414,149 +1150,103 @@ export default function ChartModal({
       onClick={onClose}
     >
       <div
-        className="bg-card rounded-panel border border-border shadow-[0_20px_60px_-15px_rgba(0,0,0,0.85)] w-[96vw] max-w-5xl max-h-[90vh] flex flex-row overflow-hidden relative my-auto"
+        className="bg-card rounded-xl border border-border shadow-[0_20px_60px_-15px_rgba(0,0,0,0.85)] w-[96vw] max-w-5xl max-h-[90vh] flex flex-row overflow-hidden relative my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Main Left Content */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto custom-scrollbar relative">
-          {/* Header */}
+          {/* Header — title + frequency badge left, metric nav + close right */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-border/80 sticky top-0 bg-card/95 backdrop-blur-sm z-20 shrink-0">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <TickerLogo ticker={ticker} size="md" />
-              <h2 className="text-lg sm:text-xl font-bold text-foreground flex items-center gap-2.5">
-                <span className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-muted/60 border border-border/60 text-foreground">
+              <h2 className="text-lg sm:text-xl font-bold text-foreground flex items-center gap-2.5 min-w-0">
+                <span className="font-mono text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-muted/60 border border-border/60 text-foreground shrink-0">
                   {ticker}
                 </span>
                 <span className="text-muted-foreground/40 font-light">/</span>
-                <span className="tracking-tight">
+                <span className="tracking-tight truncate">
                   {isSegmentMode
                     ? t("metrics.revenueBySegment")
                     : t(metric.name)}
                 </span>
+                {!isSegmentMode && (
+                  <span
+                    className="shrink-0 text-[11px] font-bold text-chart-amber"
+                    dir="ltr"
+                  >
+                    {t(frequencyLabelKey(effectiveFrequency))}
+                  </span>
+                )}
               </h2>
             </div>
-            <button
-              onClick={onClose}
-              className="h-8 w-8 rounded-md bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all border border-border/30 hover:border-border"
-              aria-label="Close modal"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {onNavigate && !isSegmentMode && (
+                <>
+                  <button
+                    onClick={() => onNavigate(-1)}
+                    className="h-8 w-8 rounded-md bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all border border-border/30 hover:border-border"
+                    aria-label={t("chart.prevMetric")}
+                    title={t("chart.prevMetric")}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => onNavigate(1)}
+                    className="h-8 w-8 rounded-md bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all border border-border/30 hover:border-border"
+                    aria-label={t("chart.nextMetric")}
+                    title={t("chart.nextMetric")}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+              <button
+                onClick={onClose}
+                className="h-8 w-8 rounded-md bg-muted/30 hover:bg-muted text-muted-foreground hover:text-foreground flex items-center justify-center transition-all border border-border/30 hover:border-border"
+                aria-label="Close modal"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
-          {/* Timeframe + Granularity + Chart Style Selector and Download */}
-          <div className="flex items-center justify-between px-6 py-3 border-b border-border/60 bg-muted/15 gap-3 flex-wrap shrink-0">
-            <div
-              className="flex items-center gap-2 flex-wrap"
-              role="tablist"
-              aria-label={t("chart.granularity")}
-            >
-              <div
-                className="inline-flex p-0.5 rounded-md bg-muted/40 border border-border/60"
-                role="tablist"
-                aria-label={t("chart.timeframe")}
-              >
-                {offeredTimeframes.map((tf) => (
-                  <button
-                    key={tf}
-                    onClick={() => setTimeframe(tf as TimeframeType)}
-                    className={cn(
-                      "px-3 py-1 text-xs font-mono font-bold rounded-[4px] transition-all",
-                      timeframe === tf
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                    )}
-                  >
-                    {tf}
-                  </button>
-                ))}
-              </div>
-              {/* Yearly / Quarterly toggle */}
-              <div className="inline-flex p-0.5 rounded-md bg-muted/40 border border-border/60 ms-1 sm:ms-2">
+          {/* Stocknest control bar: ranges left · YoY toggle · frequency + tools right */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/60 bg-muted/15 gap-3 flex-wrap shrink-0 sm:px-6">
+            <RangeTabs value={timeframe} onChange={setTimeframe} />
+            {!isSegmentMode && (
+              <YoYToggle checked={showYoy} onToggle={setShowYoy} />
+            )}
+            <div className="flex items-center gap-2 flex-wrap ms-auto">
+              <FrequencyTabs value={granularity} onChange={setGranularity} />
+              <div className="ms-1 flex items-center gap-1.5">
                 <button
-                  onClick={() => setGranularity("annual")}
+                  onClick={() => setShowTable(!showTable)}
                   className={cn(
-                    "px-3 py-1 text-xs font-medium rounded-[4px] transition-all",
-                    granularity === "annual"
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
+                    "flex h-8 w-8 items-center justify-center rounded-md border transition-all",
+                    showTable
+                      ? "bg-primary/15 text-primary border-primary/40"
+                      : "bg-muted/30 border-border/60 text-muted-foreground hover:text-foreground hover:bg-muted/60",
                   )}
-                  title={t("chart.annualHint")}
+                  title="Table View"
+                  aria-label="Table View"
                 >
-                  {t("chart.yearly")}
+                  <TableIcon className="w-3.5 h-3.5" />
                 </button>
                 <button
-                  onClick={() => setGranularity("quarter")}
-                  className={cn(
-                    "px-3 py-1 text-xs font-medium rounded-[4px] transition-all",
-                    granularity === "quarter"
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                  )}
-                  title={t("chart.quarterlyHint")}
+                  onClick={handleDownload}
+                  className="flex h-8 w-8 items-center justify-center rounded-md border border-border/60 bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all"
+                  title={t("chart.download")}
+                  aria-label={t("chart.download")}
                 >
-                  {t("chart.quarterly")}
+                  <Download className="w-3.5 h-3.5" />
                 </button>
               </div>
-
-              {/* Chart Style Toggle (Bar vs Line Chart) */}
-              {!isSegmentMode && (
-                <div className="inline-flex p-0.5 rounded-md bg-muted/40 border border-border/60 ms-1 sm:ms-2">
-                  <button
-                    onClick={() => setChartView("bar")}
-                    className={cn(
-                      "px-2.5 py-1 text-xs font-medium rounded-[4px] flex items-center gap-1.5 transition-all",
-                      chartView === "bar"
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                    )}
-                    title="Bar Chart View"
-                  >
-                    <BarChart3 className="w-3.5 h-3.5" />
-                    <span>Bar</span>
-                  </button>
-                  <button
-                    onClick={() => setChartView("line")}
-                    className={cn(
-                      "px-2.5 py-1 text-xs font-medium rounded-[4px] flex items-center gap-1.5 transition-all",
-                      chartView === "line"
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-transparent text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                    )}
-                    title="Line Chart View"
-                  >
-                    <Activity className="w-3.5 h-3.5" />
-                    <span>Line Chart</span>
-                  </button>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowTable(!showTable)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-1.5 border rounded-md transition-all text-xs font-semibold",
-                  showTable
-                    ? "bg-primary/15 text-primary border-primary/40 shadow-[0_0_10px_-3px_hsl(var(--primary)/0.3)]"
-                    : "bg-muted/30 border-border/60 hover:border-border text-muted-foreground hover:text-foreground hover:bg-muted/60",
-                )}
-              >
-                <TableIcon className="w-3.5 h-3.5" />
-                <span>Table View</span>
-              </button>
-              <button
-                onClick={handleDownload}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-muted/30 border border-border/60 hover:border-border hover:text-foreground hover:bg-muted/60 rounded-md transition-all text-muted-foreground text-xs font-semibold"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{t("chart.download")}</span>
-              </button>
             </div>
           </div>
 
           {/* Chart */}
           <div className="p-4 sm:p-6 shrink-0">
-            {granularity === "quarter" &&
+            {granularity !== "annual" &&
               quarterlySource === null &&
               quarterlyStatements && (
                 <div className="mb-3 rounded-lg border border-chart-amber/30 bg-chart-amber/5 px-3 py-2 text-xs text-chart-amber">
@@ -1567,6 +1257,19 @@ export default function ChartModal({
             {segmentQuarterlyUnavailable && (
               <div className="mb-3 rounded-lg border border-chart-amber/30 bg-chart-amber/5 px-3 py-2 text-xs text-chart-amber">
                 {t("chart.segmentQuarterlyUnavailable")}
+              </div>
+            )}
+            {/* SEC EDGAR backfill note — extended periods beyond the
+                primary provider's free-tier depth */}
+            {secInfo.count > 0 && !isSegmentMode && (
+              <div
+                className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground"
+                dir="ltr"
+              >
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/30">
+                  SEC EDGAR
+                </span>
+                <span>{t("chart.secHistoryNote", { count: secInfo.count })}</span>
               </div>
             )}
             {/* Locked-premium fallback */}
@@ -1683,16 +1386,6 @@ export default function ChartModal({
                 })}
               </div>
             )}
-            {secInfo.count > 0 && (
-              <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground" dir="ltr">
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[9px] font-bold uppercase tracking-wider bg-primary/10 text-primary border border-primary/30">
-                  SEC EDGAR
-                </span>
-                <span>
-                  {t("chart.secHistoryNote", { count: secInfo.count })}
-                </span>
-              </div>
-            )}
             {renderChart()}
           </div>
 
@@ -1704,7 +1397,7 @@ export default function ChartModal({
                   label: t("chart.cagr3Y"),
                   value: cagrValue,
                   description:
-                    granularity === "quarter"
+                    granularity !== "annual"
                       ? t("chart.descCagr3YQuarter")
                       : t("chart.descCagr3Y"),
                 },
@@ -1712,7 +1405,7 @@ export default function ChartModal({
                   label: t("chart.yoy1Y"),
                   value: yoyValue,
                   description:
-                    granularity === "quarter"
+                    granularity !== "annual"
                       ? t("chart.descYoYQuarter")
                       : t("chart.descYoY"),
                 },
