@@ -38,6 +38,7 @@ import {
   AvailabilityState,
 } from "../../shared/api";
 import { insightsTabLabels, insightsTabUniverses } from "./insightsUniverses";
+import { deriveBalanceRows, deriveNetReturned } from "./derivedRows";
 import {
   normalizeDividendYield,
   normalizeYahooPercentage,
@@ -596,18 +597,28 @@ function normalizeIncomeRow(raw: any): IncomeStatementRow {
 function normalizeBalanceRow(raw: any): BalanceSheetRow {
   const toNum = (v: any) => (v === undefined ? undefined : Number(v));
   const year = raw.calendarYear ?? raw.fiscalYear ?? "";
+  const totalEquity = toNum(raw.totalEquity);
+  const totalAssets = toNum(raw.totalAssets) ?? 0;
   return {
     date: String(raw.date ?? ""),
     symbol: String(raw.symbol ?? ""),
     reportedCurrency: String(raw.reportedCurrency ?? "USD"),
     calendarYear: String(year),
     period: String(raw.period ?? ""),
-    totalAssets: toNum(raw.totalAssets) ?? 0,
+    totalAssets,
     totalLiabilities: toNum(raw.totalLiabilities),
-    totalEquity: toNum(raw.totalEquity),
+    totalEquity,
     totalDebt: toNum(raw.totalDebt),
     cashAndCashEquivalents: toNum(raw.cashAndCashEquivalents) ?? 0,
     netDebt: toNum(raw.netDebt),
+    // Stocknest-style derived rows (goodwill + intangibles, TBV, tangible
+    // assets) — see server/services/derivedRows.ts.
+    ...deriveBalanceRows({
+      goodwill: toNum(raw.goodwill),
+      intangibleAssets: toNum(raw.intangibleAssets),
+      totalEquity,
+      totalAssets,
+    }),
   };
 }
 
@@ -631,6 +642,12 @@ function normalizeCashRow(raw: any): CashFlowRow {
     freeCashFlow: toNum(raw.freeCashFlow) ?? 0,
     stockBasedCompensation: toNum(raw.stockBasedCompensation),
     dividendPayments: toNum(raw.dividendPayments),
+    // Derived net capital returned to shareholders (dividends + buybacks).
+    ...deriveNetReturned({
+      dividendsPaid: toNum(raw.dividendsPaid),
+      salePurchaseOfStock: toNum(raw.salePurchaseOfStock),
+      commonStockRepurchased: toNum(raw.commonStockRepurchased),
+    }),
   };
 }
 
@@ -1398,22 +1415,35 @@ export const stockService = {
         epsDiluted: r.dilutedEPS || 0,
       }));
 
-      const balance = balanceRows.map((r: any) => ({
-        date: new Date(r.date).toISOString().slice(0, 10),
-        symbol: ticker,
-        reportedCurrency: "USD",
-        calendarYear: new Date(r.date).getFullYear().toString(),
-        period: getPeriod(r),
-        totalAssets: r.totalAssets || 0,
-        totalLiabilities: r.totalLiabilitiesNetMinorityInterest || 0,
-        totalEquity: r.stockholdersEquity || 0,
-        totalDebt: r.totalDebt || 0,
-        cashAndCashEquivalents:
-          r.cashAndCashEquivalents ||
-          r.cashCashEquivalentsAndShortTermInvestments ||
-          0,
-        netDebt: r.netDebt || 0,
-      }));
+      const balance = balanceRows.map((r: any) => {
+        const totalEquity = r.stockholdersEquity || 0;
+        const totalAssets = r.totalAssets || 0;
+        return {
+          date: new Date(r.date).toISOString().slice(0, 10),
+          symbol: ticker,
+          reportedCurrency: "USD",
+          calendarYear: new Date(r.date).getFullYear().toString(),
+          period: getPeriod(r),
+          totalAssets,
+          totalLiabilities: r.totalLiabilitiesNetMinorityInterest || 0,
+          totalEquity,
+          totalDebt: r.totalDebt || 0,
+          cashAndCashEquivalents:
+            r.cashAndCashEquivalents ||
+            r.cashCashEquivalentsAndShortTermInvestments ||
+            0,
+          netDebt: r.netDebt || 0,
+          // Stocknest-style derived rows — Yahoo FTS names its intangibles
+          // fields `goodWill`/`intangibleAssets` (camelCase), FMP uses
+          // `goodwill`/`intangibleAssets`.
+          ...deriveBalanceRows({
+            goodwill: r.goodWill ?? r.goodwill,
+            intangibleAssets: r.intangibleAssets,
+            totalEquity,
+            totalAssets,
+          }),
+        };
+      });
 
       const cash = cashRows.map((r: any) => ({
         date: new Date(r.date).toISOString().slice(0, 10),
@@ -1427,6 +1457,13 @@ export const stockService = {
           0,
         capitalExpenditure: r.capitalExpenditure || 0,
         freeCashFlow: r.freeCashFlow || 0,
+        // Derived net capital returned (dividends + buybacks). Yahoo FTS
+        // reports buybacks as `repurchaseOfCapitalStock` (negative).
+        ...deriveNetReturned({
+          dividendsPaid: r.dividendsPaid,
+          salePurchaseOfStock: r.salePurchaseOfStock,
+          commonStockRepurchased: r.repurchaseOfCapitalStock,
+        }),
       }));
 
       return {
