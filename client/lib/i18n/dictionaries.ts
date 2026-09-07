@@ -481,7 +481,40 @@ const en = {
   "fundamentals.group.marginsGrowth": "Margins & Growth",
   "fundamentals.group.balance": "Balance",
   "fundamentals.group.dividend": "Dividend",
+  "fundamentals.loading": "Loading fundamentals…",
   "fundamentals.marketCap": "Market Cap",
+
+  // Stock health scorecard (Index.tsx ticker page). Altman Z + Piotroski
+  // come from FMP financial-scores; profitability/growth are Vantage
+  // composites and are always badged "Derived".
+  "scorecard.title": "Health Scorecard",
+  "scorecard.altman": "Altman Z",
+  "scorecard.altman.explanation":
+    "Bankruptcy-risk model from working capital, retained earnings, EBIT and market value.",
+  "scorecard.piotroski": "Piotroski Score",
+  "scorecard.piotroski.explanation":
+    "9-point fundamentals strength score covering profitability, leverage and efficiency.",
+  "scorecard.profitability": "Profitability",
+  "scorecard.profitability.explanation":
+    "Composite of ROE, ROA and net margin from trailing-twelve-month data.",
+  "scorecard.growth": "Growth",
+  "scorecard.growth.explanation":
+    "Composite of revenue and EPS year-over-year growth over the latest two fiscal years.",
+  "scorecard.zone.safe": "Safe zone",
+  "scorecard.zone.grey": "Grey zone",
+  "scorecard.zone.distress": "Distress zone",
+  "scorecard.band.strong": "Strong",
+  "scorecard.band.moderate": "Moderate",
+  "scorecard.band.weak": "Weak",
+  "scorecard.source.fmp": "FMP",
+  "scorecard.source.fmpTooltip": "Score from FMP financial-scores API.",
+  "scorecard.source.derived": "Derived",
+  "scorecard.source.derivedTooltip":
+    "Vantage composite of data this page already fetches — not a provider score.",
+  "scorecard.source.unavailable": "Unavailable",
+  "scorecard.unavailableTooltip":
+    "Provider scores are unavailable (quota or coverage) — no estimate is shown.",
+  "scorecard.asOf": "as of FY {year}",
   "fundamentals.pe": "P/E (TTM)",
   "fundamentals.priceToSales": "Price to Sales",
   "fundamentals.evToEbitda": "EV to EBITDA",
@@ -1288,7 +1321,40 @@ const he: Record<string, string> = {
   "fundamentals.group.marginsGrowth": "שולי רווח וצמיחה",
   "fundamentals.group.balance": "מאזן",
   "fundamentals.group.dividend": "דיבידנד",
+  "fundamentals.loading": "טוען נתוני יסוד…",
   "fundamentals.marketCap": "שווי שוק",
+
+  // כרטיס ניקוד בריאות המניה (דף המניה Index.tsx). Altman Z ו-Piotroski
+  // מגיעים מ-FMP financial-scores; רווחיות וצמיחה הם מדדים מורכבים של
+  // Vantage ולכן מסומנים תמיד כ"נגזר".
+  "scorecard.title": "כרטיס ניקוד בריאות",
+  "scorecard.altman": "Altman Z",
+  "scorecard.altman.explanation":
+    "מודל סיכון פשיטת רגל המבוסס על הון חוזר, רווחים שמורים, EBIT ושווי שוק.",
+  "scorecard.piotroski": "ניקוד Piotroski",
+  "scorecard.piotroski.explanation":
+    "ניקוד חוסן פונדמנטלי (0–9) הבוחן רווחיות, מינוף ויעילות תפעולית.",
+  "scorecard.profitability": "רווחיות",
+  "scorecard.profitability.explanation":
+    "מדד מורכב של ROE, ROA ושולי רווח נקי מנתוני 12 החודשים האחרונים.",
+  "scorecard.growth": "צמיחה",
+  "scorecard.growth.explanation":
+    "מדד מורכב של צמיחת הכנסות ורווח למניה לעומת השנה הקודמת, על פני שתי שנות הדיווח האחרונות.",
+  "scorecard.zone.safe": "אזור בטוח",
+  "scorecard.zone.grey": "אזור אפור",
+  "scorecard.zone.distress": "אזור מצוקה",
+  "scorecard.band.strong": "חזק",
+  "scorecard.band.moderate": "בינוני",
+  "scorecard.band.weak": "חלש",
+  "scorecard.source.fmp": "FMP",
+  "scorecard.source.fmpTooltip": "הניקוד מ-API ה-financial-scores של FMP.",
+  "scorecard.source.derived": "נגזר",
+  "scorecard.source.derivedTooltip":
+    "מדד מורכב של Vantage המבוסס על נתונים שהעמוד כבר מביא — אינו ניקוד ספק.",
+  "scorecard.source.unavailable": "לא זמין",
+  "scorecard.unavailableTooltip":
+    "ניקודי הספק אינם זמינים (מכסה או כיסוי) — לא מוצג אומדן חלופי.",
+  "scorecard.asOf": "נכון לשנת כספים {year}",
   "fundamentals.pe": "מכפיל רווח (TTM)",
   "fundamentals.priceToSales": "יחס מחיר למכירות",
   "fundamentals.evToEbitda": "EV ל-EBITDA",

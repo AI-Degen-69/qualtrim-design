@@ -283,6 +283,8 @@ export interface FinancialScores {
   symbol: string;
   altmanZScore?: number;
   piotroskiScore?: number; // 0–9
+  /** Fiscal year the scores were computed for (FMP per-year payload). */
+  year?: string;
 }
 
 /**

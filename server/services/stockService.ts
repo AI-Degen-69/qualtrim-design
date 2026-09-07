@@ -1841,6 +1841,8 @@ export const stockService = {
             symbol: String(s0.symbol ?? symbol),
             altmanZScore: s0.altmanZScore,
             piotroskiScore: s0.piotroskiScore,
+            // Per-year payload — surfaces as "as of FY n" on the scorecard.
+            year: s0.year ?? undefined,
           }
         : null,
       source: "fmp",

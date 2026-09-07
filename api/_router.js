@@ -521,6 +521,11 @@ export async function handleStockMetrics(req, res) {
     const clean = (o) =>
       Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined));
 
+    // Parity note: this Vercel twin is deliberately Yahoo-only (no FMP
+    // financial-scores fetch — keeps the serverless path keyless and within
+    // the free FMP budget). Scores are therefore always null here; the
+    // client scorecard badges this as unavailable instead of inventing data.
+    // The TS server path (stockService.getMetrics) serves real FMP scores.
     const result = {
       metrics: clean(metrics),
       ratios: clean(ratios),
