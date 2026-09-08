@@ -1,5 +1,6 @@
 import { RequestHandler } from "express";
 import { stockService } from "../services/stockService";
+import { verifyFinancialPayload } from "../services/secVerify";
 // Shared symbols-query validation (also consumed by the Vercel
 // `_router.js` twin) — see server/services/symbolsQuery.ts.
 import {
@@ -177,6 +178,30 @@ export const handleStockFinancials: RequestHandler = async (req, res) => {
     period,
   );
   res.json(data);
+};
+
+/**
+ * Independent verification endpoint — proves the financials payload is
+ * consistent with SEC EDGAR's own published numbers. Re-fetches raw
+ * companyfacts (no shared cache), re-derives the values, and audits the
+ * merge/provenance invariants. Read-only for callers; the response is
+ * `SecVerifyResult` (see server/services/secVerify.ts).
+ */
+export const handleStockFinancialsVerify: RequestHandler = async (req, res) => {
+  const symbol = parseTicker(req.query.symbol);
+  if (!symbol)
+    return res.status(400).json({ error: "valid symbol parameter required" });
+  const periodRaw = String(req.query.period ?? "")
+    .trim()
+    .toLowerCase();
+  const period: "annual" | "quarter" =
+    periodRaw === "quarter" ? "quarter" : "annual";
+  const payload: FinancialStatements = await stockService.getFinancialStatements(
+    symbol,
+    period,
+  );
+  const report = await verifyFinancialPayload(symbol, period, payload);
+  res.json(report);
 };
 
 export const handleStockMetrics: RequestHandler = async (req, res) => {

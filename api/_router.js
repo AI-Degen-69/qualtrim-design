@@ -34,6 +34,8 @@ import { parseSymbolsQuery } from "../server/services/symbolsQuery.js";
 // SEC EDGAR XBRL history backfill — parity twin of stockService's use of
 // the same module (resolves via the .js-extension import mechanism above).
 import { extendFinancialHistory } from "../server/services/secEdgar.js";
+// Independent SEC verification — parity twin of the Express verify route.
+import { verifyFinancialPayload } from "../server/services/secVerify.js";
 
 const yfInner = new yfDefault({ suppressNotices: ["yahooSurvey"] });
 // Proxy-wrap yf so every method invocation auto-records one Yahoo call
@@ -2352,6 +2354,34 @@ export async function handleFxRates(req, res) {
 // ── Router ────────────────────────────────────────────────────────────────────
 // Logos load client-side directly from Logo.dev's CDN (see `client/lib/logoDev.ts`).
 // There is no longer a server-side proxy route.
+/**
+ * Independent verification endpoint — parity twin of the Express
+ * `/api/stock-financials-verify`. Serves the same payload the financials
+ * route would, then audits it against freshly-fetched EDGAR data and the
+ * documented merge/provenance invariants (see server/services/secVerify.ts).
+ */
+export async function handleStockFinancialsVerify(req, res) {
+  const symbol = String(req.query?.symbol || "").toUpperCase().trim();
+  if (!symbol)
+    return res.status(400).json({ error: "symbol parameter required" });
+  const period =
+    String(req.query?.period || "annual").toLowerCase() === "quarter"
+      ? "quarter"
+      : "annual";
+  // Same data path the regular financials route serves (cache-aware).
+  const payload = await new Promise((resolve) => {
+    const fakeRes = {
+      json: (data) => resolve(data),
+      status: () => fakeRes,
+    };
+    handleStockFinancials({ query: { symbol, period } }, fakeRes).catch(() =>
+      resolve({ income: [], balance: [], cash: [] }),
+    );
+  });
+  const report = await verifyFinancialPayload(symbol, period, payload);
+  res.json(report);
+}
+
 const routes = {
   "/api/demo": handleDemo,
   "/api/stock-quote": handleStockQuote,
@@ -2376,6 +2406,7 @@ const routes = {
   "/api/provider-health": handleProviderHealth,
   "/api/stock-yahoo-fallback-financials": handleStockYahooFallbackFinancials,
   "/api/screener/fundamental-filter": handleScreenerFundamentalFilter,
+  "/api/stock-financials-verify": handleStockFinancialsVerify,
 };
 
 export async function router(req, res) {
