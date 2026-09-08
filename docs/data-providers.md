@@ -215,6 +215,12 @@ and stay under ~10 req/s. Backfill fetches only fire when a statement is
 still under the 10-year target AND the per-symbol extension cache misses, so
 real traffic is ~1 SEC call per issuer per 24h per region at most.
 
+**Trust & verification:** the served payload is independently checkable via
+`GET /api/stock-financials-verify?symbol=SYM&period=quarter` — it re-fetches
+EDGAR fresh and audits provenance, merge order, depth, and values. See
+`docs/sec-verify-reference.md` (reference), `docs/howto-verify-sec-data.md`
+(how-to), and `docs/sec-data-trust.md` (trust model).
+
 Mapping notes: annual rows read 10-K FY totals; quarterly rows prefer the
 filer's own single-quarter tag and otherwise derive by subtracting YTD
 cumulative figures inside one fiscal year on one concept (XBRL tags migrate
