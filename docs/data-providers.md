@@ -209,11 +209,18 @@ same numbers — see `server/services/secEdgar.ts`.
 | `company_tickers.json` (ticker → CIK) | ✅ Free | ~4 MB, cached 7 days per process |
 | `companyfacts/CIK##########.json` | ✅ Free | ~1–5 MB per issuer; memoized 24h per process |
 
-Guidelines SEC asks callers to follow: identify in the `User-Agent`
-(default: project URL; override `SEC_EDGAR_USER_AGENT`), cache aggressively,
-and stay under ~10 req/s. Backfill fetches only fire when a statement is
-still under the 10-year target AND the per-symbol extension cache misses, so
-real traffic is ~1 SEC call per issuer per 24h per region at most.
+Guidelines SEC asks callers to follow: identify in the `User-Agent`, cache
+aggressively, and stay under ~10 req/s. Backfill fetches only fire when a
+statement is still under the 10-year target AND the per-symbol extension
+cache misses, so real traffic is ~1 SEC call per issuer per 24h per region
+at most.
+
+**User-Agent format matters (verified live 2026-09):** SEC's bot shield 403s
+any UA containing a URL or a `Name/x.y` version token, and redirects
+`www.sec.gov` to the "Undeclared Automated Tool" page. The accepted format is
+plain `Project Name (contact@email)` — the default in `secEdgar.ts` follows
+it; override with `SEC_EDGAR_USER_AGENT` in `.env` (the file `dotenv/config`
+actually loads — not `.env.local`) if you want a different contact.
 
 **Trust & verification:** the served payload is independently checkable via
 `GET /api/stock-financials-verify?symbol=SYM&period=quarter` — it re-fetches
