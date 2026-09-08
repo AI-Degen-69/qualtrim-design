@@ -60,7 +60,7 @@ const secFactsUrl = (cik: string) =>
 
 const secUserAgent = () =>
   process.env.SEC_EDGAR_USER_AGENT ||
-  "Vantage/1.0 (https://github.com/AI-Degen-69/vantage) free-tier financial history";
+  "Vantage research (roberttiger9@gmail.com)";
 
 /** How much history to fill (fiscal years / fiscal quarters). */
 export const SEC_TARGET_YEARS = 10;
