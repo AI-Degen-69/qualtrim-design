@@ -191,6 +191,7 @@ export async function verifyCrossSource(
   symbol: string,
   payload: FinancialStatements,
   cik: string | null,
+  period: "annual" | "quarter",
 ): Promise<{ checks: VerifyCheck[]; reachable: boolean }> {
   const checks: VerifyCheck[] = [];
   if (!cik) {
@@ -222,18 +223,28 @@ export async function verifyCrossSource(
     };
   }
 
-  const sec = buildSecHistoryRows(facts, symbol, "quarter");
+  // Derive rows for the SAME period under verification — comparing an
+  // annual payload against quarterly derivations would pit FY totals
+  // against Q4-only values and produce guaranteed false mismatches.
+  const sec = buildSecHistoryRows(facts, symbol, period);
   const secByDate = new Map(sec.income.map((r) => [r.date, r]));
 
   const tagged = payload.income.filter((r) => r.dataSource === "sec");
   const comparable = tagged.filter((r) => secByDate.has(r.date));
   if (comparable.length === 0) {
+    // Fabricated-tag signature: served rows claim SEC provenance but the
+    // fresh EDGAR derivation has no row at those dates. Could be a mapper
+    // regression or poisoned rows — either way nothing was verified and
+    // the payload must NOT earn "verified".
     return {
       checks: [
         {
           id: "cross-source:revenue",
-          status: "warn",
-          detail: "no overlapping SEC-tagged rows to compare — nothing verified numerically",
+          status: tagged.length > 0 ? "fail" : "warn",
+          detail:
+            tagged.length > 0
+              ? `0/${tagged.length} SEC-tagged rows found in freshly-derived EDGAR data — fabricated/stale provenance signature`
+              : "no SEC-tagged rows to compare — nothing verified numerically",
         },
       ],
       reachable: true,
@@ -375,6 +386,7 @@ export async function verifyFinancialPayload(
     symbol,
     payload,
     cik,
+    period,
   );
   checks.push(...crossChecks);
 
